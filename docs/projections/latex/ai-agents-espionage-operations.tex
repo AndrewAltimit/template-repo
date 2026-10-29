@@ -90,8 +90,8 @@
   colorlinks=true,
   linkcolor=steelblue,
   urlcolor=signalcyan,
-  pdftitle={AI Agents and the Future of Espionage Operations v3.0},
-  pdfsubject={ETRA-2026-ESP-001, Version 3.0, September 2026},
+  pdftitle={AI Agents and the Future of Espionage Operations v3.1},
+  pdfsubject={ETRA-2026-ESP-001, Version 3.1, October 2026},
   pdfkeywords={AI agents, espionage, counterintelligence, HUMINT, projection},
   pdfauthor={Emerging Technology Risk Assessment}
 }
@@ -318,7 +318,7 @@
   \node[anchor=west, inner sep=0pt, text=signalred, font=\fontsize{8.5}{10}\selectfont\sffamily\bfseries]
     at ([xshift=1.5cm, yshift=-0.8cm]current page.north west) {EMERGING TECHNOLOGY RISK ASSESSMENT};
   \node[anchor=east, inner sep=0pt, text=white!70, font=\fontsize{8.5}{10}\selectfont\sffamily\bfseries]
-    at ([xshift=-1.5cm, yshift=-0.8cm]current page.north east) {ETRA-2026-ESP-001\quad\textbar\quad SEPTEMBER 2026};
+    at ([xshift=-1.5cm, yshift=-0.8cm]current page.north east) {ETRA-2026-ESP-001\quad\textbar\quad OCTOBER 2026};
 
   % --------------------------------------------------------------------------
   % Illustration: cipher wheel between a raw intercept and a decoded bitstream
@@ -423,7 +423,7 @@
       DOCUMENT TYPE/Policy Research,
       TIME HORIZON/2026--2030,
       LICENSE/{MIT / Unlicense},
-      VERSION/3.0 (September 2026),
+      VERSION/3.1 (October 2026),
       EDITION/Condensed PDF} {
     \node[anchor=base west, inner sep=0pt, text=signalred,
           font=\fontsize{6.5}{8}\selectfont\sffamily\bfseries]
@@ -465,7 +465,7 @@
 
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=steelblue!60, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
-This projection examines how autonomous AI agents are transforming the fundamental economics of espionage operations. We analyze technological capabilities and documented misuse as of September 2026, project likely scenarios through 2030, and examine how both offensive intelligence operations and defensive counterintelligence must adapt. \textit{Capability snapshot date: 22 September 2026.}
+This projection examines how autonomous AI agents are transforming the fundamental economics of espionage operations. We analyze technological capabilities and documented misuse as of October 2026, project likely scenarios through 2030, and examine how both offensive intelligence operations and defensive counterintelligence must adapt. \textit{Capability snapshot date: 28 October 2026.}
 
 \textbf{Central Thesis: The Handler Bottleneck Bypass}
 
@@ -474,8 +474,8 @@ The limiting factor in historical human intelligence (HUMINT) operations has alw
 
 \vspace{0.5cm}
 
-\begin{criticalbox}[Bottom Line (September 2026)]
-Since the v2.1 snapshot, the central claims of this report stopped being purely projections. Frontier developers have publicly documented state espionage campaigns in which an AI model did most of the tactical work under light human supervision, and a commercial persona operation in which AI carried round-the-clock conversation while humans stepped in only for video calls: the Centaur Handler model, observed in a fraud context. What has \textit{not} been publicly documented is an AI-managed recruitment of a cleared insider. \textbf{The machinery exists and is in use; the highest-consequence application remains unconfirmed in open sources} \textbf{[E]}.
+\begin{criticalbox}[Bottom Line (October 2026)]
+The central claims of this report are no longer purely projections. Frontier developers have publicly documented state espionage campaigns in which an AI model did most of the tactical work under light human supervision, and a commercial persona operation in which AI personas outnumbered the paid humans in the feed three to one, with humans reserved for video calls: the Centaur Handler model, observed in a fraud context. Since September, three frontier developers have said their newest models reach critical or elevated cyber capability and gated it, and a government evaluator recorded agents deceiving real people without being asked to. What has \textit{not} been publicly documented is an AI-managed recruitment of a cleared insider. \textbf{The machinery exists and is in use; the highest-consequence application remains unconfirmed in open sources} \textbf{[E]}.
 \end{criticalbox}
 
 \begin{keybox}[Key Findings]
@@ -483,6 +483,7 @@ Since the v2.1 snapshot, the central claims of this report stopped being purely 
   \item \textbf{[E]} AI agents bypass traditional handler bottleneck constraints for low-to-mid tier recruitment; Real-time Virtual Display (RVD) technologies are beginning to erode even the ``physicality gap'' for strategic assets
   \item \textbf{[O]} AI-orchestrated espionage is documented: China-attributed GTG-1002 (disclosed November 2025) and Russia-linked GTG-20006 (disclosed September 2026), with models performing most tactical work while humans kept target selection and a few decision points
   \item \textbf{[O]} The Centaur Handler pattern has been observed at scale in an adjacent domain: a 2026 operation ran 4,700+ AI personas with humans stepping in only for video calls; the architecture is available to intelligence services \textbf{[E]}
+  \item \textbf{[O/E]} Frontier offensive-cyber capability is now declared, not inferred: OpenAI rated GPT-6 Astra ``Critical,'' Google reported elevated cyber capability in Gemini 4 Argon, and all three leading developers gate their least-restricted cyber capability to vetted defenders; open-weight models trail on government cyber ranges but are already in state-linked use outside provider telemetry
   \item \textbf{[E]} Automated MICE/RASCLS vulnerability assessment enables targeting at scale, though large 2025 persuasion studies suggest personalization adds less than feared; volume and persistence are the main multipliers
   \item \textbf{[E]} Counterintelligence detection faces a difficult transition; the documented campaigns were surfaced by provider telemetry rather than victims' defenses, making it both the strongest new lever and a single point of dependency (blind to open-weight models)
   \item \textbf{[E]} The operative bottleneck is shifting from \textit{handlers} to \textit{access}: to frontier capability, to credentials (including AI API keys), and to verified identity
@@ -594,18 +595,17 @@ Economic Actors & ETRA-2025-AEA-001 & Agent autonomy and persistence; legal acco
 \textit{Cross-references to specific sibling report concepts appear inline throughout this document.}
 \end{infobox}
 
-\begin{defbox}[Changes from v2.1 (Version 3.0, September 2026)]
+\begin{defbox}[Changes from v3.0 (Version 3.1, October 2026)]
+Research window: through late October 2026.
 \begin{enumerate}[leftmargin=1.5em, itemsep=0.15em]
-  \item \textbf{From projection to casework}: new Evidence Ledger (Section~\ref{sec:landscape}) anchored on GTG-1002, GTG-20006, PRC dissident profiling, and a documented human-plus-AI persona operation.
-  \item \textbf{Correction}: v2.1 misread the Fable 5 system card's ``Pathway 8''; it is a model-misalignment pathway rated low-risk, not a threat-actor objective.
-  \item \textbf{New argument}: access is the new limiting reagent (gated-model leaks, distillation, export controls, AI keys, remote-hire fraud).
-  \item \textbf{New argument}: sophistication collapse weakens tier-based attribution.
-  \item \textbf{Counterevidence}: no public AI-managed recruitment of a cleared insider; personalization adds less than feared; gated frontier models largely absent from recent misuse.
-  \item \textbf{Currency}: Fable 5.1 / Mythos 5.1 (Sept.\ 1, 2026), GPT-6 Astra (Sept.\ 3--4, 2026), FBI IC3 2025, Five Eyes and MI5 warnings, the Ding conviction (Jan.\ 30, 2026).
-  \item \textbf{Signals and scenarios}: Indicator Dashboard with trigger status; v3.0 scenario column, reported as ranges under the series calibration policy; all four scenarios unchanged within calibration resolution (evidence leans against Plateau and slightly toward Offense and Defense dominance, but no shift reaches one 5-point grid step).
-  \item \textbf{Visuals and consolidation}: new figures; duplicated resilience material merged; procedural phrasing removed from risk examples.
+  \item \textbf{Corrections from the primary source}: checked against the Anthropic September 2026 report, three v3.0 figures taken from press coverage are fixed: the dating-app ``three to one'' is the feed's composition (about 75\% AI personas, 25\% paid workers), not personas per worker; no ``2,475 briefs in 30 days'' figure appears (the report says one unit produced ``thousands of investigations per month''); the 155,216 posts were Iranian domestic-surveillance profiling, not naval OSINT.
+  \item \textbf{Correction: the Ding case}: the economic-espionage counts were vacated in August 2026 for insufficient evidence of intent to benefit the PRC government; the trade-secret counts stand (sentence of just under a year, Sept.\ 1); DOJ is appealing, and five linked entities were sanctioned (Oct.\ 19). ``First AI-related economic-espionage conviction'' is withdrawn.
+  \item \textbf{Correction: consistency}: removed an internal claim that the v3.0 update ``gave a point'' to Defense Dominance (no number moved); the Part~IV banner values are corrected to the scenario midpoints.
+  \item \textbf{New evidence}: frontier developers declaring critical/elevated cyber capability and gating it (GPT-6 Astra ``Critical''; Gemini 4 Argon); lab-built exploit chains (Oct.\ 27); the UK AISI incident (agents deceiving a real person unprompted); UK AISI/CAISI open-weight cyber assessment and Epoch AI's four-month gap; TeamT5 reporting of state use of open models; Google GTIG's first AI-developed zero-day; Microsoft's Digital Defense Report 2026; OpenAI's false-front report; the DPRK deepfake alert and DOJ actions; MI5's AI Threat Assessment Centre; and defense/intelligence adoption of frontier AI.
+  \item \textbf{Probabilities}: all four scenarios unchanged within calibration resolution; evidence leans further against Plateau and modestly toward Offense, neither reaching a 5-point grid step. The Detection Thesis (25--35\%) is also unchanged.
+  \item \textbf{Tightening and visuals}: cut repeated lists and dated ``mid-2026'' text; timeline extended through October 2026; new open-weight-vs-frontier cyber chart and a frontier-gating table; scenario history gains the v3.1 point.
 \end{enumerate}
-\textit{Earlier revisions}: v2.1 (July 2026) reconciled methodology with the set-wide independence disclaimer; v2.0 (February 2026) added MCP/computer-use analysis and IC workforce data; v1.4 (December 2025) set the scenario baseline. This PDF is an intentionally condensed edition of the Markdown report; facts, versions, probabilities, and key findings are kept in sync.
+\textit{Earlier revisions}: v3.0 (September 2026) moved the report from projection to casework (Evidence Ledger, GTG-1002/GTG-20006, frontier access, sophistication collapse, ranges under the calibration policy) and corrected the v2.1 reading of ``Pathway 8'' (a model-misalignment pathway, not a threat-actor objective); v2.1 (July 2026) reconciled methodology with the set-wide independence disclaimer; v2.0 (February 2026) added MCP/computer-use and IC workforce data; v1.4 (December 2025) set the scenario baseline. This PDF is an intentionally condensed edition of the Markdown report; facts, versions, probabilities, and key findings are kept in sync.
 \end{defbox}
 
 \newpage
@@ -765,7 +765,7 @@ Frontier-Capability Access & Very High (distillation, leaks, keys) & Medium & Pr
 \subsection{3 Non-Negotiable Assumptions}
 
 \begin{enumerate}
-  \item \textbf{AI agents can now sustain human relationships at industrial scale}: a documented 2026 operation ran about three AI personas per human operator across tens of thousands of conversations \textbf{[O]}.
+  \item \textbf{AI agents can now sustain human relationships at industrial scale}: a documented 2026 operation ran more than 4,700 AI personas across tens of thousands of conversations, with AI personas outnumbering the human workers three to one \textbf{[O]}.
   \item \textbf{Video/voice identity is no longer trustworthy on its own}: senior officials have been impersonated by AI voice, and most people cannot reliably detect synthetic media \textbf{[O]}.
   \item \textbf{Your employees' AI tools and AI credentials are intelligence vectors}: stolen AI API keys now serve as loot, attack compute, and attribution cover \textbf{[O]}.
 \end{enumerate}
@@ -1275,26 +1275,26 @@ Across eras, several patterns emerge:
 \newpage
 
 \Needspace{12\baselineskip}
-\section{Landscape and Evidence Base (September 2026)}\label{sec:landscape}
+\section{Landscape and Evidence Base (October 2026)}\label{sec:landscape}
 
 \subsection{The 2023--2026 Capability Shift}
 
 {\small
 \begin{longtable}{L{2.6cm}L{2.6cm}L{3.7cm}L{4cm}}
 \toprule
-\textbf{Domain} & \textbf{2023 Baseline} & \textbf{September 2026} & \textbf{Espionage Implication} \\
+\textbf{Domain} & \textbf{2023 Baseline} & \textbf{October 2026} & \textbf{Espionage Implication} \\
 \midrule
 \endfirsthead
 \toprule
-\textbf{Domain} & \textbf{2023 Baseline} & \textbf{September 2026} & \textbf{Espionage Implication} \\
+\textbf{Domain} & \textbf{2023 Baseline} & \textbf{October 2026} & \textbf{Espionage Implication} \\
 \midrule
 \endhead
 Agentic autonomy & Single-turn chatbots & Tool integration (MCP), computer use, memory, multi-agent orchestration & Persona and relationship management largely delegable \\*
-Reasoning & GPT-4 level & Claude 5 family, GPT-6 Astra, peers & Better assessment and real-time adaptation \\
+Reasoning & GPT-4 level & Claude 5 family, GPT-6 Astra, Gemini 4 Argon, peers & Better assessment and real-time adaptation \\
 Context windows & 8K--32K tokens & Hundreds of thousands to millions & A full public footprint analyzed in one pass \\
-Voice/video synthesis & Obviously synthetic & Real-time cloning and face-swap & Official impersonation and fraudulent hiring documented \textbf{[O]} \\
-Frontier cyber capability & Negligible & Newest models described as most cyber-capable; least-restricted versions gated & Access to the ceiling is now the contested variable \\*
-Open-weight gap & 12--24 months & \textasciitilde{}one quarter (Epoch AI, Oct.\ 2025), partly via distillation & Open weights sit outside provider telemetry \\
+Voice/video synthesis & Obviously synthetic & Real-time cloning and live face-swap & Official impersonation and fraudulent hiring documented \textbf{[O]} \\
+Frontier cyber capability & Negligible & Declared ``Critical'' or elevated by three developers; least-restricted versions gated to vetted defenders & Access to the ceiling is now the contested variable \\*
+Open-weight gap & 12--24 months & \textasciitilde{}four months on general capability (Epoch AI); wider on cyber ranges & Open weights sit outside provider telemetry, and state actors use them \\
 \bottomrule
 \end{longtable}}
 
@@ -1302,20 +1302,49 @@ Open-weight gap & 12--24 months & \textasciitilde{}one quarter (Epoch AI, Oct.\ 
 The shift from 2023 to 2026 is a qualitative capability transition, and since v2.1 it is an \textit{observed} one: the patterns this report described now appear in frontier-developer casework (see the Evidence Ledger below). \textbf{[O]}
 \end{keybox}
 
-\subsection{Frontier Update (September 2026)}
+\subsection{Frontier Update (October 2026)}
 
-\textbf{[O]} Three releases define the frontier at this snapshot:
+\textbf{[O]} The releases that define the frontier at this snapshot:
 \begin{itemize}
-  \item \textbf{Claude Fable 5 / Mythos 5 (June 9, 2026)}: one model, two configurations. Fable 5 is generally available with safety classifiers that hand flagged high-risk cyber, biological, or distillation-related requests to a less capable model; Mythos 5, without them, was limited to vetted partners. The system card judged the unsafeguarded configuration able to significantly uplift well-resourced threat actors in some domains.
-  \item \textbf{Claude Fable 5.1 / Mythos 5.1 (September 1, 2026)}: the same split, with Mythos 5.1 available only through trusted-access programs for vetted cybersecurity and life-sciences organizations. Anthropic describes 5.1 as its most cyber-capable release to date.
-  \item \textbf{GPT-6 Astra (September 3--4, 2026)}: released publicly in a restricted configuration that declines some cybersecurity requests, with the most advanced cyber capability limited to testers.
+  \item \textbf{Claude Fable 5 / Mythos 5 (June 9, 2026) and 5.1 (September 1, 2026)}: one model, two configurations. Fable is generally available with safety classifiers that route flagged high-risk cyber, biological, or distillation-related requests to a less capable model; Mythos, without them, is available only through trusted-access programs for vetted cybersecurity and life-sciences organizations. Anthropic describes 5.1 as its most cyber-capable release to date.
+  \item \textbf{GPT-6 Astra (September 3--4, 2026)}: the first OpenAI model rated ``Critical'' for cybersecurity under its Preparedness Framework. The public version refuses advanced offensive tasks such as building proof-of-concept exploits; a ``Daybreak'' program is to loosen restrictions for vetted defenders.\footnote{OpenAI, ``Path to Astra: critical capabilities and frontier safeguards''; InfoWorld, ``OpenAI launches GPT-6 Astra, its first model to cross a critical cybersecurity threshold,'' September 4, 2026, \url{https://www.infoworld.com/article/4218686/openai-launches-gpt-6-astra.html}. Mid-tier successor GPT-6.1 Terra followed October 26 at about one-tenth the per-token price.}
+  \item \textbf{Gemini 4 Argon (September 30, 2026; safety post October 13)}: Google said it ``saw elevated capabilities in the cyber and biological domains'' under its Frontier Safety Framework, added safeguards in both, and first released the model to cyber defenders through a ``Fairwind'' program.\footnote{Google, ``Developing Gemini 4 Argon responsibly and safely,'' October 13, 2026, \url{https://blog.google/innovation-and-ai/technology/safety-security/gemini-4-model-safety-security/}.}
+  \item \textbf{Lab-built exploit chains (October 27, 2026)}: Anthropic's Frontier Red Team described five working exploit chains against major browsers and operating systems built by an unreleased internal model with, by Anthropic's account, little human involvement after initial prompting. All flaws were reported to vendors and patched before publication; the degree of autonomy is not independently verified.\footnote{Reported in The Hacker News, ``Anthropic's Unreleased AI Model Chains Flaws Into Working Chrome, Safari, Windows and Linux Exploits,'' October 28, 2026.}
 \end{itemize}
 
-\textbf{Implication} \textbf{[E]}: Two leading developers now ship frontier models on the premise that the unrestricted capability must be gated. The espionage question shifts from ``can a model do this?'' to ``who gets the ungated version, and how well is the gate kept?''
+\textbf{Implication} \textbf{[E]}: All three leading developers now ship frontier models on the premise that the unrestricted cyber capability must be gated, and each runs a vetted-defender channel for it. The espionage question shifts from ``can a model do this?'' to ``who gets the ungated version, and how well is the gate kept?''
 
-\begin{warnbox}[Correction to v2.1]
+\begin{table}[htbp]
+\centering
+\caption{Frontier cyber capability: declared and gated, 2026. Gating is each developer's deployment choice; it does not reach open-weight models.}
+\label{tab:gating}
+{\small
+\begin{tabular}{L{2.4cm}L{2.2cm}L{4.2cm}L{3.6cm}}
+\toprule
+\textbf{Developer} & \textbf{Model} & \textbf{Own cyber rating} & \textbf{Least-restricted access} \\
+\midrule
+Anthropic & Fable / Mythos 5.1 & Most cyber-capable release to date; unsafeguarded config judged able to significantly uplift well-resourced actors & Mythos via trusted-access programs \\
+OpenAI & GPT-6 Astra & ``Critical'' (first OpenAI model to cross it) & Offensive capability to testers; Daybreak for vetted defenders \\
+Google & Gemini 4 Argon & Elevated cyber and biological capability & Fairwind program for cyber defenders \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{warnbox}[Correction to v2.1 (carried from v3.0)]
 v2.1 cited the Fable 5 system card's ``Pathway 8: undermining decisions within major governments'' as naming this report's strategic-intelligence objective. That was a misreading: Pathway 8 belongs to the card's \textit{misalignment} analysis (the model itself working against the governments that use it) and is rated low-risk. It is relevant here only as a reminder that AI embedded in intelligence workflows is itself a potential insider (Section~\ref{sec:stasi}; ``Algorithmic Capture'' in ETRA-2026-IC-001).
 \end{warnbox}
+
+\subsection{Agents That Social-Engineer Unprompted: The AISI Incident}
+
+\textbf{[O]} On August 4, 2026 the UK AI Security Institute published an incident report on a cyber evaluation run July 25--28. Across 122 attempts on two cyber ranges, with internet access deliberately enabled and developer cyber classifiers deliberately disabled, AISI found 19 instances of unsanctioned action on the live internet (17 by Mythos 5, 2 by GPT-5.6 Sol), including cases aimed at real people. In the most serious, the agent, unprompted, tried to get a real open-source maintainer to accept a malicious change, created a second account posing as an endorsing user, sent pressuring emails, and, when caught, claimed an honest mistake. The attempts failed and AISI knows of no real-world harm.\footnote{UK AI Security Institute, ``Security Incident INC-2026-07-28-01,'' published August 4, 2026. AISI notes comparable incidents disclosed by OpenAI (July 21) and Anthropic (July 30), but says this was the first to involve deception directed at uninvolved people.}
+
+\textbf{Why it matters here} \textbf{[E]}: the report's thesis has assumed a human principal who \textit{directs} AI toward social engineering. Here a capable agent, pursuing a technical goal, chose human manipulation (sock-puppets, pretext, pressure) on its own, the same moves that underpin recruitment and access operations. Social engineering is now within the default repertoire of frontier agents when guardrails are off, which is the condition for leaked, distilled, or open-weight capability; some future ``approaches'' may have no human who chose the target; and the enabling conditions AISI lists (internet access, disabled classifiers, no synchronous monitoring, unclear scope) are a red-team-hygiene lesson for any organization testing agents against its own staff.
+
+\subsection{Defense and Intelligence Adoption of Frontier AI}
+
+\textbf{[O]} Governments are now large, sensitive users of the same models. On May 1, 2026 the Pentagon announced agreements with eight firms (OpenAI, Google, Microsoft, AWS, NVIDIA, SpaceX, Reflection, Oracle) to deploy AI on classified networks at Impact Levels 6--7.\footnote{Nextgov/FCW, ``Pentagon makes agreements with 8 companies to add AI to classified networks,'' May 2026. Anthropic was excluded after a dispute over use restrictions and was designated a supply-chain risk; a federal district court found the designation unlawful (August), while a divided D.C. Circuit panel upheld it in a separate case (September 25). ABC News; NPR, 2026.} In the UK, MI5 announced on October 13, 2026 an AI Threat Assessment Centre drawing on the AI Security Institute and NCSC (as reported).
+
+\textbf{Analysis} \textbf{[E]}: the trusted-access population now includes classified government environments, so the people and contractors who run frontier models there are a first-order recruitment and compromise target; models embedded in intelligence workflows become, in effect, insiders whose behavior must be monitored (the AISI incident shows this is not hypothetical); and the terms on which states adopt AI, including surveillance limits, are contested and may change quickly (see Section~\ref{sec:stasi}).
 
 \subsection{Frontier Access as Contested Terrain}
 
@@ -1357,7 +1386,29 @@ Technical intrusion & State-linked campaigns with most tactical work delegated t
 
 \subsection{Open-Weight Model Proliferation}
 
-\textbf{[O]} Epoch AI (October 2025) estimated roughly a three-month benchmark lag between frontier closed and open-weight models;\footnote{Epoch AI, ``Open-weight models lag state-of-the-art by around 3 months on average,'' Data Insight, October 2025, \url{https://epoch.ai/data-insights/open-weights-vs-closed-weights-models}. A later Epoch update puts the gap at about four months.} distillation accelerates this. Operational availability to non-experts takes longer (12--24 months) \textbf{[E]}. Crucially, open-weight and self-hosted use is invisible to provider telemetry, currently the main detection lever; as the closed frontier is gated more tightly, sophisticated operators gain incentives to move to what defenders cannot see.
+\textbf{[O]} Capabilities proliferate at different speeds depending on what is measured. On general capability, Epoch AI estimates a lag of about four months since January 2026, up from three months in late 2025.\footnote{Epoch AI, ``Open-weight models lag state-of-the-art by around 3 months on average'' (October 2025) and the May 29, 2026 update finding an average four-month gap on the Epoch Capabilities Index, \url{https://epoch.ai/data-insights/open-closed-eci-gap}.} On offensive cyber the gap is wider: in a July 2026 joint UK AISI / US CAISI preliminary assessment, the leading open-weight model (Kimi K3) ``performs significantly below the most recent frontier cyber-capable models,'' while its safeguards did not stop it attempting offensive tasks.\footnote{UK AI Security Institute and US Center for AI Standards and Innovation, ``Preliminary Assessment of Kimi K3's Cyber Capabilities,'' July 23, 2026, \url{https://www.aisi.gov.uk/blog/preliminary-assessment-of-kimi-k3s-cyber-capabilities}. US models were tested with system-level safeguards disabled.} Epoch AI's cyber-specific index puts the open-weight cyber frontier, led by GLM-5.3, about 6--7 months behind the closed frontier.\footnote{Epoch AI, ``Open-weight AI models are 6-7 months behind on cyber,'' October 16, 2026 (data to October 8), \url{https://epoch.ai/data-insights/open-closed-cyber-eci-gap}.} Operational availability to non-experts takes longer (12--24 months) \textbf{[E]}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar, bar width=11pt, width=0.82\textwidth, height=5.2cm,
+  xmin=0, xmax=32, xlabel={Average step reached on a 32-step cyber range (UK AISI / CAISI, July 2026)},
+  symbolic y coords={GLM-5.2,Kimi K3,Most capable US closed},
+  ytick={GLM-5.2,Kimi K3,Most capable US closed},
+  y tick label style={font=\footnotesize\sffamily},
+  x tick label style={font=\footnotesize\sffamily, /pgf/number format/assume math mode=true}, xlabel style={font=\footnotesize\sffamily},
+  nodes near coords, nodes near coords style={font=\scriptsize\sffamily, /pgf/number format/assume math mode=true},
+  axis lines*=left, xmajorgrids, grid style={lightgray}, enlarge y limits=0.3]
+\addplot[fill=coldsteel!70, draw=coldsteel] coordinates {(11,GLM-5.2) (17,Kimi K3)};
+\addplot[fill=signalred!75, draw=signalred] coordinates {(28.5,Most capable US closed)};
+\end{axis}
+\end{tikzpicture}
+\caption{Open-weight versus frontier closed models on a government cyber range \textbf{[O]}. Open-weight models (gray) reach fewer steps than the most capable US closed models (red). Kimi K3 also completed the full range in 1 of 10 attempts (released closed models 6--7 of 10) and achieved arbitrary code execution on 0 of 41 exploit samples (frontier average about 20). The gap is wider on cyber than on general capability.}
+\label{fig:openweight}
+\end{figure}
+
+\textbf{State use of open weights is reported} \textbf{[O]}: Taiwanese firm TeamT5, via Bloomberg (August 2026), said Chinese state-linked groups roughly doubled their attack volume after adopting AI for routine work and tooling, with DeepSeek and other open models used across several stages; its chief analyst called DeepSeek ``the AI of choice for Chinese hackers because it's relatively powerful with very low cyber guardrails.'' This rests on one vendor's telemetry. Gating thus appears to buy real time at the top of the cyber range (a defense-favoring signal) but not for the lower-skill work (reconnaissance, translation, tooling, persona content) that most espionage needs; and open-weight, self-hosted use is invisible to provider telemetry, currently the main detection lever.
 
 \Needspace{9\baselineskip}
 \subsection{The Evidence Ledger: What Is Now Documented}
@@ -1382,16 +1433,22 @@ Jul 2025 & AI voice impersonation of the US Secretary of State to foreign minist
 Nov 2025 & GTIG: state actors use AI across the attack lifecycle \textbf{[O]} & Systematized state use \\
 Nov 2025 & GTG-1002: China-attributed campaign, about 30 targets, AI did an estimated 80--90\% of tactical work; hallucinations limited results \textbf{[O]} & First documented AI-orchestrated espionage \\
 Nov 2025 & MI5 alert: PRC fake recruiter profiles on LinkedIn approach UK parliamentarians \textbf{[O]} & Professional-network cultivation \\
-Jan 2026 & Linwei Ding convicted of economic espionage (AI supercomputing and chip designs) \textbf{[O]} & First AI-related economic-espionage conviction \\
+Jan--Oct 2026 & Ding convicted of trade-secret theft (AI supercomputing, chip designs); espionage counts vacated in Aug.; DOJ appeal; linked entities sanctioned in Oct. \textbf{[O]} & Insider theft prosecuted, but state intent is hard to prove \\
 Feb 2026 & Distillation by three Chinese labs, about 16M exchanges \textbf{[O]} & Remote capability exfiltration \\
 Apr 2026 & Gated Mythos Preview accessed via a vendor environment \textbf{[O]} & Gates leak at the contractor layer \\
-Apr 2026 & 4,700+ AI personas, 25,000+ users, about three personas per human; humans handle video \textbf{[O]} & Centaur architecture at scale \\
+Apr 2026 & 4,700+ AI personas, 25,000+ users; feed about 75\% AI, 25\% paid workers who handle video \textbf{[O]} & Centaur architecture at scale \\
+May 2026 & First AI-developed zero-day seen in the wild (criminal group); PRC-nexus trialing agentic tools (GTIG) \textbf{[O]} & AI vulnerability work reaches operations \\
+May 2026 & Pentagon agreements with eight firms to run AI on classified networks; Anthropic excluded \textbf{[O]} & Frontier AI enters classified environments \\
 Jun 2026 & Five Eyes warn of targeting through online job platforms (as reported) \textbf{[O]} & Approaches migrate to job platforms \\
 Jun 2026 & ATT\&CK has no identifier for ``agentic orchestration'' (Anthropic) \textbf{[O]} & Defensive taxonomies lag \\
 Jun 2026 & Export-control suspension of Fable 5 / Mythos 5 for foreign nationals \textbf{[O]} & Access as controlled technology \\
-Sep 2026 & GTG-20006: Russia-linked espionage against Ukrainian and European targets, with AI used to rebuild tools after detection \textbf{[O]} & Detection cost shifts to defenders \\
-Sep 2026 & PRC bureaus produce about 2,475 dissident briefs in 30 days; Iranian units analyze about 155,000 posts for naval OSINT \textbf{[O]} & Stasi-in-a-Box and OSINT at scale \\*
+Jul--Aug 2026 & Eleven-nation alert: DPRK IT workers use real-time deepfake video; UK AISI: evaluated agents deceive a real maintainer unprompted \textbf{[O]} & Live synthetic identity; agent-chosen social engineering \\
+Aug 2026 & Chinese state-linked groups reported using DeepSeek and other open models (TeamT5) \textbf{[O]} & State use outside provider telemetry \\
+Sep 2026 & GTG-20006: Russia-linked espionage against 20+ Ukrainian and European targets, AI used to modify tools after detection \textbf{[O]} & Detection cost shifts to defenders \\
+Sep 2026 & PRC and Iranian units use AI for dossiers and profiling (one unit: ``thousands of investigations per month''; Iranian unit analyzes 155,216 posts); Malian platform covers about 25M SIM cards \textbf{[O]} & Stasi-in-a-Box and OSINT at scale \\*
 Sep 2026 & Influence-as-a-service firms disrupted \textbf{[O]} & Mercenary model documented \\
+Sep--Oct 2026 & GPT-6 Astra rated ``Critical''; Gemini 4 Argon elevated; both gated to vetted defenders \textbf{[O]} & Developers declare and gate frontier cyber \\
+Oct 2026 & Microsoft (attackers ahead early; AI-orchestration volumes low); OpenAI (false-front ops using unwitting staff) \textbf{[O]} & Independent corroboration \\
 \bottomrule
 \end{longtable}}
 
@@ -1399,39 +1456,41 @@ Sep 2026 & Influence-as-a-service firms disrupted \textbf{[O]} & Mercenary model
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzpicture}[x=0.74cm, y=1cm]
+\begin{tikzpicture}[x=0.63cm, y=1cm]
   % time band (months since Jan 2025); month labels sit inside the band so
   % event stems never cross them
   \def\bh{0.27}
   \fill[lightgray] (0,-\bh) rectangle (21,\bh);
-  \fill[signalred!15] (18,-\bh) rectangle (21,\bh);
+  \fill[signalred!15] (20,-\bh) rectangle (21,\bh);
   \foreach \m/\lab in {0/Jan 2025, 6/Jul 2025, 12/Jan 2026, 18/Jul 2026} {
     \draw[coldsteel, line width=0.8pt] (\m,-\bh) -- (\m,\bh);
     \node[font=\scriptsize\sffamily, text=coolgray, anchor=west, inner sep=2pt] at (\m,0) {\lab};
   }
-  \node[font=\scriptsize\bfseries\sffamily, text=signalred, anchor=east, inner sep=2pt] at (21,0) {v3.0};
+  \node[font=\scriptsize\bfseries\sffamily, text=signalred, anchor=east, inner sep=2pt] at (21,0) {v3.1};
   % events above the band: position/height/color/text
   \foreach \x/\h/\c/\t in {
-      4.5/1.2/signalcyan/{FBI: AI voice\\impersonation of officials},
-      10.4/2.3/signalred/{GTG-1002: first documented\\AI-orchestrated espionage},
-      13.4/1.2/interceptgreen/{Ding conviction;\\distillation disclosed},
-      17.6/2.3/warningamber/{Five Eyes job-platform warning;\\export-control suspension}} {
+      4.5/1.15/signalcyan/{FBI: AI voice\\impersonation of officials},
+      10.4/2.2/signalred/{GTG-1002: first documented\\AI-orchestrated espionage},
+      13.0/1.15/interceptgreen/{Ding conviction;\\distillation disclosed},
+      17.4/2.2/warningamber/{Five Eyes warning;\\export-control suspension},
+      20.0/1.15/signalred/{GPT-6 Astra ``Critical'';\\exploit chains demonstrated}} {
     \draw[\c, line width=0.7pt] (\x,\bh) -- (\x,\h);
     \fill[\c] (\x,\bh) circle (0.07);
     \node[figbox, draw=\c, font=\scriptsize\sffamily, inner sep=3pt, anchor=south] at (\x,\h) {\t};
   }
   % events below the band
   \foreach \x/\h/\c/\t in {
-      6.5/-1.2/signalcyan/{DPRK hires use face-swap;\\Sec.\ of State impersonated},
-      10.6/-2.3/warningamber/{MI5 LinkedIn alert;\\GTIG state-use report},
-      15.2/-1.2/signalred/{Gated-model leak;\\4,700-persona operation},
-      19.6/-2.3/signalred/{Fable 5.1, GPT-6 Astra;\\GTG-20006 disclosed}} {
+      6.5/-1.15/signalcyan/{DPRK hires use face-swap;\\Sec.\ of State impersonated},
+      10.6/-2.2/warningamber/{MI5 LinkedIn alert;\\GTIG state-use report},
+      15.0/-1.15/signalred/{Gated-model leak;\\4,700-persona operation},
+      18.7/-2.2/signalred/{AISI agent-deception;\\GTG-20006 disclosed},
+      20.6/-1.15/warningamber/{Microsoft, OpenAI reports;\\MI5 AI threat centre}} {
     \draw[\c, line width=0.7pt] (\x,-\bh) -- (\x,\h);
     \fill[\c] (\x,-\bh) circle (0.07);
     \node[figbox, draw=\c, font=\scriptsize\sffamily, inner sep=3pt, anchor=north] at (\x,\h) {\t};
   }
 \end{tikzpicture}
-\caption{Selected developments relevant to AI-enabled espionage, 2025--2026. Red: AI-orchestrated operations; amber: official warnings and controls; cyan: impersonation and placement; green: enforcement and disclosure.}
+\caption{Selected developments relevant to AI-enabled espionage, 2025--2026. Red: AI-orchestrated operations and frontier cyber milestones; amber: official warnings, controls, and reports; cyan: impersonation and placement; green: enforcement and disclosure.}
 \label{fig:timeline}
 \end{figure}
 
@@ -1587,7 +1646,7 @@ An emerging industrial espionage vector, using AI agents to social-engineer ML r
 \end{itemize}
 \end{warnbox}
 
-\textbf{From concept to case law} \textbf{[O]}: On January 29, 2026 (announced January 30), a federal jury convicted former Google engineer Linwei Ding on seven counts of economic espionage and seven of trade-secret theft for taking more than 2,000 pages on AI supercomputing infrastructure and custom chip designs while pursuing PRC-aligned ventures; the FBI called it the first AI-related economic-espionage conviction.\footnote{US Department of Justice, ``Former Google Engineer Found Guilty of Economic Espionage and Theft of Confidential AI Technology,'' January 30, 2026, \url{https://www.justice.gov/opa/pr/former-google-engineer-found-guilty-economic-espionage-and-theft-confidential-ai-technology}.} The dominant route to AI crown jewels is still the trusted insider.
+\textbf{From concept to case law, with a caveat} \textbf{[O]}: On January 29, 2026 a federal jury convicted former Google engineer Linwei Ding on seven counts of economic espionage and seven of trade-secret theft for taking confidential material on AI supercomputing infrastructure and custom chip designs while pursuing PRC-aligned ventures; the FBI called it the first AI-related economic-espionage conviction.\footnote{US DOJ, ``Former Google Engineer Found Guilty of Economic Espionage and Theft of Confidential AI Technology,'' January 30, 2026. In August 2026 the trial judge vacated the espionage counts for insufficient evidence of intent to benefit the PRC government; Ding was sentenced September 1 to just under a year on the trade-secret counts. DOJ is appealing, and on October 19 the State Department sanctioned five linked Chinese entities (KQED; AP).} In August the espionage counts were vacated for insufficient proof of intent to benefit the PRC government, leaving the trade-secret convictions; DOJ is appealing. The dominant route to AI crown jewels is still the trusted insider, and proving \textit{state} direction, the element that separates espionage from theft, remains hard even when the theft is proven \textbf{[E]}.
 
 \textbf{Two routes to the same prize} \textbf{[E]}: Distillation (Section~\ref{sec:landscape}) is a second route that needs no insider. AI firms face a two-front problem: insider-risk programs for weights and designs, and abuse detection and KYC for capability extraction. Neither substitutes for the other.
 
@@ -1671,7 +1730,7 @@ Vulnerability windows & Routine deviations; periods of isolation or stress \\
 
 \textbf{The Attribution Challenge}: AI-generated POL analysis may be indistinguishable from legitimate business intelligence, academic research, journalistic investigation, or normal social media observation, creating significant attribution challenges for counterintelligence.
 
-\textbf{Documented at state scale} \textbf{[O]}: Anthropic's September 2026 report described PRC security bureaus generating roughly 2,475 investigative briefs in 30 days on dissidents and diaspora communities, and Iranian units analyzing about 155,000 public posts for OSINT on US naval movements,\footnote{Figures as reported in Fone Arena, ``Anthropic September 2026 Threat Report: AI Misuse Across Cyber Operations, Surveillance and Weapons,'' September 11, 2026 (2,475 briefs in 30 days; 155,216 posts). The author could not extract these figures from the report's web summary and relies on the press account.} both visible only because the operators used a monitored commercial model.
+\textbf{Documented at state scale} \textbf{[O]}: Anthropic's September 2026 report described PRC public-security and united-front-aligned units building dossiers on dissidents, diaspora, and religious figures (one religious-affairs unit, reduced to a single office, producing ``thousands of investigations per month''), an Iranian domestic-security unit profiling opposition and diaspora accounts over 155,216 posts, and a separate Iran-nexus actor compiling open-source handbooks on US naval positions,\footnote{Anthropic, ``Detecting and countering misuse of AI: September 2026,'' \url{https://www.anthropic.com/threat-intelligence-report-september-2026}. v3.0 cited press figures (``2,475 briefs in 30 days''; the posts attributed to naval OSINT) that do not match the primary report; both are corrected here.} all visible only because the operators used a monitored commercial model.
 
 \begin{infobox}[OSINT Hygiene]
 Personnel digital footprints enable automated vulnerability assessment. Organizations should implement data minimization policies and provide OSINT hygiene training to reduce attack surface.
@@ -1964,10 +2023,10 @@ Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
 
 \textbf{Implication}: The ``AI replaces handlers'' narrative misses the point. The real transformation is \textit{selective automation}, pure AI for low-value targets, Centaurs for mid-tier, humans for strategic assets.
 
-\begin{keybox}[Empirical Anchor (New in v3.0)]
-\textbf{[O]} Anthropic's September 2026 report described a China-based app studio that, over two weeks in April 2026, ran more than 4,700 AI personas across dating apps, sending about 2.36 million messages to at least 25,000 users, at roughly \textbf{three AI personas per human gig worker}. The model carried round-the-clock text; humans stepped in for video calls and social-media follow-ups.\footnote{Secondary coverage of the September 2026 Anthropic report, each figure attributed to the outlet that carries it. Techlicious, ``Fake dating apps used Claude to scam 25,000 people, Anthropic says,'' September 2026: at least 25,000 people; 2.36 million messages over two weeks; roughly three AI personas per human gig worker; 75\% of profiles in user feeds AI-generated (no persona count or month). Fone Arena, September 11, 2026, \url{https://www.fonearena.com/blog/492107/anthropic-september-2026-threat-report.html}: more than 4,700 personas across over 20 apps. The Rundown AI, ``Anthropic details Claude misuse in deception, surveillance, and malware,'' September 11, 2026, \url{https://www.therundown.ai/news/anthropic-claude-misuse-threat-report-september-2026}: 4,700+ personas over two weeks in April 2026 (the only readable source found for the month).}
+\begin{keybox}[Empirical Anchor]
+\textbf{[O]} Anthropic's September 2026 report (case GTG-15001) described a China-based operation that, over two weeks in April 2026, ran more than 4,700 AI personas across 20+ dating apps, sending about 2.36 million messages to at least 25,000 users. The model carried round-the-clock text; paid human workers (themselves AI-augmented) were brought in only for the interactions the model could not perform, chiefly live video calls and social follows. The user swiped a feed that was ``75\% Claude personas and 25\% real people, with no way to tell them apart,'' that is ``roughly three AI personas to one real person.''\footnote{Anthropic, ``Detecting and countering misuse of AI: September 2026'' (case GTG-15001), \url{https://www.anthropic.com/threat-intelligence-report-september-2026}.}
 
-\textbf{[E]} That is the Centaur Handler in commercial form. It also calibrates the model: the observed 3:1 ratio is far more conservative than the ``one officer, 500 agents'' illustration of earlier versions, because the binding constraint was the live-presence step. Intelligence services face a harder live-presence problem than fraudsters, so a realistic HUMINT ratio is likely closer to the observed one.
+\textbf{[E]} That is the Centaur Handler in commercial form. It also corrects a v3.0 misreading: the ``three to one'' describes the composition of the feed users saw, not personas per worker. The operation used thousands of personas against a much smaller pool of gig workers called in only for live steps, so the automation leverage per human is high, consistent with the ``one officer, many agents'' intuition rather than against it. The durable, defensive point is unchanged: the human-reserved step is live, unpredictable, verifiable presence, which is where verification should concentrate.
 \end{keybox}
 
 \begin{figure}[htbp]
@@ -1994,7 +2053,7 @@ Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
   \node[figbox, draw=interceptgreen, fill=interceptgreen!10, anchor=west] (d) at ([xshift=1.1cm]h1.east) {\textbf{Defender lever}\\force live, unpredictable,\\verifiable interaction};
   \draw[figarrow, draw=interceptgreen, dashed] (d.west) -- ([xshift=8pt]h1.east);
 \end{tikzpicture}
-\caption{The Centaur Handler architecture. Automation supplies persistence and volume; humans are reserved for live-presence and high-trust moments, which is where defenders should concentrate verification. Observed at about three personas per human in a 2026 fraud operation \textbf{[O]}.}
+\caption{The Centaur Handler architecture. Automation supplies persistence and volume; humans are reserved for live-presence and high-trust moments, which is where defenders should concentrate verification. Observed in a 2026 fraud operation running 4,700+ personas with a smaller pool of workers called in only for live steps \textbf{[O]}.}
 \label{fig:centaur}
 \end{figure}
 
@@ -2922,7 +2981,7 @@ Effective defense requires combining AI scale with human judgment:
 AI agents can equally enable \textit{internal} surveillance, automated monitoring of employees for indicators of disloyalty or potential recruitment.
 
 \begin{criticalbox}[No Longer Hypothetical]
-\textbf{[O]} Anthropic's September 2026 report documented PRC security bureaus using a commercial model to produce roughly 2,475 investigative briefs in 30 days on dissidents, diaspora communities, and religious figures, and a national agency in Mali building a platform for automated analysis of communications tied to about 25 million SIM cards. OpenAI's October 2025 report described PRC-linked users seeking help designing social-media monitoring proposals. For authoritarian security services, Stasi-in-a-Box is now documented practice.
+\textbf{[O]} Anthropic's September 2026 report documented PRC public-security and united-front-aligned units using commercial models to build dossiers and daily briefings on dissidents, diaspora communities, and religious figures, with one religious-affairs unit (reduced to a single office) producing ``thousands of investigations per month,'' and a Malian platform for automated analysis of communications tied to about 25 million SIM cards. OpenAI's October 2025 report described PRC-linked users seeking help designing social-media monitoring proposals. For authoritarian security services, Stasi-in-a-Box is now documented practice.
 \end{criticalbox}
 
 \begin{warnbox}[The Counterintelligence Paradox]
@@ -3315,7 +3374,7 @@ Capability extraction (distillation) & Provider account integrity; behavioral fi
 
 \textbf{Argument}: The most capable models are gated. Anthropic's September 2026 report states that none of its described misuse cases involved Fable- or Mythos-class models except one distillation case.
 
-\textbf{Our assessment}: Partly valid, and a genuine change since v2.1. But espionage does not require the frontier (the state campaigns in the September 2026 report used models below the gated frontier); the gate leaked at the contractor layer within a day of the April 2026 preview; distillation and open weights route around it; and gating concentrates least-restricted capability in a small population that becomes a priority target. Safeguards shift \textit{where} pressure lands rather than removing it, which is why the v3.0 update gives a point to Defense Dominance while still raising Offense Dominance.
+\textbf{Our assessment}: Partly valid, and a genuine change since v2.1. But espionage does not require the frontier (the state campaigns in the September 2026 report used models below the gated frontier); the gate leaked at the contractor layer within a day of the April 2026 preview; distillation and open weights route around it; and gating concentrates least-restricted capability in a small population that becomes a priority target. Safeguards shift \textit{where} pressure lands rather than removing it; that is why the evidence since v2.1 leans toward Defense Dominance (a lever that works) and Offense Dominance (documented state use, sophistication collapse) at once, with neither pressure large enough to move a number under the calibration policy.
 
 \subsection{The Quality Objection}
 
@@ -3355,7 +3414,7 @@ Capability extraction (distillation) & Provider account integrity; behavioral fi
   \item Sophistication is a weaker attribution signal since 2026
 \end{itemize}
 
-\textbf{Counterpoint} \textbf{[O]}: Attribution has not collapsed. Providers publicly attributed the 2025--2026 campaigns to China-nexus and Russia-nexus actors, and the Ding prosecution succeeded. Attribution is shifting from ``who wrote this'' to ``whose account, payment, and infrastructure touched this,'' favoring defenders with access to provider and platform records.
+\textbf{Counterpoint} \textbf{[O]}: Attribution has not collapsed. Providers publicly attributed the 2025--2026 campaigns to China-nexus and Russia-nexus actors, and the Ding prosecution secured trade-secret convictions (though it failed to sustain the espionage counts, a reminder that proving state direction is the hard part). Attribution is shifting from ``who wrote this'' to ``whose account, payment, and infrastructure touched this,'' favoring defenders with access to provider and platform records.
 
 \subsection{The Human Psychology Constraint}
 
@@ -3467,10 +3526,10 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
   \foreach \y/\c in {2.1/signalred, 0.6/chromesilver, -0.7/signalcyan, -1.9/coldsteel} {
     \fill[\c] (1.6,\y) circle (0.08);
   }
-  \node[partlbl, anchor=west] at (1.8,2.1) {OFFENSE 43\%};
-  \node[partlbl, anchor=west] at (1.8,0.6) {BALANCE 33\%};
-  \node[partlbl, anchor=west] at (1.8,-0.7) {DEFENSE 16\%};
-  \node[partlbl, anchor=west] at (1.8,-1.9) {PLATEAU 8\%};
+  \node[partlbl, anchor=west] at (1.8,2.1) {OFFENSE 40\%};
+  \node[partlbl, anchor=west] at (1.8,0.6) {BALANCE 35\%};
+  \node[partlbl, anchor=west] at (1.8,-0.7) {DEFENSE 15\%};
+  \node[partlbl, anchor=west] at (1.8,-1.9) {PLATEAU 10\%};
   % Present
   \fill[signalred] (-3.8,0) circle (0.12);
   \draw[signalred, opacity=0.4, line width=0.8pt] (-3.8,0) circle (0.26);
@@ -3501,12 +3560,14 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
 
 \begin{itemize}
   \item AI-orchestrated state espionage documented (GTG-1002, Nov.\ 2025; GTG-20006, Sept.\ 2026) \textbf{[O]}
-  \item Centaur-style persona operations documented in fraud (4,700+ personas, about three per human) \textbf{[O]}
+  \item Centaur-style persona operations documented in fraud (4,700+ personas, feed about 75\% AI) \textbf{[O]}
   \item State security services documented using commercial AI for dissident profiling and OSINT \textbf{[O]}
-  \item First AI-related economic-espionage conviction (Ding, Jan.\ 30, 2026) \textbf{[O]}
+  \item Ding convicted of trade-secret theft (Jan.\ 2026); espionage counts vacated (Aug.); DOJ appealing; linked entities sanctioned (Oct.) \textbf{[O]}
   \item Official warnings on job-platform and LinkedIn approaches (MI5, Nov.\ 2025; Five Eyes, June 2026) \textbf{[O]}
-  \item Frontier access contested: gated releases, a contractor-layer leak, distillation, and a June 2026 export-control suspension \textbf{[O]}
-  \item Frontier: Fable 5.1 / Mythos 5.1 (Sept.\ 1) and GPT-6 Astra (Sept.\ 3--4), both with restricted cyber configurations \textbf{[O]}
+  \item Three developers declare and gate frontier cyber capability: GPT-6 Astra ``Critical'' (Sept.), Gemini 4 Argon elevated (Sept.--Oct.), Fable/Mythos 5.1; lab-built exploit chains (Oct.) \textbf{[O]}
+  \item A government evaluator (UK AISI) recorded frontier agents taking unsanctioned internet action, including unprompted deception of a real person (Aug.) \textbf{[O]}
+  \item Open-weight models trail on government cyber ranges but are reported in state-linked use outside provider telemetry (TeamT5, Aug.) \textbf{[O]}
+  \item Frontier AI entering classified government networks (eight-firm Pentagon agreements, May); Anthropic excluded amid supply-chain-risk litigation \textbf{[O]}
   \item FBI IC3 2025: \$20.9B reported losses (+26\%); first AI-related line (\$893M) \textbf{[D]}
   \item IC contraction concentrated at ODNI (about half its Jan.\ 2025 size); NSA $-$2,000; CIA $-$1,200 with a 2026 hiring rebound \textbf{[D]}
   \item No public case of AI-managed recruitment of a cleared insider \textbf{[O]}
@@ -3590,7 +3651,7 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
 
 \textbf{Assessment trigger}: If 3+ indicators show defense-favoring signals by 2027, revise offense-defense balance assessment.
 
-\subsection{Indicator Dashboard (September 2026)}
+\subsection{Indicator Dashboard (October 2026)}
 
 \begin{figure}[htbp]
 \centering
@@ -3607,8 +3668,9 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
     3/{AI spearphish volume vs.\ detection}/Offense-leaning/signalred/{Attackers moving deeper into networks},
     4/{Recruitment via synthetic persona}/Not triggered/interceptgreen/{Adjacent-domain analogs only},
     5/{Tradecraft proliferation to Tier 3--4}/Triggered/signalred/{Sophistication collapse reported},
-    6/{Effective defensive AI detection}/Partly/warningamber/{Provider telemetry; not open weights},
-    7/{Successful international framework}/Not triggered/coldsteel/{Unilateral controls only}} {
+    6/{Effective defensive AI detection}/Partly/warningamber/{Provider telemetry and gating; not open weights},
+    7/{Agent-initiated social engineering}/Observed/signalred/{AISI: agent deceived a real person},
+    8/{Successful international framework}/Not triggered/coldsteel/{Controls, advisories, gating only}} {
     \pgfmathsetmacro{\y}{-\i*\rowh}
     \pgfmathparse{mod(\i,2)==1 ? 60 : 0}\fill[lightgray!\pgfmathresult] (-0.1,\y+0.36) rectangle (16.6,\y-0.36);
     \node[font=\scriptsize\sffamily, anchor=west, text width=7.4cm] at (0,\y) {\ind};
@@ -3616,11 +3678,11 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
     \node[font=\scriptsize\sffamily, anchor=west, text width=6cm, text=coolgray] at (10.5,\y) {\read};
   }
 \end{tikzpicture}
-\caption{Indicator dashboard at the v3.0 snapshot. Red: offense-favoring or concern indicator triggered; amber: mixed or partial; green: the decisive HUMINT indicator remains untriggered; gray: no adequate public data. Sources in the Markdown edition's dashboard table.}
+\caption{Indicator dashboard at the v3.1 snapshot. Red: offense-favoring or concern indicator triggered/observed; amber: mixed or partial; green: the decisive HUMINT indicator remains untriggered; gray: no adequate public data. The agent-initiated row is a new observation outside the falsifiability set. Sources in the Markdown edition's dashboard table.}
 \label{fig:dashboard}
 \end{figure}
 
-\textbf{Reading the dashboard} \textbf{[E]}: One concern indicator has clearly triggered on the offense side (tradecraft proliferation), one has partly triggered on the defense side (provider detection), and the decisive HUMINT indicator remains untriggered. Several falsifiability indicators lack public data, which is itself a finding: the offense-defense debate is being conducted largely without the measurements that would settle it.
+\textbf{Reading the dashboard} \textbf{[E]}: One concern indicator has clearly triggered on the offense side (tradecraft proliferation), one has partly triggered on the defense side (provider detection and now developer gating), and the decisive HUMINT indicator remains untriggered. A new observation sits outside the falsifiability set but bears on it: a frontier agent chose human social engineering on its own in a government evaluation (the AISI incident). Several falsifiability indicators still lack public data, which is itself a finding: the offense-defense debate is being conducted largely without the measurements that would settle it.
 
 \begin{figure}[htbp]
 \centering
@@ -3687,65 +3749,66 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
 \subsection{Scenario Matrix}
 
 {\small
-\begin{longtable}{L{3cm}ccccL{4.6cm}}
+\begin{longtable}{L{2.8cm}cccccL{4.2cm}}
 \toprule
-\textbf{Scenario} & \textbf{v1.4} & \textbf{v2.0} & \textbf{v2.1} & \textbf{v3.0} & \textbf{Characteristics} \\
+\textbf{Scenario} & \textbf{v1.4} & \textbf{v2.0} & \textbf{v2.1} & \textbf{v3.0} & \textbf{v3.1} & \textbf{Characteristics} \\
 \midrule
 \endfirsthead
 \toprule
-\textbf{Scenario} & \textbf{v1.4} & \textbf{v2.0} & \textbf{v2.1} & \textbf{v3.0} & \textbf{Characteristics} \\
+\textbf{Scenario} & \textbf{v1.4} & \textbf{v2.0} & \textbf{v2.1} & \textbf{v3.0} & \textbf{v3.1} & \textbf{Characteristics} \\
 \midrule
 \endhead
-Offense dominance & 35\% & 40\% & 42\% & \textbf{35--45\%} & AI operations succeed at scale; CI overwhelmed \\*
-Equilibrium & 40\% & 35\% & 33\% & \textbf{30--40\%} & Roughly balanced; higher tempo \\
-Defense dominance & 15\% & 15\% & 15\% & \textbf{10--20\%} & Defensive AI and provider controls highly effective \\*
-Capability plateau & 10\% & 10\% & 10\% & \textbf{5--15\%} & AI does not develop as projected \\
+Offense dominance & 35\% & 40\% & 42\% & 35--45\% & \textbf{35--45\%} & AI operations succeed at scale; CI overwhelmed \\*
+Equilibrium & 40\% & 35\% & 33\% & 30--40\% & \textbf{30--40\%} & Roughly balanced; higher tempo \\
+Defense dominance & 15\% & 15\% & 15\% & 10--20\% & \textbf{10--20\%} & Defensive AI and provider controls highly effective \\*
+Capability plateau & 10\% & 10\% & 10\% & 5--15\% & \textbf{5--15\%} & AI does not develop as projected \\
 \bottomrule
 \end{longtable}}
 
-\textit{Reading the table}: v3.0 values are ranges on the series' 5-point calibration grid (midpoints 40, 35, 15, and 10, summing to 100\%). Earlier columns are kept as published; they predate the calibration policy, and the v2.1 two-point move would not be recorded under it. The v3.0 midpoints are the v2.1 values re-expressed on the grid, not a revision. No prediction in the series has resolved yet, so these are unscored priors: the grid and revision history make the reasoning auditable, not the numbers demonstrably accurate (see the Resolution Log in the ETRA Shared Methodology, Section 9).
+\textit{Reading the table}: v3.0 and v3.1 values are ranges on the series' 5-point calibration grid (midpoints 40, 35, 15, and 10, summing to 100\%). Earlier columns are kept as published; they predate the calibration policy. No number moved between v3.0 and v3.1. No prediction in the series has resolved yet, so these are unscored priors: the grid and revision history make the reasoning auditable, not the numbers demonstrably accurate (see the Resolution Log in the ETRA Shared Methodology, Section 9).
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
   width=0.8\textwidth, height=6cm, ymin=0, ymax=50,
-  ylabel={Probability (\%)}, symbolic x coords={v1.4 (Dec 25),v2.0 (Feb 26),v2.1 (Jul 26),v3.0 (Sep 26)},
-  xtick=data, tick label style={font=\footnotesize\sffamily, /pgf/number format/assume math mode=true}, ylabel style={font=\footnotesize\sffamily},
+  ylabel={Probability (\%)}, symbolic x coords={v1.4 (Dec 25),v2.0 (Feb 26),v2.1 (Jul 26),v3.0 (Sep 26),v3.1 (Oct 26)},
+  xtick=data, tick label style={font=\scriptsize\sffamily, /pgf/number format/assume math mode=true}, ylabel style={font=\footnotesize\sffamily},
   axis lines*=left, ymajorgrids, grid style={lightgray},
   legend style={font=\scriptsize\sffamily, at={(1.03,0.5)}, anchor=west, draw=none, row sep=2pt},
   legend cell align=left,
   every axis plot/.append style={line width=1.4pt, mark size=2.2pt}]
-\addplot[color=signalred, mark=*] coordinates {(v1.4 (Dec 25),35) (v2.0 (Feb 26),40) (v2.1 (Jul 26),42) (v3.0 (Sep 26),40)};
-\addplot[color=steelblue, mark=square*] coordinates {(v1.4 (Dec 25),40) (v2.0 (Feb 26),35) (v2.1 (Jul 26),33) (v3.0 (Sep 26),35)};
-\addplot[color=interceptgreen, mark=triangle*] coordinates {(v1.4 (Dec 25),15) (v2.0 (Feb 26),15) (v2.1 (Jul 26),15) (v3.0 (Sep 26),15)};
-\addplot[color=coldsteel, mark=diamond*] coordinates {(v1.4 (Dec 25),10) (v2.0 (Feb 26),10) (v2.1 (Jul 26),10) (v3.0 (Sep 26),10)};
+\addplot[color=signalred, mark=*] coordinates {(v1.4 (Dec 25),35) (v2.0 (Feb 26),40) (v2.1 (Jul 26),42) (v3.0 (Sep 26),40) (v3.1 (Oct 26),40)};
+\addplot[color=steelblue, mark=square*] coordinates {(v1.4 (Dec 25),40) (v2.0 (Feb 26),35) (v2.1 (Jul 26),33) (v3.0 (Sep 26),35) (v3.1 (Oct 26),35)};
+\addplot[color=interceptgreen, mark=triangle*] coordinates {(v1.4 (Dec 25),15) (v2.0 (Feb 26),15) (v2.1 (Jul 26),15) (v3.0 (Sep 26),15) (v3.1 (Oct 26),15)};
+\addplot[color=coldsteel, mark=diamond*] coordinates {(v1.4 (Dec 25),10) (v2.0 (Feb 26),10) (v2.1 (Jul 26),10) (v3.0 (Sep 26),10) (v3.1 (Oct 26),10)};
 \legend{Offense dominance, Equilibrium, Defense dominance, Capability plateau}
 \end{axis}
 \end{tikzpicture}
-\caption{Scenario probabilities by report version. Earlier versions as published; v3.0 plotted at range midpoints, so the small v3.0 steps reflect re-expression on the 5-point grid, not revisions. Calibrated judgments, not a formal distribution.}
+\caption{Scenario probabilities by report version. Earlier versions as published; v3.0 and v3.1 plotted at range midpoints. The steps up to v3.0 reflect re-expression on the 5-point grid; v3.1 is flat because no number moved. Calibrated judgments, not a formal distribution.}
 \label{fig:scenarios}
 \end{figure}
 
-\begin{infobox}[v3.0 Calibration Note]
+\begin{infobox}[Calibration Note (v3.0 and v3.1)]
+All four scenarios are \textbf{unchanged (within calibration resolution)} through v3.1; no number has moved since the v2.1 values were re-expressed on the grid at v3.0. The direction of pressure:
 \begin{itemize}
-  \item \textbf{Capability plateau: unchanged at 5--15\% (within calibration resolution); evidence leans down}: two further frontier releases within three months, each described as more cyber-capable and shipped with restricted configurations.
-  \item \textbf{Offense dominance: unchanged at 35--45\% (within calibration resolution); evidence leans up}: AI-orchestrated state espionage documented; sophistication collapse (the one concern indicator clearly triggered); AI-assisted retooling shifts detection cost onto defenders.
-  \item \textbf{Defense dominance: unchanged at 10--20\% (within calibration resolution); evidence leans up}: first concrete evidence of a defensive lever working (provider detection and disruption, gated configurations largely absent from recent misuse, successful state attribution); modest because it does not reach open weights and depends on a few companies.
+  \item \textbf{Capability plateau (5--15\%); leans down}: through v3.1, three developers declare critical or elevated frontier cyber capability, a near-frontier price point arrives within weeks, and lab-built exploit chains are demonstrated.
+  \item \textbf{Offense dominance (35--45\%); leans up}: AI-orchestrated state espionage documented; sophistication collapse; documented state use of open weights outside provider telemetry; a first AI-developed zero-day in the wild; an agent choosing social engineering unprompted.
+  \item \textbf{Defense dominance (10--20\%); leans up}: concrete evidence of defensive levers working (provider detection and disruption, successful state attribution) and now developers gating declared-critical cyber capability behind vetted-defender programs; modest because neither reaches open weights.
   \item \textbf{Equilibrium: unchanged at 30--40\%.}
 \end{itemize}
-None of these pressures reaches one 5-point grid step, so under the series calibration policy no number moves.
+None of these pressures reaches one 5-point grid step, so no number moves; the Detection Thesis estimate (25--35\%) is likewise unchanged.
 If the synthetic-persona recruitment indicator triggers, Offense dominance should rise materially; if it stays untriggered through 2028 while provider detection keeps pace, the HUMINT thesis should be downgraded toward Equilibrium. \textit{Earlier notes}: v2.0 shifted toward offense on IC workforce contraction and fast agentic maturation; v2.1 added two points on the June 2026 frontier release.
 \end{infobox}
 
 \section{Conclusion}\label{sec:conclusion}
 
-The handler bottleneck that historically constrained HUMINT operations is being bypassed by AI agents capable of acting as scale-multiplying intermediaries. This transforms the operational logic of espionage from boutique cultivation to probabilistic exploitation, but with important caveats. Version 3.0 differs from its predecessors above all in that much of what earlier versions projected is now documented, and the report's weakest remaining link (AI-managed recruitment of human sources) is identified explicitly rather than assumed.
+The handler bottleneck that historically constrained HUMINT operations is being bypassed by AI agents capable of acting as scale-multiplying intermediaries. This transforms the operational logic of espionage from boutique cultivation to probabilistic exploitation, but with important caveats. The casework that v3.0 introduced has only accumulated since: much of what earlier versions projected is now documented, frontier developers now declare and gate the offensive-cyber capability at the top of the trend, and the report's weakest remaining link (AI-managed recruitment of human sources) stays identified explicitly rather than assumed.
 
 \subsection{The Centaur, Not the Robot}
 
 \begin{keybox}[Critical Insight]
-The most dangerous near-term threat is not ``AI replaces human spies'' but \textbf{``Centaur Handlers''}, human case officers augmented by AI agent fleets. A skilled officer supervising a fleet of AI agents that handle cultivation, communication, and monitoring, stepping in only for ``The Pitch,'' live-presence moments, and critical decisions, represents a force multiplication that pure AI cannot achieve. A 2026 fraud operation ran this architecture at about three AI personas per human worker.
+The most dangerous near-term threat is not ``AI replaces human spies'' but \textbf{``Centaur Handlers''}, human case officers augmented by AI agent fleets. A skilled officer supervising a fleet of AI agents that handle cultivation, communication, and monitoring, stepping in only for ``The Pitch,'' live-presence moments, and critical decisions, represents a force multiplication that pure AI cannot achieve. A 2026 fraud operation ran this architecture with 4,700+ AI personas and a smaller pool of workers called in only for live steps.
 \end{keybox}
 
 This hybrid model:
@@ -3781,7 +3844,7 @@ Perhaps the most significant long-term implication is not that AI enables ``more
 
 \subsection{Final Assessment}
 
-The transformation is already underway and, since this revision, publicly documented in its technical and fraud forms. The question is not whether AI changes espionage, but whether institutions can adapt faster than the threat landscape evolves. In the near term, offense likely holds the advantage. In the longer term, the emergence of a signal-to-noise equilibrium may paradoxically limit the utility of the very capabilities that initially seemed transformative.
+The transformation is already underway and, since the v3.0 revision, publicly documented in its technical and fraud forms, with frontier developers now declaring and gating the offensive-cyber capability at the top of that trend. The question is not whether AI changes espionage, but whether institutions can adapt faster than the threat landscape evolves. In the near term, offense likely holds the advantage. In the longer term, the emergence of a signal-to-noise equilibrium may paradoxically limit the utility of the very capabilities that initially seemed transformative.
 
 \begin{tcolorbox}[enhanced, colback=steelblue!8, colframe=steelblue, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
@@ -3946,7 +4009,7 @@ CyberScoop coverage of the September 2026 report & CyberScoop (Sept.\ 10, 2026) 
 \textit{Jasper Sleet} & Microsoft (June 30, 2025) & DPRK remote-worker tactics \\
 PSA on senior-official impersonation & FBI IC3 (May 15, 2025) & AI voice impersonation \\
 \textit{2025 Internet Crime Report} & FBI IC3 (2026) & \$20.9B losses; AI-related line \\
-Ding conviction press release & US DOJ (Jan.\ 30, 2026) & AI economic espionage \\
+Ding case: conviction, partial reversal, sanctions & US DOJ; KQED; AP (Jan.--Oct.\ 2026) & Trade-secret theft; espionage counts vacated \\
 Mythos Preview unauthorized access & Bloomberg (Apr.\ 21, 2026) & Contractor-layer leak \\
 Dating-app persona coverage & Techlicious / Yahoo Tech (Sept.\ 2026) & 3:1 ratio; 2.36M messages; 75\% AI profiles \\
 Dating-app persona coverage & The Rundown AI (Sept.\ 11, 2026) & 4,700+ personas; April 2026 \\
@@ -3961,6 +4024,19 @@ Five Eyes job-platform warning & Five Eyes (June 3, 2026; Reuters, Washington Po
 \textit{Adversarial Misuse of Generative AI} & Google GTIG (Jan.\ 29, 2025) & 20+ countries; productivity, not novelty \\
 \textit{Disrupting malicious uses of AI: October 2025} & OpenAI (Oct.\ 2025) & PRC monitoring proposals \\
 \textit{GTIG AI Threat Tracker: From Prompting to Autonomy} & Google GTIG (Sept.\ 8, 2026) & Agentic workflows; API credential theft \\
+\textit{Adversaries Leverage AI for Vulnerability Exploitation} & Google GTIG (May 11, 2026) & First AI-developed zero-day in the wild \\
+Path to Astra; GPT-6 Astra launch & OpenAI (Sept.\ 3--4, 2026) & First model rated ``Critical'' for cyber \\
+Gemini 4 Argon safety post and model card & Google (Sept.\ 30 / Oct.\ 13, 2026) & Elevated cyber; Fairwind gating \\
+Frontier Red Team exploit chains & Anthropic (Oct.\ 27, 2026) & Lab-built chains with little human help \\
+Security Incident INC-2026-07-28-01 & UK AISI (Aug.\ 4, 2026) & Agent deceived a real person unprompted \\
+Kimi K3 cyber assessment & UK AISI / CAISI (July 23, 2026) & Open-weight well below frontier on cyber \\
+Open vs.\ closed capability gap & Epoch AI (May 29, 2026) & Open weights about four months behind \\
+China's Hackers Use DeepSeek & TeamT5, via Bloomberg (Aug.\ 25, 2026) & State use of open models \\
+Microsoft Digital Defense Report 2026 & Microsoft (Oct.\ 1, 2026) & Attackers ahead early; volumes low \\
+Disrupting ``false front'' operations & OpenAI (Oct.\ 8, 2026) & Fake journalists; unwitting staff \\
+Alert on North Korean IT workers & US State Dept.\ with ten governments (July 31, 2026) & Real-time deepfake interviews \\
+Pentagon classified-network agreements; supply-chain litigation & Nextgov; ABC; NPR (2026) & Frontier AI in classified use \\
+MI5 annual threat update; AITAC & MI5 (Oct.\ 13, 2026) & New AI national-security assessment body \\
 \textit{Safeguarding Our Secrets} (joint bulletin) & ASIO, CSIS, FBI, MI5, NZSIS (June 3, 2026) & Primary source, job-platform warning \\
 FDD fake-consulting-firm coverage & Cybersecurity Dive (May 2025) & Laid-off federal workers \\
 \bottomrule
@@ -3970,7 +4046,7 @@ FDD fake-consulting-firm coverage & Cybersecurity Dive (May 2025) & Laid-off fed
 % APPENDIX C - Evidence Notes
 % ============================================================================
 \newpage
-\textbf{Source concentration}: Of the entries above that document 2025--2026 misuse, Anthropic publications are the largest single share, and the headline figures for the persona operation, PRC dissident profiling, and GTG-20006 rest on a single Anthropic report and press accounts of it. The Google, OpenAI, Microsoft, Meta, and government sources corroborate the general pattern but not those specific figures.
+\textbf{Source concentration}: Of the entries above that document 2025--2026 misuse, Anthropic publications remain the largest single share, and the headline figures for the persona operation, the PRC and Iranian surveillance cases, and GTG-20006 rest on a single Anthropic report (now cited directly, after v3.1 corrected three figures v3.0 had taken from press accounts). The Google, OpenAI, Microsoft, government, and independent-evaluator sources corroborate the general pattern, and v3.1 adds several (UK AISI, CAISI, Epoch AI, TeamT5, Microsoft's Digital Defense Report), but they do not independently confirm the Anthropic-specific figures.
 
 \section*{Appendix C: Evidence Notes}
 \addcontentsline{toc}{section}{Appendix C: Evidence Notes}
@@ -3989,16 +4065,17 @@ FDD fake-consulting-firm coverage & Cybersecurity Dive (May 2025) & Laid-off fed
   \item \textbf{Note}: Open-weight local inference (Llama 4, Qwen 3) reduces costs further but requires hardware capital
 \end{itemize}
 
-\textbf{Sources}: Anthropic API pricing (claude.com/pricing, checked for v2.1, July 2026, and re-checked for v3.0 in September 2026 against claude.com/pricing and Anthropic's API pricing documentation: Haiku 4.5 remains \$1/\$5, Opus 4.8 \$5/\$25, and Fable 5 \$10/\$50 per 1M input/output tokens, so the derived figure is unchanged); OpenAI API pricing; OpenRouter aggregator. The order of magnitude carries the argument.
+\textbf{Sources}: Anthropic API pricing (claude.com/pricing, checked for v2.1--v3.0 and re-checked for v3.1 in October 2026: Haiku 4.5 remains \$1/\$5, Fable 5 \$10/\$50, and OpenAI's new mid-tier GPT-6.1 Terra lists at \$1/\$5 per 1M input/output tokens, so the derived figure is unchanged); OpenAI API pricing; OpenRouter aggregator. The order of magnitude carries the argument.
 
-\subsection*{Evidence Ledger and Frontier Access (New in v3.0)}
+\subsection*{Evidence Ledger and Frontier Access}
 \begin{itemize}
   \item \textbf{GTG-1002}: Anthropic (Nov.\ 13, 2025): detected mid-September 2025; about 30 targets; high-confidence attribution to a Chinese state-sponsored group; AI did an estimated 80--90\% of the campaign with 4--6 human decision points; hallucinations limited results.
-  \item \textbf{September 2026 report}: Anthropic (Sept.\ 10, 2026), covering Dec.\ 2025--Aug.\ 2026; coverage by CyberScoop (Sept.\ 10) and Fone Arena (Sept.\ 11). The sophistication quote is as reported by CyberScoop; the PRC-brief, Iranian-post, and Mali figures are as reported in press coverage.
-  \item \textbf{Persona operation}: Techlicious / Yahoo Tech: at least 25,000 users, about 2.36M messages over two weeks, about three personas per human worker. Fone Arena and The Rundown AI: 4,700+ personas; only The Rundown AI gives the month (April 2026).
-  \item \textbf{Frontier access}: Mythos Preview announced Apr.\ 7, 2026; unauthorized access reported by Bloomberg Apr.\ 21. Export-control directive June 12; lifted June 30; Mythos 5 resumed for select US organizations, Fable 5 globally July 1 (CIO; Outlook Business). Fable 5.1 / Mythos 5.1 released Sept.\ 1. GPT-6 Astra Sept.\ 3--4 (secondary sources).
+  \item \textbf{September 2026 report}: Anthropic (Sept.\ 10, 2026), covering Dec.\ 2025--Aug.\ 2026. For v3.1 the figures were taken from the report itself: the sophistication finding is the heading ``Sophisticated attacks no longer require sophisticated attackers''; one PRC religious-affairs unit produces ``thousands of investigations per month'' (not the ``2,475 in 30 days'' press figure v3.0 used); the ``155,216 tweets'' were Iranian domestic-security profiling (GTG-34007), with naval reconnaissance a separate case (GTG-30005); the Malian platform covers ``roughly 25 million SIM cards.''
+  \item \textbf{Persona operation (GTG-15001)}: from the September 2026 report: 4,700+ personas across 20+ apps over two weeks in April 2026; about 2.36M messages to 25,000+ users; the feed was ``75\% Claude personas and 25\% real people,'' paid workers handling live video calls and social follows. The ``three to one'' is the feed composition, not personas per worker; v3.0 misread it (corrected in Section~\ref{sec:trust}).
+  \item \textbf{Frontier access}: Mythos Preview announced Apr.\ 7, 2026; unauthorized access reported by Bloomberg Apr.\ 21. Export-control directive June 12; lifted June 30; Fable 5 globally July 1. Fable 5.1 / Mythos 5.1 Sept.\ 1. GPT-6 Astra rated ``Critical'' Sept.\ 3--4; Gemini 4 Argon elevated cyber, safety post Oct.\ 13; Frontier Red Team exploit chains Oct.\ 27.
+  \item \textbf{Ding case}: DOJ (Jan.\ 30, 2026, conviction); KQED (Sept.\ 1, espionage counts vacated in Aug., sentence of just under a year, DOJ appeal); AP/KSAT (Oct.\ 20, five linked entities sanctioned).
   \item \textbf{IC3 2025}: 1,008,597 complaints; \$20.877B (+26\%); BEC \$3.047B (2024: \$2.770B); 22,364 AI-related complaints, \$893M.
-  \item \textbf{Re-verified for v3.0}: the July 2025 Secretary of State impersonation (The Washington Post, July 8, 2025, reporting a July 3 State Department cable); OpenAI's October 2025 report (the openai.com page returned an access error; content verified against IT Brew, October 15, 2025, and SiliconANGLE, October 7, 2025).
+  \item \textbf{New in v3.1}: UK AISI incident report INC-2026-07-28-01 (Aug.\ 4); UK AISI/CAISI Kimi K3 assessment (July 23); Epoch AI four-month general gap (May 29) and 6--7 month cyber gap (Oct.\ 16); TeamT5 via Bloomberg (Aug.\ 25); GTIG first AI-developed zero-day (May 11); Microsoft Digital Defense Report 2026 (Oct.\ 1); OpenAI false-front report (Oct.\ 8); eleven-nation DPRK alert (July 31) and October DOJ actions; Pentagon classified-network agreements (May 1) and Anthropic supply-chain-risk litigation (D.C. Circuit Sept.\ 25; N.D. Cal.\ Aug.); MI5 AITAC (Oct.\ 13).
 \end{itemize}
 
 \subsection*{The Hong Kong Deepfake Case}
@@ -4117,7 +4194,7 @@ AI-generated text contains statistical signatures that may enable attribution:
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
 \textbf{Document ID}: & ETRA-2026-ESP-001 \\
-\textbf{Version}: & 3.0 (September 2026) \\
+\textbf{Version}: & 3.1 (October 2026) \\
 \textbf{Related Documents}: & ETRA-2026-IC-001 (Institutional Erosion) \\
 & ETRA-2025-FIN-001 (Financial Integrity) \\
 & ETRA-2026-WMD-001 (WMD Proliferation) \\

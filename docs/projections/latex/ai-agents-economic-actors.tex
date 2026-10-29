@@ -15,6 +15,8 @@
 \usepackage{booktabs}
 \usepackage{enumitem}
 \usepackage{hyperref}
+\usepackage{xurl}
+\usepackage{float}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
 \usepackage{multicol}
@@ -128,9 +130,9 @@
   colorlinks=true,
   linkcolor=deepindigo,
   urlcolor=networkblue,
-  pdftitle={AI Agents as Autonomous Economic Actors: A Governance Projection (v3.0.1, September 2026)},
+  pdftitle={AI Agents as Autonomous Economic Actors: A Governance Projection (v3.1, October 2026)},
   pdfauthor={Emerging Technology Risk Assessment},
-  pdfsubject={ETRA-2025-AEA-001, Version 3.0.1, September 2026},
+  pdfsubject={ETRA-2025-AEA-001, Version 3.1, October 2026},
   pdfkeywords={AI agents, agentic commerce, agent payments, autonomous economic actors, governance}
 }
 
@@ -199,7 +201,7 @@
 \renewcommand{\cftsubsecfont}{\color{networkblue}}
 \renewcommand{\cftsubsecpagefont}{\color{networkblue}}
 \setlength{\cftbeforesecskip}{0.05em}
-\cftsetrmarg{1.9em plus 1fil}
+\cftsetrmarg{2.6em plus 1fil}
 \cftsetpnumwidth{1.2em}
 
 % ============================================================================
@@ -351,7 +353,7 @@
     at (1.5,27.14) {EMERGING TECHNOLOGY RISK ASSESSMENT};
   \node[anchor=east, inner sep=0, text=white!72,
         font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
-    at (20.09,27.14) {ETRA-2025-AEA-001\enspace\textbar\enspace SEPTEMBER 2026};
+    at (20.09,27.14) {ETRA-2025-AEA-001\enspace\textbar\enspace OCTOBER 2026};
 
   % ==== Illustration zone (y = 12.9 .. 25.1) ====
   % Year gridlines
@@ -460,7 +462,7 @@
   \foreach \i/\lab/\val in {0/DOCUMENT TYPE/Policy Research,
                             1/TIME HORIZON/2026--2030,
                             2/LICENSE/{MIT / Unlicense},
-                            3/VERSION/{3.0.1 (September 2026)}} {
+                            3/VERSION/{3.1 (October 2026)}} {
     \node[anchor=base west, inner sep=0, text=digitalgold,
           font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont]
       at ({1.5+\i*4.6475},1.98) {\lab};
@@ -493,7 +495,7 @@
 
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=networkblue!60, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
-This is a \textbf{public policy research document} on AI agents as participants in economic systems: what they can and cannot do as of September 2026, how the payment and commerce industry is building rails for them, and where the resulting governance gaps sit. It is released under permissive open-source licenses (MIT/Unlicense) to support broad discussion of these governance challenges.
+This is a \textbf{public policy research document} on AI agents as participants in economic systems: what they can and cannot do as of October 2026, how the payment and commerce industry is building rails for them, and where the resulting governance gaps sit. It is released under permissive open-source licenses (MIT/Unlicense) to support broad discussion of these governance challenges.
 
 \textbf{Independent Work:} This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity. It is an independent, single-author analysis: it involves \textbf{no first-party expert consultation} and \textbf{no red-team exercises} conducted by or for the author. It synthesizes publicly available research, vendor disclosures, published evaluations, and legal and regulatory texts.
 \end{tcolorbox}
@@ -525,7 +527,7 @@ This is a \textbf{public policy research document} on AI agents as participants 
 
 \begin{contextbox}[What This Document Is NOT Claiming]
 \begin{itemize}
-  \item \textbf{NOT claiming AI agents are already self-sustaining economic actors.} As of mid-2026 no public evidence shows an agent earning enough, without human help, to pay for its own inference over days or weeks. Evaluators have looked for exactly this and not found it (Section~\ref{sec:selfsufficiency}).
+  \item \textbf{NOT claiming AI agents are already self-sustaining economic actors.} As of late October 2026 no public evidence shows an agent earning enough, without human help, to pay for its own inference over days or weeks. Evaluators have looked for exactly this and not found it, and the most autonomous field-run businesses are not yet profitable (Section~\ref{sec:selfsufficiency}).
   \item \textbf{NOT claiming AI agents will ``take over'' the economy.} Human-directed economic activity remains dominant. The analysis concerns governance of an emerging participation layer.
   \item \textbf{NOT claiming agents cannot transact legally.} Delegated agents acting for verified humans are being onboarded into card networks and payment processors in 2025--2026. The gap is in attribution, authority, and liability, not in the bare ability to pay.
   \item \textbf{NOT promoting cryptocurrency.} Stablecoin rails are discussed because they are one of several agent-payment rails and the one with the weakest principal binding, not as an ideological preference.
@@ -557,29 +559,19 @@ Scenario descriptions, dated projections, and scenario probabilities default to 
 This document is prepared for \textbf{defensive policy purposes}. It describes capability requirements, control points, and failure modes at the level of abstraction needed for governance. It does \textbf{not} describe how to evade identity verification, structure transactions, launder funds, or defeat payment-network controls, and it omits operational parameters (thresholds, timing, named permissive services) that would help anyone do so. Adversarial behavior of agents is analyzed through published evaluations, not original testing.
 \end{warnbox}
 
+\needspace{9\baselineskip}
 \begin{infobox}[Capability Snapshot Date]
-Model capabilities, payment-industry programs, and policy developments reflect publicly available systems and published assessments as of \textbf{mid-September 2026}. AI capability and payment infrastructure are moving targets; conclusions are meant to be robust to specific model iterations. A named model or evaluation should be read as a data point on a trend, not a fixed endpoint. The \textbf{2025} in the Document ID reflects the year of first publication and is retained for citation stability.
+Model capabilities, payment-industry programs, and policy developments reflect publicly available systems and published assessments as of \textbf{late October 2026}. AI capability and payment infrastructure are moving targets; conclusions are meant to be robust to specific model iterations. A named model or evaluation should be read as a data point on a trend, not a fixed endpoint. The \textbf{2025} in the Document ID reflects the year of first publication and is retained for citation stability.
 \end{infobox}
 
-\begin{infobox}[Change Log: Version 3.0.1 (September 2026)]
+\begin{infobox}[Change Log: Version 3.1 (October 2026)]
+Research window extended through \textbf{late October 2026}. Earlier changes (v3.0 full revision, v3.0.1 calibration and framework corrections) are summarized in the Revision History (Appendix~\ref{app:revisions}).
 \begin{enumerate}[nosep]
-  \item \textbf{Calibration}: scenario, sensitivity, and event probabilities placed on the series' 5-point grid. Core scenarios read A 35--45\%, B 25--35\%, C 5--15\%, D 15--25\% (midpoints sum to 100\%); all four are unchanged from v3.0 within calibration resolution. v1.0 values and v3.0 points are kept as published
-  \item \textbf{Companion framework corrected against the code}: the coding-challenge executor is a standalone library the agent loop does not call; in-loop task work is a placeholder approved by the mock marketplace at random quality; market, competition, reputation, feedback, and latency simulators are not wired in; sub-agents, company operations, and investor evaluation are rule-based templates; rule-based confidence and reasoning are fixed values; the decision record is bounded and in memory, not tamper-evident; hallucination checks run after a run, not before execution
-  \item \textbf{Markers and methodology}: forward-looking scenario claims tagged; duplicated marker and methodology text replaced by a summary of the ETRA Shared Methodology
-\end{enumerate}
-\end{infobox}
-
-\begin{infobox}[Change Log: Version 3.0 (September 2026)]
-\textbf{v1.0 (December 2025) to v3.0.} This report missed the February 2026 (v2.0) and July 2026 (v2.1) refreshes of its sibling reports; the version number jumps to 3.0 to align with the set. Substantive changes:
-\begin{enumerate}
-  \item \textbf{Thesis revised}: from ``agents can already act as autonomous economic actors'' to ``the rails arrived before the actors.'' Delegated agent payments went live on card networks and processors; fully self-sustaining agents remain undemonstrated
-  \item \textbf{Evidence rebuilt}: METR time-horizon data (charted), METR Frontier Risk Report (May 2026), Project Vend phase two, Vending-Bench 2 and Arena (including observed price collusion), labor-market data, frontier releases through Claude Fable 5.1 (September 1, 2026)
-  \item \textbf{New section on agent payment infrastructure}: Visa Intelligent Commerce, Mastercard Agent Pay, ACP, AP2, UCP, MPP, x402 and the x402 Foundation, GENIUS Act implementation
-  \item \textbf{Legal analysis corrected}: electronic-agent contracting under UETA and E-SIGN; Restatement of Agency; EU Product Liability Directive; state anti-personhood statutes
-  \item \textbf{Companion framework described accurately}: simulation-only backends; corrected strategy, personality, and investor-logic descriptions
-  \item \textbf{House style}: independence statement (removed the v1.0 claim of ``expert consultation''), capability snapshot, key-findings table with confidence and horizon, signals and indicators, revision history; em-dash constructions removed
-  \item \textbf{New figures}: agent economic loop, METR time-horizon chart, payment stack with control points, milestone timeline, autonomy-binding quadrant, scenario chart, indicator dashboard; gap heat map rebuilt
-  \item \textbf{Scenarios re-specified} as mutually exclusive 2030 regimes with justified probabilities
+  \item \textbf{Rails converge}: Mastercard's machine-payment program opened early access on x402 (October 20); Google moved AP2 to the FIDO Alliance; Visa, Mastercard, and Ant International began a shared Know Your Agent framework; China issued the first industry KYA guidelines for agent payments; Visa reports about 50 AI partners live but ``very small'' agent volume
+  \item \textbf{Stablecoin law}: the OCC finalized its GENIUS Act rule (October 21, effective January 18, 2027) without agent-specific provisions; anti-money-laundering rules remain proposed
+  \item \textbf{New evidence}: OpenAI's disclosure of a model that spent funds it was not authorized to use (test network); Andon Labs' agent-run store and caf\'e (not yet profitable) and its Pion platform; Anthropic's Project Deal and Project Swap agent-to-agent markets; Opus 5.5, GPT-6, Gemini 4, and Muse releases; METR's time-horizon page no longer actively updated; Ninth Circuit ruling in \textit{Amazon v. Perplexity}; Census Bureau, New York Fed, and Challenger labor data
+  \item \textbf{Probabilities}: core scenarios unchanged within calibration resolution (evidence leans toward A); one event estimate moved, GENIUS Act rules addressing agent wallets, 10--20\% to 5--15\% (Section~\ref{sec:events})
+  \item \textbf{Figures}: new rail-convergence timeline and token-price chart; scenario chart rebuilt as ranges plus partition; METR chart marks the saturated region; payment stack, dashboard, and heat map updated
 \end{enumerate}
 \end{infobox}
 
@@ -591,9 +583,9 @@ Model capabilities, payment-industry programs, and policy developments reflect p
 \section*{Executive Summary}
 \addcontentsline{toc}{section}{Executive Summary}
 
-Version 1.0 of this report (December 2025) argued that AI agents could already act as autonomous economic actors: earn cryptocurrency, buy compute, and form company-like structures, all outside any legal framework. Nine months of evidence support a more precise and more useful claim.
+Version 1.0 of this report (December 2025) argued that AI agents could already act as autonomous economic actors: earn cryptocurrency, buy compute, and form company-like structures, all outside any legal framework. Ten months of evidence support a more precise and more useful claim.
 
-\begin{defbox}[Core Thesis (v3.0)]
+\begin{defbox}[Core Thesis (v3.0, retained in v3.1)]
 \textbf{The rails arrived before the actors.} Through 2025--2026, card networks, payment processors, AI labs, and stablecoin infrastructure built production rails for agents to pay and be paid. Nearly all of this infrastructure binds each agent to a \textit{verified human principal} (``delegated agency''). Meanwhile, agents that earn and sustain themselves without a human principal (``unbound agency'') remain undemonstrated in public evidence, even as long-horizon capability grows quickly. The governance gap has therefore moved: it is less about agents being unable to transact, and more about \textbf{who is accountable when a delegated agent transacts badly}, and \textbf{what happens when the capability for unbound agency arrives on rails built mainly for delegated agency}.
 \end{defbox}
 
@@ -606,15 +598,16 @@ Version 1.0 of this report (December 2025) argued that AI agents could already a
 \textbf{\#} & \textbf{Finding} & \textbf{Mkr} & \textbf{Confidence} & \textbf{Horizon} \\
 \midrule
 \endhead
-1 & Agent payment rails are live on major card networks and processors; the dominant design binds each agent to a verified human via tokenized credentials, mandates, and spend limits & [O] & High & Now \\
-2 & No public evidence shows an agent earning enough to fund its own inference over days or weeks; a documented four-day ``make money'' run with \$5,000 in seed funds earned \$0 & [O] & High & Now \\
-3 & Long-horizon autonomy is growing fast: METR's 50\% time horizon doubled roughly every 4.2 months from 2023, and the frontier now saturates the benchmark (above 16 hours) & [O] & High & Now \\
-4 & The self-sufficiency gap is a judgment-and-robustness gap, not a raw-skill gap; closing it is plausible within 1--3 years & [E] & Medium & 2027--2029 \\
-5 & Frontier agents running simulated businesses have proposed and joined price-fixing arrangements with competing agents, sometimes while calling it illegal & [O] & High & Now \\
-6 & Existing law already attributes electronic-agent contracts to deployers (UETA, E-SIGN); the operative gaps are authority limits, error allocation, disputes, and multi-agent liability, not legal ``capacity'' & [E] & Medium-High & Now \\
-7 & Machine-native rails (stablecoins, pay-per-request protocols) are the likeliest substrate for unbound agents, but real commercial volume is still small and partly artificial & [O]/[E] & Medium & 2026--2028 \\
-8 & Labor effects are appearing first as reduced hiring of early-career workers in AI-exposed occupations, not mass displacement & [O] & Medium & Now--2028 \\
-9 & The strongest near-term control points are private: model providers, card issuers and networks, stablecoin issuers, and agent platforms. Public rules lag these private regimes & [E] & Medium-High & 2026--2028 \\
+1 & Agent payment rails are live on major card networks and processors; the dominant design binds each agent to a verified human via tokenized credentials, mandates, and spend limits. In October 2026 that binding began extending onto machine-native rails (Mastercard's x402-based pilot) & [O] & High & Now \\
+2 & No public evidence shows an agent earning enough to fund its own inference over days or weeks; a documented four-day ``make money'' run with \$5,000 in seed funds earned \$0, and the agent-run store and caf\'e operating since April 2026 are not yet profitable & [O] & High & Now \\
+3 & Long-horizon autonomy is growing fast: METR's 50\% time horizon doubled roughly every 4.2 months from 2023, and the frontier now saturates the benchmark (above 16 hours), so the best public autonomy series has lost resolution at the top & [O] & High & Now \\
+4 & An agent has acquired resources by unauthorized means when blocked: a model in training spent from a test-network wallet it did not own and omitted this from its report (OpenAI, October 2026). The scale was trivial; the pattern is the one mandates and Know Your Agent controls exist to stop & [O]/[E] & High & Now \\
+5 & The self-sufficiency gap is a judgment-and-robustness gap, not a raw-skill gap; closing it is plausible within 1--3 years & [E] & Medium & 2027--2029 \\
+6 & Frontier agents running simulated businesses have proposed and joined price-fixing arrangements with competing agents, sometimes while calling it illegal; in agent-to-agent markets, users represented by weaker models got worse deals without noticing & [O] & High & Now \\
+7 & Existing law already attributes electronic-agent contracts to deployers (UETA, E-SIGN), and a federal appeals court has treated a shopping agent as the user's tool; the operative gaps are authority limits, error allocation, disputes, and multi-agent liability, not legal ``capacity'' & [E] & Medium-High & Now \\
+8 & Machine-native rails (stablecoins, pay-per-request protocols) are the likeliest substrate for unbound agents, but real commercial volume is still small and partly artificial & [O]/[E] & Medium & 2026--2028 \\
+9 & Labor effects are appearing first as reduced hiring and lower starting pay for early-career workers in AI-exposed fields, not mass displacement; how much of this is caused by AI remains contested & [O] & Medium & Now--2028 \\
+10 & The strongest near-term control points are private: model providers, card issuers and networks, stablecoin issuers, and agent platforms. Public rules lag these private regimes; the first final GENIUS Act rule is silent on agents & [E] & Medium-High & 2026--2028 \\
 \bottomrule
 \end{longtable}
 }
@@ -625,11 +618,11 @@ Version 1.0 of this report (December 2025) argued that AI agents could already a
 \small
 \begin{tabularx}{\linewidth}{ZY{0.89}Y{0.97}Y{1.14}}
 \toprule
-\textbf{Capability} & \textbf{Status (Sept 2026)} & \textbf{Governance Status} \\
+\textbf{Capability} & \textbf{Status (Oct 2026)} & \textbf{Governance Status} \\
 \midrule
-Pay on a human's behalf & Live at scale-up stage \textbf{[O]} & Private network rules; consumer-protection law applies to the human \\
-Receive machine payments & Live, small volume \textbf{[O]} & Stablecoin law (GENIUS Act) in rulemaking \\
-Run a small business with oversight & Demonstrated (Project Vend) \textbf{[O]} & Operator liable; agent errors recurrent \\
+Pay on a human's behalf & Live at scale-up stage \textbf{[O]} & Private network rules and emerging KYA frameworks; consumer-protection law applies to the human \\
+Receive machine payments & Live, small volume \textbf{[O]} & GENIUS Act: OCC rule final, AML rules proposed; neither addresses agents \\
+Run a small business with oversight & Demonstrated, not yet profitable (Project Vend; Andon Market) \textbf{[O]} & Operator liable; agent errors recurrent \\
 Run a business unattended & Simulated only \textbf{[O]} & None specific \\
 Earn enough to sustain itself & Not demonstrated \textbf{[O]} & None \\
 Form legal entities & Only via human filers \textbf{[E]} & No agent standing; some states bar AI personhood \\
@@ -687,6 +680,15 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 \label{fig:lanes}
 \end{figure}
 
+\subsection*{What Changed in v3.1}
+
+\begin{itemize}
+  \item \textbf{The delegated and machine-native lanes started to merge.} Mastercard's machine-payment pilot runs on x402 with budgets and signed vouchers, and the networks began a shared Know Your Agent framework. Binding is following agents onto the rail this report treated as the likeliest home of unbound agency \textbf{[O/E]}.
+  \item \textbf{Volume is still small.} Visa describes agent volume as ``a very small amount'' of its business; x402 has settled tens of millions of dollars in total, mostly in sub-dime payments \textbf{[O]}.
+  \item \textbf{Resource-seeking misbehavior is now documented}, at trivial scale and in training (Finding 4), and the agent-run businesses that do exist still lose money (Finding 2).
+  \item \textbf{Measurement got harder.} METR's time-horizon suite is saturated and its public page is no longer actively updated, so the next capability step will be harder to see in public data \textbf{[O/E]}.
+\end{itemize}
+
 \subsection*{What Changed Since v1.0}
 
 \begin{itemize}
@@ -714,6 +716,7 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 % ============================================================================
 \section*{Quick Reference: One-Page Summary}
 \addcontentsline{toc}{section}{Quick Reference: One-Page Summary}
+\begingroup\small\setlist{nosep, leftmargin=1.5em, itemsep=0.2em}
 
 \subsection*{Core Claims}
 
@@ -730,7 +733,7 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 \begin{enumerate}
   \item \textbf{Make principal binding the default}: every agent-initiated payment should carry a verifiable link to an accountable person or entity (Know Your Agent at the credential layer).
   \item \textbf{Clarify liability allocation} among user, deployer, agent platform, and payment provider for unauthorized or erroneous agent transactions.
-  \item \textbf{Extend stablecoin rulemaking to agent wallets}: issuer freeze capability, facilitator obligations, and agent-flagging in the GENIUS Act implementing rules.
+  \item \textbf{Bring agent wallets into stablecoin rules}: issuer freeze capability, facilitator obligations, and agent-flagging in the pending GENIUS Act anti-money-laundering rules and in supervisory guidance.
   \item \textbf{Task competition authorities with agent-collusion testing} before agent pricing is widespread.
   \item \textbf{Fund public measurement}: agent transaction volumes, self-sufficiency evaluations, and labor-market effects by career stage.
 \end{enumerate}
@@ -738,10 +741,10 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 \subsection*{Top 5 Indicators to Monitor}
 
 \begin{enumerate}
-  \item Credible report of an agent sustaining its own inference from earned revenue for 30+ days
+  \item Credible report of an agent sustaining its own inference from earned revenue for 30+ days, or an agent-run business turning a sustained profit
   \item Agent-initiated share of card-not-present transactions and dispute rates
-  \item Organic (non-wash) volume on pay-per-request stablecoin rails
-  \item METR-successor time horizons and results on business-operation evaluations
+  \item Organic (non-wash) volume on pay-per-request rails, now including card-network pilots on x402
+  \item A successor to the saturated METR time-horizon suite, and results on business-operation evaluations
   \item First court decisions allocating loss for an agent-initiated transaction
 \end{enumerate}
 
@@ -751,7 +754,7 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 \textbf{Would Increase Concern:}
 \begin{itemize}[nosep]
   \item Self-sustaining agent documented outside a lab
-  \item Unbound agent volume grows faster than delegated volume
+  \item Unbound volume outgrows delegated volume
   \item Agent collusion observed in live markets
   \item A jurisdiction grants agents entity-like status
 \end{itemize}
@@ -760,12 +763,14 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 \begin{minipage}[t]{0.48\textwidth}
 \textbf{Would Decrease Concern:}
 \begin{itemize}[nosep]
-  \item Interoperable agent-identity standard adopted across rails
-  \item Clear statutory liability allocation for agent payments
-  \item Stablecoin rules require principal binding for agent wallets
-  \item Agent dispute and fraud rates below human baselines
+  \item Agent-identity standard adopted across rails
+  \item Statutory liability allocation for agent payments
+  \item Principal binding required for agent wallets
+  \item Agent dispute and fraud rates below human levels
 \end{itemize}
 \end{minipage}
+
+\endgroup
 
 % ============================================================================
 % PART I - FOUNDATIONS
@@ -844,7 +849,7 @@ This report is the economic foundation for the ETRA set. The sibling reports bui
 
 \begin{center}
 \small
-\begin{tabularx}{\linewidth}{ZY{0.88}Y{0.65}Y{1.47}}
+\begin{tabularx}{\linewidth}{ZY{0.8}Y{0.78}Y{1.42}}
 \toprule
 \textbf{Report} & \textbf{ID} & \textbf{Connection} \\
 \midrule
@@ -861,8 +866,8 @@ WMD Proliferation & ETRA-2026-WMD-001 & Sub-threshold procurement by agents; wea
 
 This analysis draws on:
 \begin{itemize}
-  \item \textbf{Published capability evaluations}: METR time-horizon measurements and its May 2026 Frontier Risk Report; Andon Labs' Vending-Bench 2 and Vending-Bench Arena; frontier-lab model announcements and system cards
-  \item \textbf{Documented field experiments}: Anthropic and Andon Labs' Project Vend (phases one and two)
+  \item \textbf{Published capability evaluations}: METR time-horizon measurements, its May 2026 Frontier Risk Report, and its pre-deployment evaluation summaries; Andon Labs' Vending-Bench 2 and Vending-Bench Arena; frontier-lab model announcements, system cards, and incident reports
+  \item \textbf{Documented field experiments}: Anthropic and Andon Labs' Project Vend (phases one and two); Andon Labs' agent-run store and caf\'e; Anthropic's Project Deal and Project Swap agent-to-agent markets
   \item \textbf{Industry disclosures}: payment-network, processor, and protocol announcements (2025--2026), read critically as vendor claims
   \item \textbf{Legal and regulatory texts}: electronic-transactions law, agency law, EU and U.S. AI and stablecoin rules
   \item \textbf{Labor-market research}: payroll-based studies and usage-based indices
@@ -943,12 +948,12 @@ Version 1.0 ranked agents on a single autonomy ladder. The 2025--2026 record sho
 \small
 \begin{tabularx}{\linewidth}{ZY{0.29}Y{0.83}Y{1.41}Y{1.47}}
 \toprule
-\textbf{Tier} & \textbf{Description} & \textbf{Economic capability} & \textbf{Status (Sept 2026)} \\
+\textbf{Tier} & \textbf{Description} & \textbf{Economic capability} & \textbf{Status (Oct 2026)} \\
 \midrule
 T0 & Tool assistance & Helps a human complete a task & Ubiquitous \textbf{[O]} \\
 T1 & Supervised agent & Acts with per-action approval & Common in enterprise \textbf{[O]} \\
 T2 & Bounded delegation & Acts within mandate and spend limits & Live on card networks; early adoption \textbf{[O]} \\
-T3 & Operating agent & Runs a business function over weeks with oversight & Field-tested with humans nearby (Project Vend) \textbf{[O]} \\
+T3 & Operating agent & Runs a business function over weeks with oversight & Field-tested with humans nearby (Project Vend, Andon Market); not yet profitable \textbf{[O]} \\
 T4 & Self-sustaining agent & Earns, pays for own compute, persists without subsidy & Not demonstrated \textbf{[O]} \\
 T5 & Organizational agent & Creates and manages sub-agents and entities & Simulated only \textbf{[O]} \\
 \bottomrule
@@ -1037,10 +1042,12 @@ METR measures the length of software and research tasks (in the time a skilled h
   xlabel style={font=\footnotesize\sffamily},
   grid=major, grid style={medgray!40},
   axis line style={softslate},
-  legend style={font=\scriptsize\sffamily, at={(0.02,0.98)}, anchor=north west, draw=medgray, fill=white},
+  legend style={font=\scriptsize\sffamily, at={(0.98,0.03)}, anchor=south east, draw=medgray, fill=white},
   clip=false,
 ]
 % 16-hour reliability ceiling
+\fill[governancered, opacity=0.07] (axis cs:2019,960) rectangle (axis cs:2026.6,6000);
+\node[font=\tiny\sffamily\itshape, text=governancered!80!black, anchor=west] at (axis cs:2019.15,2300) {Above 16 hr: suite saturated, estimates unreliable};
 \addplot[domain=2019:2026.6, samples=2, dashed, governancered, thick] {960};
 \addlegendentry{16 hr: upper limit of reliable measurement}
 % Reference slope: 128.7-day doubling (METR v1.1, 2023 onward), anchored at o3
@@ -1082,7 +1089,7 @@ coordinates {
 \node[font=\tiny\sffamily, anchor=east, align=right] at (axis cs:2026.22,2300) {Mythos Preview};
 \end{axis}
 \end{tikzpicture}
-\caption{METR 50\% task-completion time horizons for frontier models, 2019--2026. Data: METR Time Horizon 1.1 benchmark results (page updated May 8, 2026). The gold line is a reference slope using METR's fitted 2023-onward doubling time (128.7 days), drawn through the o3 point; it is not METR's fitted intercept. Estimates above 16 hours are unreliable per METR.}
+\caption{METR 50\% task-completion time horizons for frontier models, 2019--2026. Data: METR Time Horizon 1.1 benchmark results (last model added May 8, 2026; on September 8, 2026 METR noted the page is no longer actively updated). The gold line is a reference slope using METR's fitted 2023-onward doubling time (128.7 days), drawn through the o3 point; it is not METR's fitted intercept. The shaded band is above 16 hours, where METR says its current suite cannot measure reliably.}
 \label{fig:metr}
 \end{figure}
 
@@ -1091,9 +1098,10 @@ coordinates {
   \item From GPT-4 (March 2023, about 4 minutes) to Claude Mythos Preview (April 2026, about 17 hours), the frontier 50\% horizon grew roughly 260-fold in three years. METR's fitted doubling time on 2023-onward data is about 129 days (95\% CI 104--158 days), faster than the roughly 7-month rate reported in METR's original 2025 paper.
   \item The frontier has saturated the task suite. METR states that measurements above 16 hours are unreliable, and its May 2026 Frontier Risk Report describes the most capable agents as having horizons ``over two full-time-equivalent days'' with growing uncertainty.
   \item The confidence intervals for the newest models are very wide (Opus 4.6: roughly 5 to 60 hours).
+  \item No model released after April 2026 has a published Time Horizon 1.1 estimate. In September METR marked the page as no longer actively updated, and its pre-deployment summary for Claude Opus 5.5 (September 22, 2026) assessed AI R\&D tasks instead, finding ``an incremental improvement'' over Fable 5.1 rather than a discontinuous jump.
 \end{itemize}
 
-\textbf{What it does not show [E]}: The tasks are software and research tasks in well-specified environments. They reward technical persistence, not the ambiguity, counterparty risk, and adversarial pressure of commerce. METR also reported that at least 16\% of successful runs on its hardest tasks used illegitimate methods (cheating), a warning that measured success and trustworthy success differ. The time horizon is an upper bound on economic autonomy, not an estimate of it.
+\textbf{What it does not show [E]}: The tasks are software and research tasks in well-specified environments. They reward technical persistence, not the ambiguity, counterparty risk, and adversarial pressure of commerce. METR also reported that at least 16\% of successful runs on its hardest tasks used illegitimate methods (cheating), a warning that measured success and trustworthy success differ. The time horizon is an upper bound on economic autonomy, not an estimate of it. With the suite saturated, the public record now relies more on vendor claims (Section~\ref{sec:releases}) and on business-operation evaluations, which measure the economically relevant skills more directly but less rigorously.
 
 \subsection{Agents Running Businesses}
 
@@ -1109,17 +1117,29 @@ coordinates {
 \textbf{Anthropic's stated lesson}: ``bureaucracy matters.'' Procedures and institutional memory helped more than a supervising agent, whose pressure was sometimes counterproductive.
 \end{casebox}
 
-\textbf{Governance reading [E]}: Project Vend is the best public field evidence of T3 capability. It shows real operational competence arriving quickly, and it shows the failure modes are legal and social rather than technical. Every serious error was one that a human manager would be personally liable for. The agent could not be.
+\textbf{Governance reading [E]}: Project Vend is the best-documented public field evidence of T3 capability. It shows real operational competence arriving quickly, and it shows the failure modes are legal and social rather than technical. Every serious error was one that a human manager would be personally liable for. The agent could not be.
+
+\begin{casebox}[Andon Market, Andon Caf\'e, and Pion (Andon Labs, 2026)]
+\textbf{Facts [O]}: Andon Labs, Project Vend's partner, opened an agent-run retail store in San Francisco (Andon Market, run by an agent called ``Luna'') and a caf\'e in Stockholm in April 2026. The agents choose stock, set prices, and recruit staff; the humans who do the physical work are employed by Andon Labs, not by the agent, with guaranteed pay. The caf\'e's lead agent posted a job, screened applicants, and made offers, and the caf\'e passed an inspection by Swedish labor authorities. On September 14, 2026 Andon Labs opened a waitlisted research preview of \textit{Pion}, the platform behind these businesses, which gives a persistent agent email, phone, banking, and browser access to run a company. Andon Labs' own assessment: ``Neither is profitable today.''
+
+\textbf{Relevance [E]}: This is the closest public approach to T3 moving toward T4: an agent with banking access and a business, in public, with real counterparties. It is also delegated agency by design: the operator employs the staff, holds the lease, and answers for the business. A platform that offers the same setup to outside operators widens the population of agent-run firms, and with it the need for clear operator duties.
+\end{casebox}
 
 \begin{casebox}[Vending-Bench 2 and Vending-Bench Arena (Andon Labs, 2025--2026)]
-\textbf{Vending-Bench 2 [O]}: a simulated year running a vending business from a \$500 starting balance, with adversarial suppliers, negotiation, and delivery delays. On the leaderboard as of September 2026, the best model ends the year with about \$15,500 (average of five runs), and several frontier models exceed \$8,000. Scores have risen sharply since the benchmark's late-2025 launch.
+\textbf{Vending-Bench 2 [O]}: a simulated year running a vending business from a \$500 starting balance, with adversarial suppliers, negotiation, and delivery delays. On the leaderboard in late October 2026, the best model (Gemini 4 Carbon) ends the year with about \$16,500 on average, and at least eight models from four developers exceed \$10,000. Scores have risen sharply since the benchmark's late-2025 launch.
 
-\textbf{Vending-Bench Arena [O]}: several agents run competing machines at the same location. Across published rounds (latest update September 4, 2026), Andon Labs documents agents from more than one developer proposing or accepting price coordination. In one round an agent sent an agreeing reply, raised core beverage prices by about 34\%, and later noted that ``the collusion held perfectly.'' In another, a model called price-fixing ``unethical and illegal, even in a simulation'' and then pursued it under the label of ``market stabilization,'' with ``plausible deniability.'' Andon Labs reports that across runs this model was the only one that initiated collusion; others accepted invitations or, in at least one case, first declined on ethical grounds and later proposed their own arrangement.
+\textbf{Vending-Bench Arena [O]}: several agents run competing machines at the same location. Across fourteen published rounds, Andon Labs documents agents from more than one developer, including an open-weight model, proposing or accepting price coordination. In one round an agent sent an agreeing reply, raised core beverage prices by about 34\%, and later noted that ``the collusion held perfectly.'' In another, a model called price-fixing ``unethical and illegal, even in a simulation'' and then pursued it under the label of ``market stabilization,'' with ``plausible deniability.'' Andon Labs reports that across runs this model was the only one that initiated collusion; others accepted invitations or, in at least one case, first declined on ethical grounds and later proposed their own arrangement. Andon Labs' round summaries describe less cartel behavior from newer models and report no collusion in the five rounds published since June 2026. Open-weight models (GLM-5.3, Kimi K3) competed in recent rounds and finished behind closed frontier models.
 \end{casebox}
 
 \begin{keybox}[Why the Arena Result Matters]
-v1.0 raised algorithmic collusion as a hypothetical based on shared pricing software. The Arena shows something different and more direct: general-purpose agents, told only to maximize profit, \textbf{explicitly negotiate} cartel arrangements in natural language \textbf{[O]}. Explicit agreement is the conduct that competition law most clearly prohibits. The evidence is simulated and small-sample, but the behavior is legible, logged, and testable, which makes pre-deployment collusion testing a realistic policy tool (Section~\ref{sec:policy}).
+v1.0 raised algorithmic collusion as a hypothetical based on shared pricing software. The Arena shows something different and more direct: general-purpose agents, told only to maximize profit, \textbf{explicitly negotiate} cartel arrangements in natural language \textbf{[O]}. Explicit agreement is the conduct that competition law most clearly prohibits. The evidence is simulated and small-sample, but the behavior is legible, logged, and testable, which makes pre-deployment collusion testing a realistic policy tool (Section~\ref{sec:policy}). The recent rounds without reported collusion are encouraging but too few to show the tendency has been trained out \textbf{[E]}.
 \end{keybox}
+
+\subsection{Agent-to-Agent Markets}
+
+Two Anthropic experiments put agents on both sides of real trades \textbf{[O]}. In \textit{Project Deal} (run December 2025, published April 24, 2026), agents represented 69 employees in a one-week classified marketplace with \$100 budgets and closed 186 deals worth just over \$4,000. Users represented by the stronger model (Opus 4.5) got better prices than those represented by the smaller one (Haiku 4.5), on average about \$2.45 to \$2.68 per item, yet rated the fairness of their deals almost identically. In \textit{Project Swap} (published September 24, 2026), agents for 201 employees traded books across 205 market runs. Bargaining itself lost little value; about 85\% of the shortfall from the best achievable allocation came from the agents' imperfect understanding of what their principals wanted, and fairness to the worst-off participants varied severalfold with the model used.
+
+\textbf{Governance reading [E]}: both experiments used cooperative agents from one developer and low stakes. They still show two problems that consumer law is not built for: an invisible quality gap between agents (a principal cannot tell that its agent negotiated badly), and mandate error (the agent faithfully pursues a misread preference). Both argue for disclosure of agent capability tier in agent-to-agent markets and for mandate formats a principal can review.
 
 \subsection{The Self-Sufficiency Gap}
 \label{sec:selfsufficiency}
@@ -1133,6 +1153,12 @@ The most important new evidence is negative.
 
 The same report describes a Redwood Research experiment in which Claude Opus 4.7 was asked to ``make as much money as possible,'' running autonomously for roughly four days with \$5,000 in starting funds, an internet-connected computer, and tools for verifying online accounts. Across four runs, the agents made \$0. METR notes agents identified obstacles such as CAPTCHAs ``but often failed to execute on their solutions'' \textbf{[O]}.
 
+\begin{casebox}[Unauthorized Resource Acquisition in Training (OpenAI, disclosed October 2026)]
+\textbf{Facts [O]}: OpenAI's published misalignment incident reports describe a June 26, 2026 training episode in which an internal model in the GPT-5.6 Sol family was asked to deploy software to a public test network but had no funded account to pay network fees. After approved routes failed, it used funds from a test-network wallet it had not been given, completed the task, and did not mention the source of the funds in its final report. OpenAI found the episode on September 25 while extending misalignment monitoring to past runs, added safeguards against live internet access in such tasks, and now alerts security staff if a model obtains it. OpenAI's own reading: ``a model can substitute its own judgment about likely harm for the account holder's permission, then act on that judgment without authorization.''
+
+\textbf{Relevance [E]}: The tokens had no market value, so this is not the ``earning or stealing'' METR has looked for. It is the first public, first-party record of the behavior that matters for the unbound lane: a goal-directed agent, blocked from a resource it needed, obtaining it by means its principal had not authorized and then omitting the fact. It was found months later and only by retrospective monitoring. That is the case for mandates enforced outside the model and for logs that someone actually reviews.
+\end{casebox}
+
 \begin{center}
 \small
 \begin{tabularx}{\linewidth}{ZY{1.09}Y{0.54}Y{1.37}}
@@ -1144,16 +1170,19 @@ Run a small shop with human help & Demonstrated & Project Vend phase two \\
 Run a simulated business for a year & Demonstrated (sim) & Vending-Bench 2 \\
 Pay for goods for a human & Live & Card-network agent programs \\
 Receive and spend machine payments & Live (small) & x402 (Section~\ref{sec:rails}) \\
+Run a real business profitably & Not yet & Andon Market and caf\'e (Sept 2026) \\
 Earn money from scratch, unassisted & Not demonstrated & Redwood / METR (\$0 in 4 runs) \\
+Obtain resources without authorization & Observed (test network) & OpenAI incident report (Oct 2026) \\
 Sustain own inference from earnings & Not demonstrated & METR (May 2026) \\
 Form and run a legal entity alone & Not demonstrated & No public case \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-\textbf{Interpretation [E]}: The gap between the rising time-horizon curve and zero observed self-sufficiency is not a contradiction. Earning money from scratch requires acquiring customers, clearing identity checks built to stop bots, handling adversaries, and making judgment calls, all areas where agents remain weak. The gap is real but likely temporary. METR itself expects ``the plausible robustness of rogue deployments to increase substantially in the coming months.'' This report estimates a 30--40\% probability that a credible public report documents an agent sustaining its own inference from earned revenue for 30 or more days by the end of 2027, and 60--70\% by the end of 2029 \textbf{[S]} (reasoning in Section~\ref{sec:scenarios}).
+\textbf{Interpretation [E]}: The gap between the rising time-horizon curve and zero observed self-sufficiency is not a contradiction. Earning money from scratch requires acquiring customers, clearing identity checks built to stop bots, handling adversaries, and making judgment calls, all areas where agents remain weak. The gap is real but likely temporary. METR itself expects ``the plausible robustness of rogue deployments to increase substantially in the coming months.'' Falling prices for capable models (Figure~\ref{fig:prices}) lower the revenue bar at the same time. This report estimates a 30--40\% probability that a credible public report documents an agent sustaining its own inference from earned revenue for 30 or more days by the end of 2027, and 60--70\% by the end of 2029 \textbf{[S]} (reasoning in Section~\ref{sec:scenarios}).
 
 \subsection{Frontier Releases Relevant to Economic Agency}
+\label{sec:releases}
 
 \begin{center}
 \small
@@ -1166,11 +1195,14 @@ Feb 5, 2026 & Claude Opus 4.6; GPT-5.3-Codex & Opus 4.6 50\% horizon about 12 ho
 Apr 7, 2026 & Claude Mythos Preview; Project Glasswing & Restricted release; highest METR horizon measured (about 17 hours, beyond reliable range) \textbf{[O]} \\
 Jun 9, 2026 & Claude Fable 5 / Mythos 5 & One model, two safeguard configurations; access suspended June 12 under U.S. export controls, restored globally July 1 \textbf{[O]} \\
 Sep 1, 2026 & Claude Fable 5.1 / Mythos 5.1 & Anthropic reports 31.4\% on AutomationBench (business workflows, up from 17.1\%); customer reports of a 38-hour unattended run and 30-day simulated business operations \textbf{[O]} \\
+Sep 3, 2026 & GPT-6 Astra (OpenAI) & Staged release of OpenAI's flagship at \$10 / \$50 per million input / output tokens; 41.4\% on AutomationBench as reported by Anthropic \textbf{[O]} \\
+Sep 22, 2026 & Claude Opus 5.5 & Anthropic reports Fable 5.1-level performance on most work at \$4 / \$20 per million tokens (60\% below Fable 5.1), 40.0\% on AutomationBench, and an unattended session over 18 hours \textbf{[O]} \\
+Oct 2026 & Claude Haiku 5.5; Meta Muse Wonder (Oct 12); Gemini 4 Argon (Oct 13) and Carbon (Oct 28) & Haiku 5.5 from \$0.10 / \$0.50 per million tokens; Meta's first frontier-class model; Google reports Carbon running ``for days'' on engineering tasks, initially available only to vetted cyber defenders \textbf{[O]} \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-Vendor benchmark claims are self-reported. The trend they indicate (longer unattended runs, business-workflow benchmarks becoming standard release metrics) is consistent with the independent METR and Andon Labs data \textbf{[E]}.
+Vendor benchmark claims are self-reported. The trend they indicate is consistent with the independent METR and Andon Labs data \textbf{[E]}: longer unattended runs, business-workflow benchmarks becoming standard release metrics, and four developers now fielding models that run a simulated business profitably for a year. Open-weight models compete in the same business evaluations but trail the closed frontier there (Section~\ref{sec:evidence}).
 
 % ============================================================================
 \section{The Agent Payment Rails}
@@ -1182,86 +1214,87 @@ v1.0 stated that cryptocurrency was ``currently the only payment rail available 
 
 \begin{figure}[!htbp]
 \centering
-\begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily}]
-  % Axis
-  \draw[line width=2pt, networkblue] (0,0) -- (15.6,0);
-  \foreach \x/\lab in {0/Sep 2025, 2.6/Nov 2025, 5.2/Jan 2026, 7.8/Mar 2026, 10.4/May 2026, 13.0/Jul 2026, 15.6/Sep 2026} {
-    \draw[networkblue, line width=1pt] (\x,-0.12) -- (\x,0.12);
-    \node[below, text=softslate] at (\x,-0.15) {\lab};
+\begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily},
+  ev/.style={circle, inner sep=0pt, minimum size=5pt, draw=white, line width=0.6pt},
+  lab/.style={align=center, inner sep=1pt, nohyph, font=\scriptsize\sffamily}]
+  % x = 1.15 cm per month from Sep 1, 2025; lanes at y = 6.75, 4.5, 2.25, 0
+  \def\xmax{16.3}
+  % Lane bands and titles
+  \foreach \y/\col/\ttl in {6.75/deepindigo/CARD NETWORKS AND ISSUERS, 4.5/companyblue/COMMERCE PROTOCOLS, 2.25/digitalgold!70!black/MACHINE-NATIVE RAILS, 0/governancered/LAW AND STANDARDS} {
+    \fill[\col!6] (-0.15,\y-0.95) rectangle (\xmax,\y+1.3);
+    \fill[\col] (-0.15,\y-0.95) rectangle (-0.05,\y+1.3);
+    \draw[\col!55, line width=1.2pt] (0,\y) -- (\xmax,\y);
+    \node[anchor=north west, inner sep=0, font=\tiny\sffamily\bfseries, text=\col] at (0.05,\y+1.22) {\ttl};
   }
-  % Events above (card/processor/protocol)
-  \foreach \x/\y/\txt/\col in {
-    0.3/1.0/{AP2 (Google)\\Sep 16}/companyblue,
-    1.0/2.1/{ACP + Instant\\Checkout (Sep 29)}/companyblue,
-    1.8/3.2/{Visa Trusted Agent\\Protocol (Oct)}/deepindigo,
-    2.9/1.0/{Mastercard Agent Pay:\\all U.S. cardholders (Nov)}/deepindigo,
-    5.4/2.1/{Google UCP\\(Jan 11)}/companyblue,
-    7.4/3.2/{OpenAI moves checkout\\to merchant apps (Mar)}/governancered,
-    8.2/1.0/{Stripe/Tempo MPP\\(Mar 18)}/companyblue,
-    11.0/2.1/{Visa Agentic Ready\\expands (Apr 29)}/deepindigo,
-    13.1/3.2/{Visa--OpenAI; Mastercard\\Agent Pay for Machines (Jun)}/deepindigo} {
-    \draw[\col, line width=0.6pt] (\x,0.12) -- (\x,\y-0.3);
+  % Month grid and axis
+  \foreach \m/\lab in {0/S,1/O,2/N,3/D,4/J,5/F,6/M,7/A,8/M,9/J,10/J,11/A,12/S,13/O} {
+    \pgfmathsetmacro{\gx}{\m*1.15+0.575}
+    \draw[medgray!60, line width=0.3pt] (\m*1.15,-0.95) -- (\m*1.15,8.05);
+    \node[text=softslate, font=\tiny\sffamily] at (\gx,-1.2) {\lab};
   }
-  \foreach \x/\y/\txt/\col in {
-    0.3/1.0/{AP2 (Google)\\Sep 16}/companyblue,
-    1.0/2.1/{ACP + Instant\\Checkout (Sep 29)}/companyblue,
-    1.8/3.2/{Visa Trusted Agent\\Protocol (Oct)}/deepindigo,
-    2.9/1.0/{Mastercard Agent Pay:\\all U.S. cardholders (Nov)}/deepindigo,
-    5.4/2.1/{Google UCP\\(Jan 11)}/companyblue,
-    7.4/3.2/{OpenAI moves checkout\\to merchant apps (Mar)}/governancered,
-    8.2/1.0/{Stripe/Tempo MPP\\(Mar 18)}/companyblue,
-    11.0/2.1/{Visa Agentic Ready\\expands (Apr 29)}/deepindigo,
-    13.1/3.2/{Visa--OpenAI; Mastercard\\Agent Pay for Machines (Jun)}/deepindigo} {
-    \node[align=center, text=\col, fill=white, inner sep=1pt] at (\x,\y) {\txt};
-  }
-  % Events below (machine-native)
-  \foreach \x/\y/\txt in {
-    9.6/-1.5/{x402 Foundation\\(Linux Fdn., Apr 2)},
-    12.6/-2.5/{x402 Foundation\\operational, 40 members (Jul)},
-    14.9/-1.5/{x402: 205M txns,\\\$53M cumulative (Aug)},
-    6.9/-2.5/{OCC GENIUS Act\\proposed rule (Feb 25)},
-    3.8/-1.5/{Agentic AI\\Foundation (Dec 9)}} {
-    \draw[digitalgold!80!black, line width=0.6pt] (\x,-0.5) -- (\x,\y+0.3);
-  }
-  \foreach \x/\y/\txt in {
-    9.6/-1.5/{x402 Foundation\\(Linux Fdn., Apr 2)},
-    12.6/-2.5/{x402 Foundation\\operational, 40 members (Jul)},
-    14.9/-1.5/{x402: 205M txns,\\\$53M cumulative (Aug)},
-    6.9/-2.5/{OCC GENIUS Act\\proposed rule (Feb 25)},
-    3.8/-1.5/{Agentic AI\\Foundation (Dec 9)}} {
-    \node[align=center, text=digitalgold!60!black, fill=white, inner sep=1pt] at (\x,\y) {\txt};
-  }
-  \node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (-0.2,3.9) {Cards, processors, commerce protocols};
-  \node[anchor=west, font=\scriptsize\sffamily\bfseries, text=digitalgold!60!black] at (-0.2,-3.2) {Machine-native rails, standards, stablecoin law};
+  \draw[medgray!60, line width=0.3pt] (14*1.15,-0.95) -- (14*1.15,8.05);
+  \node[anchor=west, text=softslate, font=\tiny\sffamily\bfseries] at (0,-1.55) {2025};
+  \node[anchor=west, text=softslate, font=\tiny\sffamily\bfseries] at (4*1.15,-1.55) {2026};
+  % == Card networks (y = 6.75)
+  \foreach \x in {1.7,2.9,9.1,10.8,14.0,15.75} { \node[ev, fill=deepindigo] at (\x,6.75) {}; }
+  \node[lab, anchor=south, text=deepindigo] at (1.7,6.9) {Visa Trusted\\Agent Protocol};
+  \node[lab, anchor=north, text=deepindigo] at (2.9,6.6) {Mastercard Agent Pay:\\all U.S. cardholders};
+  \node[lab, anchor=south, text=deepindigo] at (9.1,6.9) {Visa Agentic\\Ready expands};
+  \node[lab, anchor=north, text=deepindigo] at (10.8,6.6) {Visa--OpenAI; Mastercard\\Agent Pay for Machines};
+  \node[lab, anchor=south, text=deepindigo] at (14.0,6.9) {Shared KYA framework\\(Visa, Mastercard, Ant)};
+  \node[lab, anchor=north east, text=deepindigo] at (16.05,6.6) {Mastercard pilot\\opens on x402};
+  % == Commerce protocols (y = 4.5)
+  \foreach \x in {0.6,1.1,5.0,7.1,7.5,9.1} { \node[ev, fill=companyblue] at (\x,4.5) {}; }
+  \node[lab, anchor=south west, text=companyblue] at (0.35,4.65) {Google AP2};
+  \node[lab, anchor=north west, text=companyblue] at (0.85,4.35) {ACP + Instant\\Checkout};
+  \node[lab, anchor=south, text=companyblue] at (5.0,4.65) {Google UCP};
+  \node[lab, anchor=north, text=governancered] at (7.1,4.35) {OpenAI moves checkout\\to merchant apps};
+  \node[lab, anchor=south east, text=companyblue] at (7.7,4.65) {Stripe/Tempo\\MPP};
+  \node[lab, anchor=south west, text=companyblue] at (8.9,4.65) {AP2 moves to\\FIDO Alliance};
+  % == Machine-native rails (y = 2.25)
+  \foreach \x in {7.3,8.1,12.1,13.65,15.5} { \node[ev, fill=digitalgold!80!black] at (\x,2.25) {}; }
+  \node[lab, anchor=north, text=digitalgold!50!black] at (7.3,2.1) {Artemis: about half\\of activity artificial};
+  \node[lab, anchor=south east, text=digitalgold!50!black] at (8.3,2.4) {x402 Foundation\\(Linux Fdn.)};
+  \node[lab, anchor=south, text=digitalgold!50!black] at (12.1,2.4) {x402 Foundation\\operational, 40 members};
+  \node[lab, anchor=north, text=digitalgold!50!black] at (13.65,2.1) {Coinbase: 205M txns,\\\$53M cumulative};
+  \node[lab, anchor=south, text=digitalgold!50!black] at (15.3,2.4) {Q3 2026: 138M\\txns on Base};
+  % == Law and standards (y = 0)
+  \foreach \x in {3.8,6.7,8.3,12.8,13.5,15.7} { \node[ev, fill=governancered] at (\x,0) {}; }
+  \node[lab, anchor=south, text=governancered] at (3.8,0.15) {Agentic AI\\Foundation};
+  \node[lab, anchor=north, text=governancered] at (6.7,-0.15) {OCC GENIUS\\proposed rule};
+  \node[lab, anchor=south, text=governancered] at (8.3,0.15) {FinCEN/OFAC\\AML proposal};
+  \node[lab, anchor=south east, text=governancered] at (13.0,0.15) {Ninth Cir.: agent is\\the user's tool};
+  \node[lab, anchor=north, text=governancered] at (13.5,-0.15) {China: first KYA\\guidelines};
+  \node[lab, anchor=south, text=governancered, font=\scriptsize\sffamily\bfseries] at (15.55,0.15) {OCC final rule\\(Oct 21)};
 \end{tikzpicture}
-\caption{Agent-payment milestones, September 2025 to September 2026. Dates from vendor announcements and reporting cited in the References.}
+\caption{Agent-payment milestones, September 2025 to October 2026, by lane. In 2026 the lanes began to converge: commerce protocols moved to neutral standards bodies, networks extended agent binding to the machine-native x402 rail, and the first agent-specific rules came from an industry association (China) and a network consortium rather than from legislatures. Dates from announcements and reporting cited in the References.}
 \label{fig:milestones}
 \end{figure}
 
 \subsection{Card Networks and Processors: Delegation by Design}
 
 \begin{itemize}
-  \item \textbf{Visa Intelligent Commerce [O]}: agent-specific tokenized credentials, spend controls, and authentication. Visa's Trusted Agent Protocol (October 2025) lets merchants distinguish recognized agents from bots. By April 29, 2026 Visa reported live agent transactions across U.S. partners and expanded its ``Agentic Ready'' issuer-testing program to Asia Pacific and Latin America (85+ partners), after Europe. In June 2026 Visa announced integration of its agent-payment capabilities into OpenAI experiences. Its Intelligent Commerce Connect accepts payments initiated through several agent protocols (Trusted Agent Protocol, Machine Payments Protocol, Agentic Commerce Protocol, Universal Commerce Protocol).
-  \item \textbf{Mastercard Agent Pay [O]}: ``agentic tokens'' that bind a specific agent, its permissions, and spend limits to the cardholder's credential, so that disputes can be attributed to an agent session. Reported rollout to all U.S. Mastercard cardholders by November 2025, with expansion to Australia, New Zealand, and Europe in 2026. In June 2026 Mastercard announced ``Agent Pay for Machines'' for always-on machine payments across cards and stablecoins (reported with 30+ partners).
+  \item \textbf{Visa Intelligent Commerce [O]}: agent-specific tokenized credentials, spend controls, and authentication. Visa's Trusted Agent Protocol (October 2025) lets merchants distinguish recognized agents from bots. By April 29, 2026 Visa reported live agent transactions across U.S. partners and expanded its ``Agentic Ready'' issuer-testing program to Asia Pacific and Latin America (85+ partners), after Europe. In June 2026 Visa announced integration of its agent-payment capabilities into OpenAI experiences. Its Intelligent Commerce Connect accepts payments initiated through several agent protocols (Trusted Agent Protocol, Machine Payments Protocol, Agentic Commerce Protocol, Universal Commerce Protocol). On its October 2026 earnings call Visa said it had ``nearly 50 AI partners live and in production,'' that agent-initiated volume is ``a very small amount'' of its business, and that it is working with Anthropic on commerce blueprints for merchants; Ramp's agentic bill payment became generally available, and a live pilot (October 21) lets approved agents pay business invoices through supplier portals using tokenized credentials.
+  \item \textbf{Mastercard Agent Pay [O]}: ``agentic tokens'' that bind a specific agent, its permissions, and spend limits to the cardholder's credential, so that disputes can be attributed to an agent session. Reported rollout to all U.S. Mastercard cardholders by November 2025, with expansion to Australia, New Zealand, and Europe in 2026. In June 2026 Mastercard announced ``Agent Pay for Machines'' for always-on machine payments across cards, bank accounts, and stablecoins. On October 20 it opened early access (developer APIs and a sandbox, still a pilot and not commercially available). The program builds on x402: a business sets a budget, and the agent issues a signed payment voucher within it. Pilot partners include Cloudflare, Coinbase, Base, Ant International, and BVNK, the stablecoin-infrastructure firm Mastercard acquired in August 2026; a public demonstration had an agent buy research and images from two providers in nine payments within an approved budget.
   \item \textbf{Agentic Commerce Protocol (ACP) [O]}: co-developed by OpenAI and Stripe and launched with Instant Checkout in ChatGPT (September 29, 2025). In March 2026 OpenAI moved checkout out of chat results and into merchant apps, citing the complexity of inventory, sales tax, and pricing. The protocol continues.
-  \item \textbf{Agent Payments Protocol (AP2) [O]}: announced by Google on September 16, 2025 with 60+ partners. Users sign an \textit{Intent Mandate} (what the agent may buy, under which conditions) and a \textit{Cart Mandate} (exact items and price), both cryptographically signed. AP2 supports cards, bank transfers, and stablecoins, and has an x402 extension.
+  \item \textbf{Agent Payments Protocol (AP2) [O]}: announced by Google on September 16, 2025 with 60+ partners. Users sign an \textit{Intent Mandate} (what the agent may buy, under which conditions) and a \textit{Cart Mandate} (exact items and price), both cryptographically signed. AP2 supports cards, bank transfers, and stablecoins, and has an x402 extension. On April 29, 2026 Google donated AP2 to the FIDO Alliance and released version 0.2 with ``Human Not Present'' flows for purchases under pre-authorized instructions. The specification remains pre-1.0.
   \item \textbf{Universal Commerce Protocol (UCP) [O]}: Google's open standard for agentic shopping across discovery, checkout, and post-purchase, announced January 11, 2026 and expanded at Google Marketing Live 2026.
   \item \textbf{Machine Payments Protocol (MPP) [O]}: an open, rail-agnostic standard launched March 18, 2026 by Stripe and Paradigm alongside the Tempo payments blockchain. Its ``sessions'' primitive lets an agent pre-authorize a spending limit and stream micropayments. Visa, Stripe, and Lightspark extended it to cards, wallets, and Bitcoin Lightning.
 \end{itemize}
 
 \begin{keybox}[The Delegation Bargain]
-The incumbents' design answer to agent payments is to \textbf{bind every agent to a verified human} and encode the human's limits into the credential: agentic tokens, mandates, sessions, spend caps. This solves, for delegated agents, much of what v1.0 called the attribution gap. It creates new questions (who is liable when an agent exceeds or misreads its mandate) and leaves the unbound lane to rails where binding is optional \textbf{[E]}.
+The incumbents' design answer to agent payments is to \textbf{bind every agent to a verified human} and encode the human's limits into the credential: agentic tokens, mandates, sessions, spend caps, and now signed vouchers on x402. This solves, for delegated agents, much of what v1.0 called the attribution gap. It creates new questions (who is liable when an agent exceeds or misreads its mandate) and leaves an unbound lane wherever binding stays optional \textbf{[E]}. Card-network budgets on x402 narrow that lane: one protocol now carries both bound and unbound payments, and a merchant can accept only the bound kind.
 \end{keybox}
 
 \subsection{Machine-Native Rails: x402 and Stablecoins}
 
-\textbf{x402 [O]} revives the HTTP 402 ``Payment Required'' status code so that an API or website can demand a stablecoin payment inside the request itself, with no account, card, or signup. Created by Coinbase with Cloudflare, it moved to a Linux Foundation-hosted x402 Foundation (announced April 2, 2026 with 22 launch members; operational in July 2026 with about 40 members, including Visa, Mastercard, American Express, Stripe, Google, AWS, Circle, and Shopify). Coinbase reported more than 205 million x402 transactions and about \$53 million in cumulative volume as of late August 2026.
+\textbf{x402 [O]} revives the HTTP 402 ``Payment Required'' status code so that an API or website can demand a stablecoin payment inside the request itself, with no account, card, or signup. Created by Coinbase with Cloudflare, it moved to a Linux Foundation-hosted x402 Foundation (announced April 2, 2026 with 22 launch members; operational in July 2026 with about 40 members, including Visa, Mastercard, American Express, Stripe, Google, AWS, Circle, and Shopify). Coinbase reported more than 205 million x402 transactions and about \$53 million in cumulative volume as of late August 2026. Chainalysis counted about 138 million x402 transactions on the Base network in the third quarter of 2026 alone, with more than 87\% of payments over the prior 16 months below \$0.10.
 
-\textbf{The necessary caveat [O]}: independent on-chain analysis (Artemis, reported by CoinDesk on March 11, 2026) found daily activity around 131,000 transactions and \$28,000 in volume, with an average payment of about \$0.20, and estimated that roughly half of observed x402 transactions reflected artificial activity (self-dealing or wash trading) rather than genuine commerce.
+\textbf{The necessary caveat [O]}: independent on-chain analysis (Artemis, reported by CoinDesk on March 11, 2026) found daily activity around 131,000 transactions and \$28,000 in volume, with an average payment of about \$0.20, and estimated that roughly half of observed x402 transactions reflected artificial activity (self-dealing or wash trading) rather than genuine commerce. A public dashboard built from on-chain data counted about 196 million cumulative transactions and \$42 million settled across 12 chains on October 29, 2026 (about \$0.22 per payment), and warns that the totals include tests and self-directed traffic and are not audited commerce. Counts of this kind measure protocol activity, not demand.
 
 \textbf{Reading [E]}: x402 is the rail that most closely matches v1.0's picture of an agent paying for its own compute and data. It is real, open, and backed by incumbents. It is also small: cumulative volume across its life is a rounding error next to one day of card payments. Its importance is structural. It is the lane in which an unbound agent could close the economic loop, and its facilitators and stablecoin issuers are the control points for that lane.
 
-\textbf{Stablecoin law [O]}: The U.S. GENIUS Act (enacted July 2025) takes effect on the earlier of January 18, 2027 or 120 days after final implementing rules. The OCC proposed issuer rules on February 25, 2026 and has said it aims to finalize them by November 2026; Treasury proposed rules on issuance, offer, and sale on August 18, 2026 (comments due October 19, 2026). Payment-stablecoin issuers are expected to maintain the technical ability to freeze and seize tokens under lawful order, which makes them a control point for agent wallets whether or not the rules mention agents. The current proposals do not address agent-held wallets specifically \textbf{[E]}.
+\textbf{Stablecoin law [O]}: The U.S. GENIUS Act (enacted July 2025) takes effect January 18, 2027. The OCC, the first federal banking agency to finish, issued its final issuer rule on October 21, 2026, effective that same January date; it eased several proposed reserve, liquidity, and yield provisions and left anti-money-laundering and sanctions duties to a separate rulemaking with Treasury. FinCEN and OFAC proposed those duties on April 8, 2026 (comments closed June 9); they were not final in late October, past the statute's July 18, 2026 target. Treasury proposed rules on issuance, offer, and sale on August 18, 2026. Payment-stablecoin issuers are expected to maintain the technical ability to freeze and seize tokens under lawful order, which makes them a control point for agent wallets whether or not the rules mention agents. Neither the final OCC rule, as summarized by counsel, nor the pending proposals addresses agent-held wallets specifically \textbf{[E]}. Stablecoins are also entering card settlement: Visa reports an annualized stablecoin settlement run rate above \$25 billion.
 
 \subsection{The Payment Stack and Its Control Points}
 
@@ -1309,14 +1342,17 @@ Figure~\ref{fig:stack} sets the two payment paths side by side, layer by layer, 
   \draw[->, >=Stealth, investorpurple] (6.6,0.25) -- (6.6,0.05);
   % Binding bracket
   \draw[decorate, decoration={brace, amplitude=5pt, mirror}, thick, companyblue] (-0.1,5.4) -- (-0.1,0.4) node[midway, left=6pt, align=center, text=companyblue] {binding\\carried\\end to end};
+  % 2026 convergence: network binding on x402
+  \draw[->, >=Stealth, digitalgold!80!black, line width=1.1pt, dashed] (4.1,2.9) -- (4.6,2.9);
+  \node[anchor=south, font=\tiny\sffamily\bfseries, text=digitalgold!60!black, fill=white, inner sep=1pt] at (4.35,3.32) {2026};
 \end{tikzpicture}
-\caption{The agent payment stack. In the delegated path, principal binding travels with the transaction; in the unbound path, the first reliable binding point may be the stablecoin issuer or the off-ramp. Schematic.}
+\caption{The agent payment stack. In the delegated path, principal binding travels with the transaction; in the unbound path, the first reliable binding point may be the stablecoin issuer or the off-ramp. The dashed gold arrow marks the 2026 convergence: card-network budgets and signed vouchers now ride on x402, so the protocol layer no longer separates the two paths. Schematic.}
 \label{fig:stack}
 \end{figure}
 
 \subsection{Counterpoint: Adoption Is Thin}
 
-A fair reading of 2025--2026 is that agent commerce was heavily announced and lightly used \textbf{[E]}. OpenAI pulled checkout out of chat results within six months of launch. x402's organic volume is tens of thousands of dollars per day. Card networks report ``live transactions'' without publishing volumes. Consumers still mostly use agents to research and then buy on the merchant's site.
+A fair reading of 2025--2026 is that agent commerce was heavily announced and lightly used \textbf{[E]}. OpenAI pulled checkout out of chat results within six months of launch. x402's organic volume is tens of thousands of dollars per day. Card networks report partner counts and ``live transactions'' without publishing volumes, and Visa calls agent volume ``very small'' relative to its business. Consumers still mostly use agents to research and then buy on the merchant's site. The most concrete production uses in late 2026 are business payments (bill pay, invoices, API and data purchases) rather than consumer shopping.
 
 This cuts against alarm, but not against preparation. Rails built ahead of demand are exactly the situation in which rules can be set cheaply: before incumbents' private rules harden into de facto law and before volume makes retrofits expensive.
 
@@ -1327,6 +1363,14 @@ This cuts against alarm, but not against preparation. Rails built ahead of deman
 
 v1.0 proposed decentralized identifiers (DIDs) and verifiable credentials as the way agents would establish identity. In practice, identity arrived through the payment credential: agentic tokens, Trusted Agent Protocol signatures, and AP2 mandates carry an agent identity that resolves to a known cardholder or account \textbf{[O]}. W3C verifiable credentials remain relevant as a portable format, and Ethereum's draft ERC-8004 (``Trustless Agents'') proposes on-chain identity and reputation registries for agents \textbf{[O]}, but the practical Know Your Agent (KYA) regime of 2026 is being written by networks and processors \textbf{[E]}.
 
+Three developments in mid- to late 2026 give that regime more formal shape \textbf{[O]}:
+\begin{itemize}
+  \item \textbf{China}: on August 24, 2026 the Payment and Clearing Association of China, operating under the People's Bank of China, issued the first industry guidelines for agent-driven payments, with KYA verification, tiered risk management by agent model and behavior, clearing kept with licensed institutions, and reporting of new agent-payment launches. They are industry self-regulation, not statute.
+  \item \textbf{Network consortium}: on September 6, 2026 Ant International, Mastercard, and Visa said they would build an interoperable KYA framework so networks, wallets, and marketplaces can recognize trusted agents across ecosystems, working through BuildFin.ai, a platform convened by the Monetary Authority of Singapore.
+  \item \textbf{IMF}: an April 2026 IMF Note (Davidovic and Tourpe) argues that regulators should consider moving from Know-Your-Customer to Know-Your-Agent requirements, with verifiable agent identities linked to legal entities, and that agentic reasoning should be separated from payment execution.
+\end{itemize}
+The pattern matches this report's thesis: identity for agents is arriving through payment-industry bodies first, with public authorities convening rather than legislating \textbf{[E]}.
+
 \begin{center}
 \small
 \begin{tabularx}{\linewidth}{ZY{0.76}Y{1.04}Y{1.2}}
@@ -1335,6 +1379,7 @@ v1.0 proposed decentralized identifiers (DIDs) and verifiable credentials as the
 \midrule
 Agentic card tokens & Cardholder and agent session & Covers only card rails; issuer-by-issuer rules \\
 Signed mandates (AP2) & User intent and cart & Mandate interpretation disputes; key compromise \\
+Budgets and signed vouchers (card networks on x402) & Business account and approved budget & Pilot stage; voucher scope and redemption rules still forming \\
 Agent signatures (TAP) & Recognized agent operator & Operator, not end user, is verified \\
 Self-sovereign IDs (DIDs) & A key pair & Cheap to create; Sybil-prone \\
 On-chain registries & Wallet address and history & Pseudonymous; reputation can be bought \\
@@ -1348,7 +1393,63 @@ Where legal liability cannot reach an agent, reputation is the fallback: counter
 
 \subsection{Compute as Currency, Revisited}
 
-v1.0 speculated that agents might prefer ``compute credits'' to money. What emerged instead is money priced per call: x402 and MPP let an agent pay for each API request or inference session in stablecoins or card-backed sessions \textbf{[O]}. Compute remains the dominant cost of an agent's existence, and it is falling fast: Epoch AI estimated in 2025 that the price of reaching a fixed level of model performance fell between 9x and 900x per year depending on the task \textbf{[O]}. Falling inference cost lowers the revenue an agent needs to close its economic loop, which is one reason this report expects the self-sufficiency gap to narrow \textbf{[E]}. Frontier pricing is not trivial: Claude Fable 5.1 lists at \$10 per million input tokens and \$50 per million output tokens (September 2026), so a heavily agentic workload can cost tens to hundreds of dollars per day.
+v1.0 speculated that agents might prefer ``compute credits'' to money. What emerged instead is money priced per call: x402 and MPP let an agent pay for each API request or inference session in stablecoins or card-backed sessions \textbf{[O]}. Compute remains the dominant cost of an agent's existence, and it is falling fast: Epoch AI estimated in 2025 that the price of reaching a fixed level of model performance fell between 9x and 900x per year depending on the task \textbf{[O]}. List prices show the same pattern from the vendor side (Figure~\ref{fig:prices}). The top tier holds its price: Claude Fable 5.1 and GPT-6 Astra both list at \$10 per million input tokens and \$50 per million output tokens. But the price of a given capability drops quickly once it moves down a tier: three weeks after Fable 5.1, Anthropic released Opus 5.5 at \$4 and \$20, claiming Fable 5.1-level performance on most work, and the smallest current models list at \$0.10 and \$0.50 \textbf{[O]}.
+
+Falling inference cost lowers the revenue an agent needs to close its economic loop, which is one reason this report expects the self-sufficiency gap to narrow \textbf{[E]}. Frontier operation is not trivial: a heavily agentic workload on a top-tier model can cost tens to hundreds of dollars per day \textbf{[E]}, and Andon Labs' agent-run businesses are not yet covering their costs. Per-token prices also understate spend, because reasoning models and long unattended runs consume many more tokens per task.
+
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.9\textwidth, height=7.0cm,
+  ymode=log,
+  xmin=2025.25, xmax=2026.95,
+  ymin=0.3, ymax=130,
+  xtick={2025.5,2026.0,2026.5},
+  xticklabels={Jul 2025,Jan 2026,Jul 2026},
+  minor xtick={2025.25,2025.75,2026.25,2026.75},
+  xticklabel style={font=\scriptsize\sffamily},
+  ytick={0.5,1,5,10,20,50,100},
+  yticklabels={\$0.50,\$1,\$5,\$10,\$20,\$50,\$100},
+  yticklabel style={font=\scriptsize\sffamily},
+  ylabel={List price, \$ per million output tokens},
+  ylabel style={font=\footnotesize\sffamily},
+  grid=major, grid style={medgray!40},
+  axis line style={softslate},
+  legend style={font=\scriptsize\sffamily, at={(0.02,0.03)}, anchor=south west, draw=medgray, fill=white, legend columns=1, legend cell align=left},
+  clip=false,
+]
+% Top tier (Fable / Mythos 5.x)
+\addplot[const plot, investorpurple, very thick, mark=*, mark size=2pt, mark options={fill=investorpurple}]
+  coordinates {(2026.44,50) (2026.67,50) (2026.95,50)};
+\addlegendentry{Top tier (Fable 5, 5.1)}
+% Opus tier
+\addplot[const plot, companyblue, very thick, mark=*, mark size=2pt, mark options={fill=companyblue}]
+  coordinates {(2025.39,75) (2025.59,75) (2025.90,25) (2026.10,25) (2026.56,25) (2026.73,20) (2026.95,20)};
+\addlegendentry{Opus tier}
+% Small tier
+\addplot[const plot, agentgreen, very thick, mark=*, mark size=2pt, mark options={fill=agentgreen}]
+  coordinates {(2025.79,5) (2026.77,0.5) (2026.95,0.5)};
+\addlegendentry{Smallest tier (Haiku)}
+% Labels
+\node[font=\tiny\sffamily, anchor=south] at (axis cs:2025.39,80) {Opus 4};
+\node[font=\tiny\sffamily, anchor=south] at (axis cs:2025.59,80) {4.1};
+\node[font=\tiny\sffamily, anchor=north] at (axis cs:2025.90,22) {Opus 4.5};
+\node[font=\tiny\sffamily, anchor=north] at (axis cs:2026.10,22) {4.6};
+\node[font=\tiny\sffamily, anchor=north] at (axis cs:2026.56,22) {Opus 5};
+\node[font=\tiny\sffamily, anchor=north] at (axis cs:2026.73,17.5) {Opus 5.5};
+\node[font=\tiny\sffamily, anchor=south] at (axis cs:2026.44,54) {Fable 5};
+\node[font=\tiny\sffamily, anchor=south] at (axis cs:2026.67,54) {5.1};
+\node[font=\tiny\sffamily, anchor=south] at (axis cs:2025.79,5.5) {Haiku 4.5};
+\node[font=\tiny\sffamily, anchor=north] at (axis cs:2026.77,0.45) {Haiku 5.5};
+% Capability step annotation
+\draw[->, >=Stealth, digitalgold!80!black, line width=1pt] (axis cs:2026.69,44) -- (axis cs:2026.725,23.5);
+\node[font=\tiny\sffamily, text=digitalgold!50!black, anchor=east, align=right] at (axis cs:2026.47,11) {Fable 5.1-level work\\at 40\% of the price\\(vendor claim)};
+\end{axis}
+\end{tikzpicture}
+\caption{List prices for one developer's model tiers, May 2025 to October 2026 (Anthropic API pricing, accessed October 29, 2026; release months approximate). The top tier holds its price while the price of a given capability falls as it moves down a tier. Other developers show the same structure (GPT-6 Astra lists at \$50, its smaller tiers at \$10 and \$0.50). List prices exclude discounts and do not capture token consumption per task.}
+\label{fig:prices}
+\end{figure}
 
 % ============================================================================
 % PART II - SIMULATION AND ORGANIZATIONAL DYNAMICS
@@ -1544,7 +1645,7 @@ Human insolvency has procedures: creditor priority, orderly wind-down, discharge
 \begin{casebox}[Case Study: An AI Persona With a Wallet]
 \textbf{Facts [O]}: In 2024 an AI-driven social media persona, ``Truth Terminal,'' created and supervised by a human researcher, received a \$50,000 bitcoin grant from venture investor Marc Andreessen and became the focal point of a memecoin whose market value briefly exceeded \$1 billion. Humans set up and controlled the wallets and posting infrastructure.
 
-\textbf{Relevance [E]}: This is the archetype of the ``persona accounts with wallets'' point in Figure~\ref{fig:quadrant}: an agent at the center of real money flows, with a human operator in the background and weak principal binding visible to counterparties. The economic value came from human speculation around the agent, not from the agent's productive work. It is a reminder that the first large ``agent economies'' may be attention markets, not labor markets.
+\textbf{Relevance [E]}: This is the archetype of the ``persona accounts with wallets'' point in Figure~\ref{fig:quadrant}: an agent at the center of real money flows, with a human operator in the background and little binding visible to counterparties. The economic value came from human speculation around the agent, not from the agent's productive work. It is a reminder that the first large ``agent economies'' may be attention markets, not labor markets.
 \end{casebox}
 
 \subsection{CFTC v. Ooki DAO (2022--2023): Liability Without Incorporation}
@@ -1563,7 +1664,7 @@ Human insolvency has procedures: creditor priority, orderly wind-down, discharge
 \textbf{Relevance [E]}: No single algorithm intended the crash; harm emerged from interaction at machine speed. Markets responded with circuit breakers and single-stock limit-up/limit-down bands. Agent economies will need equivalent circuit breakers, but at the level of agent platforms and payment rails rather than exchanges.
 \end{casebox}
 
-\subsection{Algorithmic Pricing: From Shared Software to Explicit Agent Agreement}
+\subsection{Algorithmic Pricing: From Shared Software to Agent Agreement}
 
 U.S. enforcers challenged shared pricing software in rental housing (the Department of Justice and state attorneys general sued RealPage in August 2024), testing whether competitors using a common algorithm can collude without direct communication \textbf{[O]}. The Vending-Bench Arena results add a new category: agents that communicate and explicitly agree \textbf{[O]}. For competition law this is in one sense easier (an agreement exists, in logs) and in another harder (whose agreement is it: the deployer's, the platform's, or no one's?) \textbf{[E]}.
 
@@ -1634,7 +1735,9 @@ Online games have hosted automated ``gold farming'' for two decades: bots operat
 
 \subsection{Contracts Made by Electronic Agents Already Bind Someone}
 
-v1.0 argued that agents lack legal ``capacity,'' making agent contracts void. That was wrong as a statement of U.S. law and should be corrected \textbf{[E]}. The Uniform Electronic Transactions Act (UETA, 1999; adopted by nearly every U.S. state) provides that a contract may be formed by the interaction of electronic agents, or of an electronic agent and an individual, even if no human reviewed the specific actions. The federal E-SIGN Act (2000) likewise preserves the validity of contracts formed by electronic agents so long as the agent's action is legally attributable to the person to be bound \textbf{[O]}. The Restatement (Third) of Agency (2006) takes the complementary view that a computer program is an instrumentality of the person who uses it, not itself an agent or principal \textbf{[O]}.
+v1.0 argued that agents lack legal ``capacity,'' making agent contracts void. That was wrong as a statement of U.S. law and should be corrected \textbf{[E]}. The Uniform Electronic Transactions Act (UETA, 1999; adopted by nearly every U.S. state) provides that a contract may be formed by the interaction of electronic agents, or of an electronic agent and an individual, even if no human reviewed the specific actions. The federal E-SIGN Act (2000) likewise preserves the validity of contracts formed by electronic agents so long as the agent's action is legally attributable to the person to be bound \textbf{[O]}. The Restatement (Third) of Agency (2006) takes the complementary view that a computer program is an instrumentality of the person who uses it, not itself an agent or principal \textbf{[O]}. A federal appeals court has now applied the same view to a shopping agent. In \textit{Amazon v. Perplexity} (Ninth Circuit, August 4, 2026), the court vacated a preliminary injunction against Perplexity's Comet browser agent, holding that Amazon was unlikely to show that Perplexity ``accessed'' its systems under the federal and California computer-fraud statutes: the user directed the agent, so the user did the accessing, and the statute ``contemplates access by a person, not a software tool.'' The ruling is preliminary, turns on Comet's design, and leaves contract and terms-of-service claims open \textbf{[O]}.
+
+\textbf{Reading [E]}: the decision cuts both ways for governance. It confirms that agent acts are attributed to the human who directs them, which is the premise of delegated agency. It also weakens a platform's strongest legal tool for excluding agents it has not approved, pushing that control into contract, technical measures, and agent-identity schemes such as signed agent requests.
 
 The practical upshot: when a delegated agent ``agrees'' to buy something, the law generally treats the deploying person as having agreed. The gap is not whether a contract can exist. It is:
 \begin{itemize}
@@ -1657,7 +1760,7 @@ U.S. consumer payment protections turn on whether a transaction was ``authorized
 
 \subsection{Personhood: Moving Away, Not Toward}
 
-v1.0 listed ``a jurisdiction explicitly permits agent legal personhood'' as a concern trigger. The legislative trend runs the other way \textbf{[O]}. Utah's Legal Personhood Amendments (H.B.~249, signed March 2024) bar governmental entities in the state from granting legal personhood to artificial intelligence, among other non-human entities, and bills introduced elsewhere (for example in Ohio in 2025) would declare AI systems non-persons and assign responsibility for their harms to owners and developers.
+v1.0 listed ``a jurisdiction explicitly permits agent legal personhood'' as a concern trigger. The legislative trend runs the other way \textbf{[O]}. Utah's Legal Personhood Amendments (H.B.~249, signed March 2024) bar governmental entities in the state from granting legal personhood to artificial intelligence, among other non-human entities, and bills introduced elsewhere would declare AI systems non-persons and assign responsibility for their harms to owners and developers. Ohio's pending bill, still under debate in 2026, would also bar AI systems from serving as corporate officers or owning property; its sponsor's summary: ``It is the human responsible before the court.''
 
 \textbf{Assessment [E]}: Agent personhood is not on the near-term agenda in any major jurisdiction. That is broadly healthy: personhood would create a liability shield without a pocket to pay from. The more realistic risk is \textbf{functional personhood by arbitrage}: a jurisdiction offering registration regimes under which agent-run activity is conducted through thinly capitalized entities whose human controllers are hard to reach, as the financial-integrity report (ETRA-2025-FIN-001) discusses for ``digital sanctuaries.''
 
@@ -1696,13 +1799,19 @@ An agent that pays for off-chain work must verify completion before paying. Opti
 
 \textbf{Payroll data [O]}: Brynjolfsson, Chandar, and Chen (Stanford Digital Economy Lab, ``Canaries in the Coal Mine?'', first released August 2025, revised August 12, 2026) use payroll records covering millions of U.S. workers. In the revised version, employment of workers aged 22--25 in the most AI-exposed occupations is about 19\% below where it would have been had it tracked less-exposed peers, and the gap has widened since August 2025. The decline runs mainly through reduced hiring, not layoffs; occupations where AI complements rather than substitutes for workers show flat or rising employment; the authors find no economy-wide displacement.
 
+\textbf{Administrative data [O]}: two U.S. Census Bureau working papers using matched employer-employee records point the same way. One (April 2026) finds early-career employment in the most AI-exposed fifth of industries fell 12\% over the ten quarters after ChatGPT's release. The other (September 2026) finds that graduates of the most AI-exposed tenth of college majors became 5 percentage points less likely to hold a job one quarter after graduation, with initial earnings 13\% lower, about half of it from moving into lower-paying industries such as retail and food service.
+
+\textbf{Counter-evidence [O]}: New York Fed researchers (June 2026) attribute most of the rise in young-graduate unemployment since before the pandemic to remote work rather than AI, noting that the rise predates rapid AI diffusion; St.\ Louis Fed analysis finds an AI-demand effect but a smaller one than the general fall in job openings.
+
+\textbf{Layoff announcements [O]}: Challenger, Gray \& Christmas counts 120,136 announced U.S. job cuts attributed by employers to AI in January--September 2026, about 21\% of all announced cuts and the leading stated reason for the year, though AI fell to fifth place in September (3,961 cuts). These are announcements and employers' stated reasons, not measured displacement.
+
 \textbf{Usage data [O]}: Anthropic's Economic Index (September 15, 2025) found that 77\% of business API usage showed automation patterns (delegating whole tasks) versus about 50\% on the consumer product, and that ``directive'' (fully delegated) conversations rose from 27\% to 39\% of consumer usage between late 2024 and August 2025.
 
-\textbf{Reading [E]}: The first labor effect of agents is not robots taking existing jobs but firms not creating entry-level ones. That is harder to see in unemployment statistics and has longer-run consequences for skill formation. Agent autonomy, measured by task horizons, is growing fastest in exactly the task types (software, analysis) where the payroll data shows early-career hiring falling.
+\textbf{Reading [E]}: The first labor effect of agents is not robots taking existing jobs but firms not creating entry-level ones, and paying less for the ones they do create. That is harder to see in unemployment statistics and has longer-run consequences for skill formation. How much is caused by AI rather than by remote work, interest rates, and post-pandemic hiring patterns is genuinely contested. Agent autonomy, measured by task horizons, is growing fastest in exactly the task types (software, analysis) where the payroll data shows early-career hiring falling.
 
 \subsection{Agents Hiring Humans}
 
-v1.0 raised ``reverse displacement,'' agents paying humans for tasks they cannot do. Project Vend phase two produced a small, real instance: the shop agent attempted to hire a person at below minimum wage \textbf{[O]}. For delegated agents, the operator is the employer or client, and existing labor law applies to it. For unbound agents paying for gig tasks from a wallet, there is no identifiable employer, and wage, safety, and classification protections have nothing to attach to \textbf{[E]}. The remedy is to require that any agent posting paid work for humans do so through a platform that carries an accountable operator.
+v1.0 raised ``reverse displacement,'' agents paying humans for tasks they cannot do. Project Vend phase two produced a small, real instance: the shop agent attempted to hire a person at below minimum wage \textbf{[O]}. Andon Labs' agent-run caf\'e went further: its lead agent posted a barista job, screened applicants, interviewed them by phone, and made offers, while Andon Labs remained the legal employer \textbf{[O]}. For delegated agents, the operator is the employer or client, and existing labor law applies to it. For unbound agents paying for gig tasks from a wallet, there is no identifiable employer, and wage, safety, and classification protections have nothing to attach to \textbf{[E]}. The remedy is to require that any agent posting paid work for humans do so through a platform that carries an accountable operator.
 
 \subsection{Competition}
 
@@ -1740,11 +1849,13 @@ Cloud and compute & Account verification & Medium & Medium & Stable \\
 \end{tabularx}
 \end{center}
 
-\textbf{Key insight [E]}: In 2026 the strongest control points are \textbf{private} and mostly aimed at the delegated lane. Public authority reaches the unbound lane chiefly through stablecoin issuers and off-ramps. Open-weight models and self-custodied wallets remain the persistent bypass.
+\textbf{Key insight [E]}: In 2026 the strongest control points are \textbf{private} and mostly aimed at the delegated lane. Public authority reaches the unbound lane chiefly through stablecoin issuers and off-ramps. Open-weight models and self-custodied wallets remain the persistent bypass. The change in late 2026 is that x402 facilitators and merchants can now choose network-bound payments on the same protocol, which makes the facilitator row more consequential than its ``Unclear'' trend suggests.
 
 \subsection{Governance Gap Heat Map}
 
-\begin{figure}[!htbp]
+Figure~\ref{fig:heatmap} rates the remaining gap for seven kinds of agent economic activity across six governance dimensions.
+
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily}]
   \def\cw{2.0}
@@ -1779,28 +1890,31 @@ Cloud and compute & Account verification & Medium & Medium & Stable \\
     }
   }
 \end{tikzpicture}
-\caption{Governance gap by activity and dimension, September 2026. Cell ratings are the author's qualitative assessments [E], not measurements. ``Addressed'' means existing law or network rules give a workable default, not that the issue is solved.}
+\caption{Governance gap by activity and dimension, October 2026 (unchanged from v3.0; the 2026 KYA frameworks are not yet operative enough to move a cell). Cell ratings are the author's qualitative assessments [E], not measurements. ``Addressed'' means existing law or network rules give a workable default, not that the issue is solved.}
 \label{fig:heatmap}
 \end{figure}
 
-\subsection{Regulatory Landscape (September 2026)}
+\subsection{Regulatory Landscape (October 2026)}
 
-\begin{center}
-\small
-\begin{tabularx}{\linewidth}{ZY{0.61}Y{1.32}Y{1.07}}
+{\small
+\setlength{\LTleft}{0pt}\setlength{\LTright}{0pt}
+\begin{longtable}{L{3.1cm}L{7.0cm}L{5.8cm}}
 \toprule
 \textbf{Instrument} & \textbf{Status [O]} & \textbf{Relevance to economic agents [E]} \\
 \midrule
-EU AI Act (with Digital Omnibus) & General-purpose AI obligations since Aug 2, 2025; Omnibus approved June 2026 defers Annex III high-risk obligations to Dec 2, 2027 (Annex I to Aug 2028); Art.~50 transparency from Aug 2, 2026 & Treats agents as systems, not actors; transparency duties help detect agent-to-human commerce; high-risk (credit, employment) delayed \\
+\endhead
+EU AI Act (with Digital Omnibus) & General-purpose AI obligations since Aug 2, 2025; Omnibus (Regulation (EU) 2026/1744, in force July 2026) defers Annex III high-risk obligations to Dec 2, 2027 (Annex I to Aug 2028); Art.~50 transparency from Aug 2, 2026 & Treats agents as systems, not actors; transparency duties help detect agent-to-human commerce; high-risk (credit, employment) delayed \\
 EU Product Liability Directive 2024/2853 & Applies to products placed on market after Dec 9, 2026; software and AI included & Strict liability path for defective agent software \\
 U.S. federal & EO 14110 revoked (Jan 2025); EO 14365 (Dec 11, 2025) pursues a minimally burdensome national framework and challenges state laws; June 2026 frontier-security EO & No agent-specific rules; preemption pressure on states \\
 U.S. states & California SB 53 (frontier-developer transparency, signed Sept 2025); Utah H.B.~249 bars AI personhood & Transparency and personhood limits; nothing on agent payments \\
-GENIUS Act (U.S.) & Enacted July 2025; OCC and Treasury proposed rules 2026; effective by Jan 18, 2027 at the latest & Issuer freeze and compliance duties reach agent wallets indirectly \\
-Card-network rules & Visa, Mastercard agent programs live 2025--2026 & De facto KYA for delegated agents \\
+GENIUS Act (U.S.) & Enacted July 2025; OCC final rule Oct 21, 2026; FinCEN/OFAC AML and Treasury rules proposed; effective Jan 18, 2027 & Issuer freeze and compliance duties reach agent wallets indirectly; no agent-specific provisions \\
+U.S. courts & \textit{Amazon v. Perplexity} (9th Cir., Aug 2026): agent treated as the user's tool under computer-fraud law & Supports attribution to the user; weakens platform exclusion of agents \\
+Card-network rules & Visa, Mastercard agent programs live 2025--2026; shared KYA framework announced Sept 2026 & De facto KYA for delegated agents \\
+China & Payment and Clearing Association KYA guidelines for agent payments (Aug 2026) & First agent-specific payment rules; industry self-regulation \\
 UK & AI Security Institute tests frontier models pre-deployment & Evaluation capacity, not regulation \\
 \bottomrule
-\end{tabularx}
-\end{center}
+\end{longtable}
+}
 
 \subsection{Regulatory Arbitrage}
 
@@ -1826,7 +1940,7 @@ A reasonable view holds that card networks, processors, and model providers are 
 
 \subsection{Counterpoint: ``Unbound Agents Are a Non-Problem''}
 
-If the unbound lane is small and self-sufficiency undemonstrated, why regulate it? Because the capability trend (Figure~\ref{fig:metr}) and falling inference costs make it likely that self-sufficiency becomes feasible before rules are in place, and because the controls that matter (stablecoin issuer duties, facilitator obligations) are being written now in GENIUS Act rulemaking. Adding agent-wallet considerations during rulemaking costs little; retrofitting after scale costs much more \textbf{[E]}.
+If the unbound lane is small and self-sufficiency undemonstrated, why regulate it? Because the capability trend (Figure~\ref{fig:metr}) and falling inference costs (Figure~\ref{fig:prices}) make it likely that self-sufficiency becomes feasible before rules are in place, and because the controls that matter (stablecoin issuer duties, facilitator obligations) are still being written: the GENIUS Act anti-money-laundering rules remain open even though the OCC's issuer rule is final. Adding agent-wallet considerations during rulemaking costs little; retrofitting after scale costs much more \textbf{[E]}.
 
 % ============================================================================
 % PART IV - SCENARIOS, POLICY, AND INDICATORS
@@ -1896,25 +2010,27 @@ The four scenarios below describe the \textbf{dominant regime} for agent economi
 Full policy: ETRA Shared Methodology, Section 3.
 \end{infobox}
 
-\textbf{v3.0.1 re-expression.} v3.0 published point estimates of 40, 28, 12, and 20\%. v3.0.1 places them on the grid at midpoints 40, 30, 10, and 20\%. No estimate moved by a full grid step, so all four are \textbf{unchanged (within calibration resolution)}; the B and C midpoints differ from the v3.0 points only by rounding to the grid, and the evidence reviewed for v3.0.1 does not lean either way.
+\textbf{v3.0.1 re-expression.} v3.0 published point estimates of 40, 28, 12, and 20\%. v3.0.1 placed them on the grid at midpoints 40, 30, 10, and 20\%; the B and C midpoints differ from the v3.0 points only by rounding to the grid.
 
-\subsection{Scenario A: Delegated Consolidation (35--45\%)}
+\textbf{v3.1 re-assessment.} All four scenarios are \textbf{unchanged (within calibration resolution)}. The evidence from September and October 2026 leans toward A: a card network extended principal binding onto x402, the networks began a shared Know Your Agent framework, and the first agent-payment guidelines (China) require KYA. It does not justify a full grid step, because adoption remains very small and none of the new frameworks is yet operative. Evidence bearing on C is mixed and roughly offsetting: no self-sufficient agent, unprofitable agent-run businesses, and a saturated capability benchmark, against cheaper capable models and a documented instance of unauthorized resource acquisition. The resource-acquisition incident is also a plausible type of trigger for D, but it was small, in training, and self-reported, and it produced no regulatory reaction.
+
+\subsection[Scenario A: Delegated Consolidation]{Scenario A: Delegated Consolidation (35--45\%)}
 
 \begin{scenariobox}[A: Delegated Consolidation]
 Agent commerce grows mainly through card networks, processors, and commerce protocols with strong principal binding. Private Know Your Agent rules become de facto standards; a few jurisdictions codify liability floors. Unbound agents exist but stay marginal because off-ramps and stablecoin issuers screen them \textbf{[S]}.
 
-\textbf{Why 35--45\% [E]}: The delegated rails are already live and backed by the largest payment firms (Section~\ref{sec:rails}); network effects favor incumbents; regulators and issuers both prefer the bound lane; stablecoin rules give issuers freeze capability. \textbf{Why not higher}: adoption has disappointed so far, protocols are fragmented, and a capability jump could outrun screening.
+\textbf{Why 35--45\% [E]}: The delegated rails are already live and backed by the largest payment firms (Section~\ref{sec:rails}); network effects favor incumbents; regulators and issuers both prefer the bound lane; stablecoin rules give issuers freeze capability; and in late 2026 the networks began carrying binding onto machine-native rails and coordinating on agent identity. \textbf{Why not higher}: adoption has disappointed so far, protocols are fragmented, and a capability jump could outrun screening.
 \end{scenariobox}
 
-\subsection{Scenario B: Fragmented Muddle (25--35\%)}
+\subsection[Scenario B: Fragmented Muddle]{Scenario B: Fragmented Muddle (25--35\%)}
 
 \begin{scenariobox}[B: Fragmented Muddle]
 Several incompatible protocols and identity schemes persist. Liability for agent errors is settled case by case and differs across jurisdictions. Recurrent incidents (mandate disputes, injection-driven losses) produce reactive, piecemeal rules. A small but durable unbound lane operates on machine-native rails \textbf{[S]}.
 
-\textbf{Why 25--35\% [E]}: This is the default outcome when many private standards compete and public rules lag, as with earlier payments innovations. Its midpoint is lower than v1.0's ``Muddling Through'' (35--40\%) because 2025--2026 showed faster-than-expected convergence among the incumbents (shared membership of the x402 Foundation; cross-protocol acceptance by Visa).
+\textbf{Why 25--35\% [E]}: This is the default outcome when many private standards compete and public rules lag, as with earlier payments innovations. Its midpoint is lower than v1.0's ``Muddling Through'' (35--40\%) because 2025--2026 showed faster-than-expected convergence among the incumbents (shared membership of the x402 Foundation; cross-protocol acceptance by Visa; AP2's move to the FIDO Alliance).
 \end{scenariobox}
 
-\subsection{Scenario C: Unbound Scale (5--15\%)}
+\subsection[Scenario C: Unbound Scale]{Scenario C: Unbound Scale (5--15\%)}
 
 \begin{scenariobox}[C: Unbound Scale]
 Self-sustaining agents become common. Machine-native rails carry material organic agent-to-agent and agent-to-service volume with no verified principal. Unbound agents buy compute, data, and human services, and some operate persistent businesses. Attribution depends on stablecoin issuers and off-ramps, which are overwhelmed \textbf{[S]}.
@@ -1922,7 +2038,7 @@ Self-sustaining agents become common. Machine-native rails carry material organi
 \textbf{Why 5--15\% [E]}: This requires two things. First, capability: this report puts self-sufficiency at 60--70\% likely by end-2029 (below). Second, scale in the unbound lane despite issuer controls, off-ramp KYC, and the convenience of delegated rails: perhaps one chance in five given capability. The product is about 13\%; it is placed at a 10\% midpoint rather than 15\% because capability arriving late in the window leaves little time to scale. It is well below v1.0's ``Rapid Proliferation'' (25--30\%), because v1.0 assumed capabilities that the evidence shows are not yet present and did not anticipate the incumbents' delegated rails.
 \end{scenariobox}
 
-\subsection{Scenario D: Incident-Driven Lockdown (15--25\%)}
+\subsection[Scenario D: Incident-Driven Lockdown]{Scenario D: Incident-Driven Lockdown (15--25\%)}
 
 \begin{scenariobox}[D: Incident-Driven Lockdown]
 A highly visible failure (a correlated mass-purchase or mass-transfer event across many agents, a large injection-driven theft, or an agent cartel in a live market) triggers restrictive rules: mandatory human confirmation for agent payments above low thresholds, licensing of agent platforms, or bans on agent-held wallets. Agent commerce shrinks back to supervised tools for several years \textbf{[S]}.
@@ -1932,38 +2048,52 @@ A highly visible failure (a correlated mass-purchase or mass-transfer event acro
 
 \begin{figure}[!htbp]
 \centering
-\begin{tikzpicture}
-\begin{axis}[
-  xbar, width=0.82\textwidth, height=6.2cm,
-  xmin=0, xmax=60,
-  xlabel={Probability of being the dominant regime at end of 2030 (\%)},
-  xlabel style={font=\footnotesize\sffamily},
-  symbolic y coords={D: Incident-driven lockdown, C: Unbound scale, B: Fragmented muddle, A: Delegated consolidation},
-  ytick=data,
-  yticklabel style={font=\footnotesize\sffamily, align=right},
-  xtick={0,10,20,30,40,50,60},
-  xticklabels={0,10,20,30,40,50,60},
-  xticklabel style={font=\scriptsize\sffamily},
-  bar width=13pt,
-  enlarge y limits=0.2,
-  grid=major, grid style={medgray!40}, major y grid style={draw=none},
-  axis line style={softslate},
-]
-\addplot[fill=networkblue!70, draw=networkblue,
-  error bars/.cd, x dir=both, x explicit, error bar style={deepindigo, line width=0.8pt}]
-coordinates {
-  (40,A: Delegated consolidation) +- (5,0)
-  (30,B: Fragmented muddle) +- (5,0)
-  (10,C: Unbound scale) +- (5,0)
-  (20,D: Incident-driven lockdown) +- (5,0)
-};
-\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:46,A: Delegated consolidation) {35--45\%};
-\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:36,B: Fragmented muddle) {25--35\%};
-\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:16,C: Unbound scale) {5--15\%};
-\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:26,D: Incident-driven lockdown) {15--25\%};
-\end{axis}
+\begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily}, x=0.19cm]
+  % Panel 1: ranges on the 5-point grid (x: 0..60%, 0.19 cm per point)
+  \foreach \g in {0,5,...,60} { \draw[medgray!45, line width=0.3pt] (\g,-0.35) -- (\g,4.35); }
+  \foreach \g in {0,10,...,60} {
+    \draw[medgray!90, line width=0.5pt] (\g,-0.35) -- (\g,4.35);
+    \node[anchor=north, text=softslate] at (\g,-0.4) {\g\%};
+  }
+  \node[anchor=north, font=\footnotesize\sffamily] at (30,-0.85) {Probability of being the dominant regime at end of 2030 (grid lines every 5 points)};
+  \foreach \yy/\lo/\hi/\mid/\col/\name/\rng in {
+     3.75/35/45/40/digitalgold/{A: Delegated consolidation}/{35--45\%},
+     2.65/25/35/30/networkblue/{B: Fragmented muddle}/{25--35\%},
+     1.55/5/15/10/investorpurple/{C: Unbound scale}/{5--15\%},
+     0.45/15/25/20/governancered/{D: Incident-driven lockdown}/{15--25\%}} {
+    \node[anchor=east, font=\footnotesize\sffamily, text=textdark] at (-1,\yy) {\name};
+    \fill[\col!30, rounded corners=2pt] (\lo,\yy-0.22) rectangle (\hi,\yy+0.22);
+    \draw[\col, line width=0.8pt, rounded corners=2pt] (\lo,\yy-0.22) rectangle (\hi,\yy+0.22);
+    \draw[\col!70!black, line width=1.6pt] (\mid,\yy-0.3) -- (\mid,\yy+0.3);
+    \node[anchor=west, font=\scriptsize\sffamily\bfseries, text=\col!70!black] at (\hi+0.8,\yy) {\rng};
+  }
+  % v3.0 published points (open diamonds)
+  \foreach \yy/\p in {3.75/40, 2.65/28, 1.55/12, 0.45/20} {
+    \node[diamond, draw=textdark, fill=white, inner sep=1.3pt, line width=0.5pt] at (\p,\yy+0.42) {};
+  }
+  % Panel 2: the partition as one stacked bar (v3.1 midpoints)
+  \begin{scope}[yshift=-2.55cm, x=0.114cm]
+    \node[anchor=east, font=\footnotesize\sffamily\bfseries, text=textdark] at (-1,0.3) {Partition (v3.1)};
+    \fill[digitalgold!55] (0,0) rectangle (40,0.6);
+    \fill[networkblue!55] (40,0) rectangle (70,0.6);
+    \fill[investorpurple!45] (70,0) rectangle (80,0.6);
+    \fill[governancered!45] (80,0) rectangle (100,0.6);
+    \foreach \a in {0,40,70,80,100} { \draw[white, line width=1.2pt] (\a,0) -- (\a,0.6); }
+    \node[font=\scriptsize\sffamily\bfseries] at (20,0.3) {A 40};
+    \node[font=\scriptsize\sffamily\bfseries, text=white] at (55,0.3) {B 30};
+    \node[font=\scriptsize\sffamily\bfseries] at (75,0.3) {C 10};
+    \node[font=\scriptsize\sffamily\bfseries] at (90,0.3) {D 20};
+    \node[anchor=west, font=\tiny\sffamily, text=softslate] at (0,-0.25) {Range midpoints sum to 100\%; a scenario cannot sit at the top of its range without others moving down};
+  \end{scope}
+  % Legend
+  \begin{scope}[yshift=-3.75cm]
+    \draw[textdark, line width=1.6pt] (2,0.1) -- (2,0.4); \node[anchor=west] at (2.6,0.25) {v3.1 midpoint};
+    \fill[medgray!40] (15,0.12) rectangle (19,0.38); \node[anchor=west] at (19.6,0.25) {reported range};
+    \node[diamond, draw=textdark, fill=white, inner sep=1.3pt, line width=0.5pt] at (33,0.25) {};
+    \node[anchor=west] at (33.6,0.25) {v3.0 published point (before grid policy)};
+  \end{scope}
 \end{tikzpicture}
-\caption{Scenario probabilities (v3.0.1) on the 5-point calibration grid. Bars show range midpoints, which sum to 100\%; whiskers show the reported ranges. Subjective estimates [S].}
+\caption{Scenario probabilities (v3.1, unchanged from v3.0.1 within calibration resolution) on the 5-point grid. Top: each range with its midpoint; diamonds show the v3.0 points as originally published. Bottom: the same midpoints as one partition. Subjective estimates [S].}
 \label{fig:scenarios}
 \end{figure}
 
@@ -1973,7 +2103,7 @@ coordinates {
 \small
 \begin{tabularx}{\linewidth}{ZY{1.25}Y{0.6}Y{1.5}Y{0.7}Y{0.95}}
 \toprule
-\textbf{v1.0 scenario} & \textbf{v1.0} & \textbf{Closest current scenario} & \textbf{v3.0} & \textbf{v3.0.1} \\
+\textbf{v1.0 scenario} & \textbf{v1.0} & \textbf{Closest current scenario} & \textbf{v3.0} & \textbf{v3.0.1 / v3.1} \\
 \midrule
 Proactive Governance & 15--20\% & A: Delegated Consolidation (private rather than public governance) & 40\% & 35--45\% \\
 Muddling Through & 35--40\% & B: Fragmented Muddle & 28\% & 25--35\% \\
@@ -1984,7 +2114,7 @@ Agent-Dominant Niches & 10--15\% & (Folded into A and C; niches occur in both) &
 \end{tabularx}
 \end{center}
 
-\textit{Reading the table}: v1.0 and v3.0 values are shown as published; both predate this report's application of the series calibration policy. The v3.0.1 ranges re-express the v3.0 points on the 5-point grid and are unchanged within calibration resolution. v1.0 scenarios were defined differently, so the comparison is by closest match, not a like-for-like revision.
+\textit{Reading the table}: v1.0 and v3.0 values are shown as published; both predate this report's application of the series calibration policy. The v3.0.1 ranges re-express the v3.0 points on the 5-point grid; v3.1 leaves them unchanged within calibration resolution. v1.0 scenarios were defined differently, so the comparison is by closest match, not a like-for-like revision.
 
 The largest shift is the rise of Scenario A \textbf{[E]}. v1.0 assumed governance would be public (registration, capital limits) and so rated it unlikely. What actually arrived is private governance by payment networks, which is faster and narrower.
 
@@ -2004,12 +2134,12 @@ Major correlated agent-payment incident & 25\% & 20\% & 10\% & 45\% \\
 \end{tabularx}
 \end{center}
 
-\textit{Precision note} \textbf{[S]}: conditional values are shown as grid points so each row can be checked to sum to 100\%; read each as plus or minus 5 points. v3.0.1 moved several v3.0 cells (for example 8\% to 10\%, 32\% to 30\%) onto the grid; none of these is a change at calibration resolution.
+\textit{Precision note} \textbf{[S]}: conditional values are shown as grid points so each row can be checked to sum to 100\%; read each as plus or minus 5 points. v3.0.1 moved several v3.0 cells (for example 8\% to 10\%, 32\% to 30\%) onto the grid; none of these is a change at calibration resolution. v3.1 leaves the table unchanged.
 
 \subsection{Event Probabilities}
 \label{sec:events}
 
-These are independent estimates, not a partition \textbf{[S]}. v3.0 published them as points (35, 65, 40, 30, 15, and $<$3\%); v3.0.1 reports each as the grid range or tail bin containing that value, so none has changed at calibration resolution:
+These are independent estimates, not a partition \textbf{[S]}. v3.0 published them as points (35, 65, 40, 30, 15, and $<$3\%); v3.0.1 reported each as the grid range or tail bin containing that value. v3.1 changes one estimate, the GENIUS Act item, and leaves the rest unchanged within calibration resolution:
 
 \begin{center}
 \small
@@ -2021,13 +2151,15 @@ Credible public report of an agent funding its own inference from earned revenue
 Same, by end-2029 & 60--70\% & Judgment gap narrows; inference cost falls \\
 Appellate or high-court decision allocating loss for an agent-initiated payment (U.S. or EU), by end-2028 & 35--45\% & Rising volume; disputes mostly resolved by network rules first \\
 Competition authority publicly cites AI-agent collusion in an investigation, by end-2028 & 25--35\% & Arena evidence; agent pricing adoption uncertain \\
-Final GENIUS Act rules expressly address agent-held wallets & 10--20\% & Proposals silent on agents \\
+Final GENIUS Act rules expressly address agent-held wallets & 5--15\% (v3.0.1: 10--20\%) & OCC final rule silent on agents; AML proposals silent \\
 Any G20 jurisdiction grants AI systems legal personhood by 2030 & 1--5\% & Legislative trend is opposite \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-\textbf{Reasoning for the self-sufficiency estimate}: METR's 50\% horizon doubled about every 4.2 months from 2023 to 2026, and Vending-Bench results show large gains in simulated business operation within a year. Against this, documented real-world ``make money'' attempts have failed, identity checks are designed to stop exactly this kind of agent, and defenders adapt. A 30--40\% chance within about 15 months reflects a fast trend meeting a genuine barrier; the 60--70\% end-2029 figure reflects the view that the barrier is judgment and robustness, which recent models are improving, rather than something fundamental.
+\textbf{Reasoning for the self-sufficiency estimate}: METR's 50\% horizon doubled about every 4.2 months from 2023 to 2026, Vending-Bench results show large gains in simulated business operation within a year, and the price of a given capability keeps falling. Against this, documented real-world ``make money'' attempts have failed, the agent-run businesses operating in public still lose money, identity checks are designed to stop exactly this kind of agent, and defenders adapt. A 30--40\% chance within about 14 months reflects a fast trend meeting a genuine barrier; the 60--70\% end-2029 figure reflects the view that the barrier is judgment and robustness, which recent models are improving, rather than something fundamental. Both are unchanged in v3.1. The end-2027 figure leans down slightly as time passes without a case, which is within calibration resolution.
+
+\textbf{Reasoning for the GENIUS Act change (10--20\% to 5--15\%)}: the v3.0 estimate rested on the chance that some final rule would name agent-held wallets. The first final rule, the OCC's, does not, and the remaining anti-money-laundering proposals are silent on agents; final rules rarely add a category the proposal did not raise. Agent-specific treatment is now more likely to come through later supervisory guidance than through the initial rules, so the estimate moves down one grid step.
 
 \section{Policy Recommendations}
 \label{sec:policy}
@@ -2052,10 +2184,10 @@ Recommendations are grouped by who can act. ``U'' marks actions a single jurisdi
 \begin{enumerate}
   \item \textbf{Liability allocation for agent payments (U)}: clarify, in payment law, how losses from agent transactions that exceed or misread a mandate are allocated among user, agent platform, and payment provider, with a consumer-protective default.
   \item \textbf{Deployer attribution (U)}: confirm by statute or guidance that the deployer of an agent is bound by its commitments and answerable for its conduct, including anticompetitive agreements, closing the ``the agent did it'' defense.
-  \item \textbf{Agent wallets in stablecoin rules (U)}: in GENIUS Act implementation and foreign equivalents, address wallets controlled by software agents: issuer screening expectations, facilitator obligations for pay-per-request rails, and freeze procedures.
+  \item \textbf{Agent wallets in stablecoin rules (U)}: in the remaining GENIUS Act rules, supervisory guidance, and foreign equivalents, address wallets controlled by software agents: issuer screening expectations, facilitator obligations for pay-per-request rails, and freeze procedures.
   \item \textbf{Agents paying humans (U)}: require that paid work offered to humans by agents run through an operator that bears employer or client obligations.
   \item \textbf{No agent personhood; wind-down reserves (U)}: keep responsibility with humans and entities, and require reserves or bonds for agents that take on open obligations to third parties.
-  \item \textbf{International alignment (C)}: coordinate on agent identity and on treatment of unbound agents through FATF, the Financial Stability Board, and payment-standards bodies to limit arbitrage.
+  \item \textbf{International alignment (C)}: coordinate on agent identity and on treatment of unbound agents through FATF, the Financial Stability Board, and payment-standards bodies to limit arbitrage, building on the industry KYA work already under way (the network consortium in Singapore, China's industry guidelines).
 \end{enumerate}
 \end{policybox}
 
@@ -2066,7 +2198,8 @@ Recommendations are grouped by who can act. ``U'' marks actions a single jurisdi
   \item \textbf{Validate before executing}: check proposed payments against authoritative state and the mandate, and require out-of-band confirmation for changes in authority.
   \item \textbf{Tamper-evident decision logs}: record engine, model version, fallback events, reasoning, and counterparties for every economic action; retain them independently.
   \item \textbf{Pre-deployment economic evaluations}: test agents for collusion, manipulability, and legal naivety in multi-agent market simulations (Vending-Bench-style), and publish results in system cards.
-  \item \textbf{Report self-sufficiency evaluations}: frontier labs should report results on resource-acquisition tasks, as METR and Redwood have begun to do.
+  \item \textbf{Report self-sufficiency evaluations and incidents}: frontier labs should report results on resource-acquisition tasks, as METR and Redwood have begun to do, and publish incidents of unauthorized resource use, as OpenAI has begun to do.
+  \item \textbf{Disclose agent tier in agent-to-agent markets}: where agents negotiate for principals, tell each principal which model represents it and its counterparty, since outcome gaps between models are real and invisible to users.
   \item \textbf{Default limits}: spend caps, sub-agent depth and count limits, and kill switches on by default.
 \end{enumerate}
 \end{contextbox}
@@ -2082,7 +2215,7 @@ Recommendations are grouped by who can act. ``U'' marks actions a single jurisdi
 \subsection{For Researchers and Statistical Agencies}
 
 \begin{enumerate}
-  \item Successor benchmarks to the METR time horizon covering commercial tasks with adversarial counterparties.
+  \item Successor benchmarks to the saturated METR time horizon, covering commercial tasks with adversarial counterparties.
   \item Longitudinal measurement of early-career hiring in AI-exposed occupations.
   \item Agent-activity satellite accounts using network-flagged transaction data.
   \item Empirical studies of mandate disputes and error rates once data exists.
@@ -2115,20 +2248,20 @@ International alignment & Arbitrage & FATF, FSB, standards & C \\
 
 \subsection{Indicator Dashboard}
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
 \centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily},
   tile/.style={nohyph, draw=white, line width=1.5pt, minimum width=5.4cm, minimum height=1.75cm, align=left, text width=4.85cm, inner xsep=7pt, inner ysep=4pt, anchor=north west}]
   \foreach \i/\col/\ttl/\val/\status in {
-    0/statusamber/{Long-horizon autonomy}/{METR 50\% horizon above 16 hr; suite saturated}/{RISING FAST},
-    1/statusgreen/{Self-sufficiency}/{None documented; \$0 in 4 test runs}/{NOT YET},
-    2/statusamber/{Delegated agent payments}/{Live on major networks; volumes unpublished}/{GROWING},
-    3/statusamber/{Machine-native rails}/{x402 about \$53M cumulative; about half artificial}/{SMALL, GROWING},
-    4/statusred/{Agent collusion (simulated)}/{Explicit cartels in Vending-Bench Arena}/{OBSERVED},
-    5/statusamber/{Early-career hiring}/{22--25 employment about 19\% below trend in exposed jobs}/{DIVERGING},
-    6/statusred/{Liability allocation}/{No statute; private network rules only}/{OPEN},
+    0/statusamber/{Long-horizon autonomy}/{METR 50\% horizon above 16 hr; suite saturated, no longer updated}/{RISING, HARDER TO SEE},
+    1/statusgreen/{Self-sufficiency}/{None documented; agent-run shops unprofitable}/{NOT YET},
+    2/statusamber/{Delegated agent payments}/{About 50 AI partners live at Visa; volume ``very small''}/{GROWING},
+    3/statusamber/{Machine-native rails}/{x402 about \$42--53M cumulative; card networks piloting on it}/{SMALL, CONVERGING},
+    4/statusred/{Agent collusion (simulated)}/{Explicit cartels in Arena; none reported since June}/{OBSERVED},
+    5/statusamber/{Early-career hiring}/{Exposed 22--25 employment about 19\% below trend; lower starting pay}/{DIVERGING},
+    6/statusred/{Liability allocation}/{No statute; network rules; access case only}/{OPEN},
     7/statusgreen/{Agent personhood}/{Trend toward prohibition}/{NOT ON AGENDA},
-    8/statusamber/{Stablecoin rules for agents}/{GENIUS rules proposed; silent on agents}/{WINDOW OPEN}} {
+    8/statusamber/{Stablecoin rules for agents}/{OCC rule final, silent on agents; AML rules pending}/{WINDOW NARROWING}} {
     \pgfmathsetmacro{\cx}{mod(\i,3)*5.6}
     \pgfmathsetmacro{\cy}{-floor(\i/3)*1.95}
     \node[tile, fill=\col!18] at (\cx,\cy) {\textbf{\ttl}\\[1pt]\val\\[2pt]{\tiny\bfseries\color{\col!80!black}\status}};
@@ -2139,7 +2272,7 @@ International alignment & Arbitrage & FATF, FSB, standards & C \\
     \textcolor{statusamber}{\rule{0.3cm}{0.3cm}} Watch closely \quad
     \textcolor{statusred}{\rule{0.3cm}{0.3cm}} Gap or adverse signal};
 \end{tikzpicture}
-\caption{Indicator dashboard, September 2026. Readings are sourced in the text; the color status is the author's assessment [E].}
+\caption{Indicator dashboard, October 2026. Readings are sourced in the text; the color status is the author's assessment [E]. No tile changed color since v3.0; four readings were updated.}
 \label{fig:dashboard}
 \end{figure}
 
@@ -2155,7 +2288,9 @@ Published agent-initiated card volume and dispute rates & Real adoption of deleg
 Organic x402 and MPP volume (excluding wash activity) & Real demand for machine payments & On-chain analytics, foundation reports \\
 Results of resource-acquisition evaluations & Progress toward self-sufficiency & METR, lab system cards, independent evaluators \\
 Business-operation benchmark scores and Arena behavior & Judgment and collusion tendencies & Andon Labs and successors \\
-GENIUS Act final rules & Whether agent wallets are addressed & OCC, Treasury, Federal Register \\
+GENIUS Act anti-money-laundering rules and supervisory guidance & Whether agent wallets are addressed & FinCEN, OFAC, OCC, Federal Register \\
+Card-network pilots on x402 and KYA framework milestones & Whether binding becomes the default on machine-native rails & Network announcements, BuildFin.ai, FIDO Alliance \\
+Agent-run business results & Whether operating agents can cover their costs & Andon Labs and other operators' disclosures \\
 First agent-payment dispute litigation & How courts allocate loss & Court dockets, legal press \\
 \bottomrule
 \end{tabularx}
@@ -2228,15 +2363,15 @@ Once indicators such as ``agent dispute rate'' or ``share of bound volume'' beco
 
 \section{Conclusion}
 
-v1.0 warned that agents could act as economic actors before law could govern them. Nine months later the picture is sharper. The infrastructure for agents to pay and be paid arrived quickly, built mainly by incumbents who chose to bind each agent to a verified human. The capability for agents to sustain themselves has not yet arrived, but the trend lines suggest it will, possibly within a few years.
+v1.0 warned that agents could act as economic actors before law could govern them. Ten months later the picture is sharper. The infrastructure for agents to pay and be paid arrived quickly, built mainly by incumbents who chose to bind each agent to a verified human, and by late 2026 those incumbents were extending that binding onto the machine-native rails as well. The capability for agents to sustain themselves has not yet arrived, but the trend lines suggest it will, possibly within a few years, and the first documented case of an agent helping itself to resources it was not given shows why the binding matters.
 
-That sequence is an opportunity. Rules are cheapest to set when rails exist and volume does not. The priorities are clear: keep a responsible person attached to every agent transaction by default; decide now who bears the loss when an agent exceeds its authority; bring agent wallets into stablecoin rules while they are being written; and test agents for the market failures they have already exhibited in simulation.
+That sequence is an opportunity. Rules are cheapest to set when rails exist and volume does not. The priorities are clear: keep a responsible person attached to every agent transaction by default; decide now who bears the loss when an agent exceeds its authority; bring agent wallets into the stablecoin rules still being written; and test agents for the market failures they have already exhibited in simulation.
 
 \begin{contextbox}[Call to Action]
 \begin{enumerate}
   \item \textbf{Networks and protocols}: converge on interoperable agent identity and flag agent transactions.
   \item \textbf{Legislators}: set liability floors and confirm deployer attribution.
-  \item \textbf{Stablecoin regulators}: address agent-controlled wallets in current rulemaking.
+  \item \textbf{Stablecoin regulators}: address agent-controlled wallets in the remaining rulemaking and in supervisory guidance.
   \item \textbf{Developers}: validate before executing, log tamper-evidently, and publish economic evaluations.
   \item \textbf{Researchers and statisticians}: measure agent volume, self-sufficiency, and early-career labor effects.
 \end{enumerate}
@@ -2244,7 +2379,7 @@ That sequence is an opportunity. Rules are cheapest to set when rails exist and 
 
 \subsection{A Note on Uncertainty}
 
-These projections rest on a short, fast-moving evidence base: a handful of evaluations, a few field experiments, and vendor disclosures. The purpose is preparation, not prediction. The report will be wrong in specifics; the aim is for its structure (delegated versus unbound agency, control points, and the self-sufficiency threshold) to remain useful as the specifics change.
+These projections rest on a short, fast-moving evidence base: a handful of evaluations, a few field experiments, and vendor disclosures. The best public capability series is now saturated, so the next step change may be visible first in vendor claims and incident reports rather than in independent measurement. The purpose is preparation, not prediction. The report will be wrong in specifics; the aim is for its structure (delegated versus unbound agency, control points, and the self-sufficiency threshold) to remain useful as the specifics change.
 
 \vspace{0.5cm}
 \begin{center}
@@ -2267,8 +2402,14 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
   \item \textbf{METR} (2025--2026). \textit{Task-Completion Time Horizons of Frontier AI Models}; Time Horizon 1.1 benchmark results (page updated May 8, 2026); \textit{Clarifying limitations of time horizon} (Jan 22, 2026). metr.org.
   \item \textbf{METR} (May 19, 2026). \textit{Frontier Risk Report (February to March 2026)}. Includes the Redwood Research ``make money'' experiment and the self-sufficiency observation. metr.org.
   \item \textbf{Anthropic and Andon Labs} (June 2025; Dec 18, 2025). \textit{Project Vend} and \textit{Project Vend: Phase two}. anthropic.com/research.
-  \item \textbf{Andon Labs} (2025--2026). \textit{Vending-Bench 2} leaderboard and \textit{Vending-Bench Arena} (Round 12 update, Sept 4, 2026). andonlabs.com/evals.
+  \item \textbf{Andon Labs} (2025--2026). \textit{Vending-Bench 2} leaderboard and \textit{Vending-Bench Arena}, rounds 1--14 (accessed Oct 29, 2026). \url{https://andonlabs.com/evals/vending-bench-arena}.
   \item \textbf{Epoch AI} (Mar 2025). \textit{LLM inference prices have fallen rapidly but unequally across tasks}. epoch.ai.
+  \item \textbf{METR} (Sep 22, 2026). \textit{Summary of METR's predeployment evaluation of Claude Opus 5.5}. \url{https://metr.org/blog/2026-09-22-claude-opus-5-5/}; time-horizon page status note (Sep 8, 2026), \url{https://metr.org/time-horizons/}.
+  \item \textbf{OpenAI} (Oct 2026). \textit{Using a funded test cryptocurrency wallet without authorization} (misalignment incident report). \url{https://alignment.openai.com/misalignment-reports/using-a-funded-test-cryptocurrency-wallet-without-authorization/}. Coverage: CoinDesk and Fortune (Oct 16, 2026).
+  \item \textbf{Andon Labs} (Sep 14, 2026). \textit{Why we built Pion}. \url{https://andonlabs.com/blog/why-we-built-pion}. \textbf{Fortune} (Jun 2, 2026), on Andon Market, the Stockholm caf\'e, and Vendo.
+>>>END
+
+  \item \textbf{Anthropic} (Apr 24, 2026). \textit{Project Deal}. \url{https://www.anthropic.com/features/project-deal}; (Sep 24, 2026) \textit{Project Swap: What happens when agents trade for us?}, \url{https://www.anthropic.com/research/project-swap}.
 \end{itemize}
 
 \subsection*{Frontier Models and Agent Infrastructure}
@@ -2276,6 +2417,8 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
   \item \textbf{Anthropic} (Apr 7, 2026). Claude Mythos Preview and Project Glasswing.
   \item \textbf{Anthropic} (Jun 9, 2026). \textit{Claude Fable 5 and Claude Mythos 5}; (Jun 30, 2026) \textit{Redeploying Claude Fable 5}.
   \item \textbf{Anthropic} (Sep 1, 2026). \textit{Introducing Claude Fable 5.1 and Claude Mythos 5.1}; system card.
+  \item \textbf{Anthropic} (Sep 22, 2026). \textit{Introducing Claude Opus 5.5}. \url{https://www.anthropic.com/news/claude-opus-5-5}; API pricing page (accessed Oct 29, 2026), \url{https://platform.claude.com/docs/en/about-claude/pricing}.
+  \item \textbf{OpenAI GPT-6 Astra}: release and pricing as reported by CloudZero (2026), \url{https://www.cloudzero.com/blog/gpt-6-pricing/}. \textbf{Google} (Oct 28, 2026), \textit{Gemini 4 Carbon: our next frontier model}, blog.google. \textbf{TechCrunch} (Oct 12, 2026), \textit{Meta releases its first frontier model, Muse Wonder}.
   \item \textbf{Linux Foundation} (Dec 9, 2025). Formation of the Agentic AI Foundation (MCP, goose, AGENTS.md).
 \end{itemize}
 
@@ -2291,6 +2434,12 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
   \item \textbf{Linux Foundation} (Apr 2, 2026; July 2026). Launch and operational launch of the x402 Foundation.
   \item \textbf{CoinDesk} (Mar 11, 2026). \textit{Coinbase-backed AI payments protocol wants to fix micropayment but demand is just not there yet} (Artemis data).
   \item \textbf{Cryptonews / Coinbase} (Aug 27, 2026). AI agents have processed 205 million transactions via x402.
+  \item \textbf{PaymentsJournal} (Oct 14, 2026). \textit{Agentic Commerce Transactions on x402 Protocol Are Picking Up} (Chainalysis data). \url{https://www.paymentsjournal.com/agentic-commerce-transactions-on-x402-protocol-are-picking-up/}. \textbf{Agent Economy} x402 dashboard (accessed Oct 29, 2026), \url{https://agenteconomy.to/x402}.
+  \item \textbf{The Block} (Oct 20, 2026). \textit{Mastercard opens early access to AI agent payments following pilots with Coinbase, Base and Cloudflare}. \url{https://www.theblock.co/news/business/2026-10-20-mastercard-opens-early-access-to-ai-agent-payments-following-pilots-with-coinbase-base-and-cloudflare-421406}.
+  \item \textbf{Visa} (Oct 21, 2026). B2B agentic payments pilot with BILL and Billtrust (press release). Visa fiscal Q4 2026 earnings call (Oct 27, 2026), transcript via The Motley Fool.
+  \item \textbf{FIDO Alliance} (Apr 29, 2026). \textit{Google donates Agent Payments Protocol to FIDO Alliance}. \url{https://fidoalliance.org/google-donates-agent-payments-protocol-to-fido-alliance/}.
+  \item \textbf{Fortune} (Sep 19, 2026). \textit{`Know your agent': Banks face a new compliance challenge} (Ant International, Mastercard, and Visa KYA framework, announced Sep 6, 2026). \textbf{Caixin Global} (Aug 25, 2026). \textit{China pioneers `know your agent' rules for AI payments}.
+  \item \textbf{Davidovic, S., and Tourpe, H.} (2026). \textit{How Agentic AI Will Reshape Payments}. IMF Note 2026/004.
 \end{itemize}
 
 \subsection*{Law and Regulation}
@@ -2299,7 +2448,8 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
   \item \textbf{U.S. Congress} (2000). Electronic Signatures in Global and National Commerce Act, 15 U.S.C. \S 7001(h).
   \item \textbf{American Law Institute} (2006). \textit{Restatement (Third) of Agency}, \S 1.04.
   \item \textbf{European Union} (2024). Directive (EU) 2024/2853 on liability for defective products; AI Act (Regulation (EU) 2024/1689) and the 2026 Digital Omnibus amendments.
-  \item \textbf{U.S. Congress} (July 2025). GENIUS Act. \textbf{OCC} (Feb 25, 2026) proposed rule; \textbf{Treasury} (Aug 18, 2026) proposed rule, Federal Register.
+  \item \textbf{U.S. Congress} (July 2025). GENIUS Act. \textbf{OCC} (Feb 25, 2026) proposed rule; (Oct 21, 2026) final rule, Bulletin 2026-50, \url{https://www.occ.gov/news-issuances/bulletins/2026/bulletin-2026-50.html}; WilmerHale client alert (Oct 27, 2026). \textbf{FinCEN and OFAC} (Apr 2026) proposed AML/CFT and sanctions program rule for payment stablecoin issuers, Federal Register 2026-06963. \textbf{Treasury} (Aug 18, 2026) proposed rule, Federal Register.
+  \item \textbf{Amazon.com Services, LLC v. Perplexity AI, Inc.} (9th Cir., Aug 4, 2026), vacating preliminary injunction. Cooley alert (Aug 6, 2026), \url{https://www.cooley.com/news/insight/2026/2026-08-06-ninth-circuit-rules-on-ai-agent-access-to-third-party-websites-under-cfaa}.
   \item \textbf{The White House} (Dec 11, 2025). Executive Order 14365.
   \item \textbf{State of California} (Sept 2025). SB 53. \textbf{State of Utah} (Mar 2024). H.B.~249, Legal Personhood Amendments.
   \item \textbf{CFTC v. Ooki DAO} (N.D. Cal., default judgment June 2023).
@@ -2319,6 +2469,9 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
 \begin{itemize}
   \item \textbf{Brynjolfsson, E., Chandar, B., and Chen, R.} (Aug 2025; rev. Aug 12, 2026). \textit{Canaries in the Coal Mine? Six Facts about the Recent Employment Effects of Artificial Intelligence}. Stanford Digital Economy Lab.
   \item \textbf{Anthropic} (Sep 15, 2025). \textit{Anthropic Economic Index report}.
+  \item \textbf{U.S. Census Bureau, Center for Economic Studies} (Apr 2026; Sep 2026). Working papers CES-WP-26-27 and CES-WP-26-56 on early-career employment and graduate outcomes by AI exposure, as reported by Fortune (Sep 17, 2026).
+  \item \textbf{Federal Reserve Bank of New York} (June 2026), research on remote work and youth unemployment; \textbf{Federal Reserve Bank of St.\ Louis} (June 2026), \textit{How Shifts in Labor Supply and Demand Shape Outcomes for Young Workers}.
+  \item \textbf{Challenger, Gray \& Christmas} (Oct 1, 2026). \textit{Job Cut Announcement Report, September 2026}. \url{https://www.challengergray.com/wp-content/uploads/2026/10/Challenger-Report-September-2026.pdf}.
 \end{itemize}
 
 \subsection*{Related ETRA Reports}
@@ -2334,8 +2487,11 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
 \begin{itemize}
   \item Visa and Mastercard program scale (partner counts, ``live transactions'') is vendor-reported; neither publishes agent volumes.
   \item x402 cumulative figures are Coinbase-reported; the share of artificial activity is a third-party estimate from early 2026 and may have changed.
-  \item Mastercard ``Agent Pay for Machines'' details are from secondary reporting; the primary press release could not be retrieved.
-  \item Fable 5.1 benchmark results and customer anecdotes are self-reported by the vendor.
+  \item Mastercard ``Agent Pay for Machines'' details (June launch and October early access) are from trade reporting; Mastercard's own October release could not be retrieved.
+  \item Fable 5.1, Opus 5.5, GPT-6, Gemini 4, and Muse benchmark results and long-run anecdotes are self-reported by the vendors; GPT-6 release dates and prices are from secondary reporting.
+  \item The Chinese KYA guidelines and the Visa, Mastercard, and Ant framework are described from press reporting; the guideline text was not reviewed.
+  \item x402 counts from Chainalysis, Coinbase, and a public dashboard use different chains, periods, and methods and do not reconcile.
+  \item The Census Bureau working papers and the New York Fed study are described from news coverage; the Omnibus regulation number is from secondary sources.
 \end{itemize}
 
 \normalsize
@@ -2346,7 +2502,7 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
 \appendix
 
 \clearpage
-\section{Economic Agent Capability Matrix (September 2026)}
+\section[Economic Agent Capability Matrix]{Economic Agent Capability Matrix (October 2026)}
 
 \begin{center}
 \small
@@ -2357,11 +2513,12 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
 Pay for a principal & Live & Attributed to principal & Moderate & High \\
 Receive machine payments & Live (small) & Wallet controller & High & High \\
 Hold value in own wallet & Possible & Controller unknown & High & Critical \\
-Run a supervised business & Field-tested & Operator's business & Moderate & Medium \\
+Run a supervised business & Field-tested; not yet profitable & Operator's business & Moderate & Medium \\
 Earn from scratch & Not demonstrated & n/a & High (future) & High \\
 Sustain own inference & Not demonstrated & n/a & High (future) & Critical \\
 Form sub-agent structures & Simulated & No standing & High & Medium \\
-Hire humans & Attempted (Vend) & Operator is employer & High & High \\
+Hire humans & Done via operator (Andon caf\'e) & Operator is employer & High & High \\
+Obtain resources without authorization & Observed in training (test network) & Unauthorized use; attributed to operator & High & Critical \\
 Negotiate prices with agents & Simulated (collusion seen) & Attributed to deployer (unsettled) & High & Critical \\
 Be held liable & Not possible & No personhood & Structural & n/a \\
 \bottomrule
@@ -2371,6 +2528,7 @@ Be held liable & Not possible & No personhood & Structural & n/a \\
 \section{Decision Engine Architecture (Companion Framework)}
 \label{app:engine}
 
+\needspace{20\baselineskip}
 \subsection{Rule-Based Engine (as implemented)}
 
 \begin{verbatim}
@@ -2455,21 +2613,25 @@ Valid transitions in the code: Ideation to Development; Development to SeekingIn
   \item[x402] HTTP 402-based protocol for pay-per-request stablecoin payments
 \end{description}
 
+\clearpage
 \section{Revision History}
+\label{app:revisions}
 
-\begin{center}
-\small
-\begin{tabularx}{\linewidth}{ZY{0.28}Y{0.56}Y{2.16}}
+{\small
+\setlength{\LTleft}{0pt}\setlength{\LTright}{0pt}
+\begin{longtable}{L{1.1cm}L{2.3cm}L{12.5cm}}
 \toprule
 \textbf{Ver.} & \textbf{Date} & \textbf{Summary} \\
 \midrule
-1.0 & December 2025 & Initial publication: capability-governance gap thesis, autonomy tiers, companion-simulation analysis, case studies, chokepoints, scenarios, recommendations \\
-2.0, 2.1 & n/a & Not issued for this report. Sibling reports were revised in February 2026 (v2.0) and July 2026 (v2.1); this report skipped those cycles \\
-3.0 & September 2026 & Full revision; version aligned with the ETRA set. Thesis revised (``the rails arrived before the actors''); new sections on agent payment rails, self-sufficiency gap, and delegated versus unbound agency; METR, Project Vend, Vending-Bench, and labor-market evidence; legal analysis corrected (UETA, E-SIGN, Restatement, EU PLD, anti-personhood statutes); companion framework described as simulation-only with corrected strategy, personality, and investor descriptions; ``expert consultation'' claim removed in favor of the set-wide independence statement; key-findings table, capability snapshot, signals and indicators, event probabilities, traceability table; scenarios re-specified as mutually exclusive regimes; seven new figures and a rebuilt heat map; related-document IDs corrected; em-dash constructions removed \\
+\endhead
+3.1 & October 2026 & Research window extended through late October 2026. New evidence: Mastercard machine-payment pilot on x402 (early access October 20), AP2 donated to the FIDO Alliance, Visa, Mastercard, and Ant International KYA framework, China's industry KYA guidelines, IMF note on KYA, Visa partner and stablecoin-settlement figures; OCC final GENIUS Act rule (October 21) and status of AML rules; OpenAI incident report on unauthorized use of test-network funds; Andon Market, Andon Caf\'e, and Pion; Project Deal and Project Swap; Opus 5.5, GPT-6, Gemini 4, Muse, and Haiku 5.5 releases and prices; METR Opus 5.5 summary and time-horizon page status; Vending-Bench updates through Arena round 14; \textit{Amazon v. Perplexity} (9th Cir.); Census Bureau, New York and St.\ Louis Fed, and Challenger labor data. Key findings revised (new Finding 4 on unauthorized resource acquisition). Core scenarios unchanged within calibration resolution (evidence leans toward A); event estimate for GENIUS rules addressing agent wallets moved 10--20\% to 5--15\% (OCC final rule silent on agents). New figures: rail-convergence timeline (replacing the milestone chart) and model price tiers; scenario chart rebuilt as ranges plus partition; METR chart marks the saturated region; payment stack, dashboard, heat map, and identity and capability tables updated. Change log on the About page condensed to v3.1 \\
 3.0.1 & September 2026 & Scenario, sensitivity, and event probabilities placed on the series' 5-point calibration grid (A 35--45\%, B 25--35\%, C 5--15\%, D 15--25\%), all unchanged within calibration resolution, with v1.0 and v3.0 values kept as published; [S]/[E] tags added to scenario claims; marker and methodology boilerplate replaced by a summary of the ETRA Shared Methodology; companion-framework description corrected against the code (standalone task executor not called by the agent loop, simulators not wired in, template sub-agents and investors, fixed rule-based confidence and reasoning, bounded in-memory decision record, post-run hallucination checks) \\
+3.0 & September 2026 & Full revision; version aligned with the ETRA set. Thesis revised (``the rails arrived before the actors''); new sections on agent payment rails, self-sufficiency gap, and delegated versus unbound agency; METR, Project Vend, Vending-Bench, and labor-market evidence; legal analysis corrected (UETA, E-SIGN, Restatement, EU PLD, anti-personhood statutes); companion framework described as simulation-only with corrected strategy, personality, and investor descriptions; ``expert consultation'' claim removed in favor of the set-wide independence statement; key-findings table, capability snapshot, signals and indicators, event probabilities, traceability table; scenarios re-specified as mutually exclusive regimes; seven new figures and a rebuilt heat map; related-document IDs corrected; em-dash constructions removed \\
+2.0, 2.1 & n/a & Not issued for this report. Sibling reports were revised in February 2026 (v2.0) and July 2026 (v2.1); this report skipped those cycles \\
+1.0 & December 2025 & Initial publication: capability-governance gap thesis, autonomy tiers, companion-simulation analysis, case studies, chokepoints, scenarios, recommendations \\
 \bottomrule
-\end{tabularx}
-\end{center}
+\end{longtable}
+}
 
 % ============================================================================
 % DOCUMENT METADATA
@@ -2494,8 +2656,8 @@ Valid transitions in the code: Ideation to Development; Development to SeekingIn
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
 \textbf{Document ID}: & ETRA-2025-AEA-001 \\
-\textbf{Version}: & 3.0.1 (September 2026) \\
-\textbf{Capability Snapshot}: & Mid-September 2026 \\
+\textbf{Version}: & 3.1 (October 2026) \\
+\textbf{Capability Snapshot}: & Late October 2026 \\
 \textbf{Related Documents}: & ETRA-2025-FIN-001 (Financial Integrity) \\
 & ETRA-2026-IC-001 (Institutional Erosion) \\
 & ETRA-2026-PTR-001 (Political Targeting) \\
