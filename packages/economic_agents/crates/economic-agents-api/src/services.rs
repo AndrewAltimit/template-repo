@@ -215,11 +215,11 @@ pub fn marketplace_router(state: Arc<MarketplaceServiceState>) -> Router {
     Router::new()
         .route("/health", get(marketplace_health))
         .route("/tasks", get(list_tasks))
-        .route("/tasks/:task_id", get(get_task))
-        .route("/tasks/:task_id/claim", post(claim_task))
-        .route("/tasks/:task_id/submit", post(submit_solution))
-        .route("/tasks/:task_id/release", post(release_task))
-        .route("/submissions/:submission_id", get(get_submission))
+        .route("/tasks/{task_id}", get(get_task))
+        .route("/tasks/{task_id}/claim", post(claim_task))
+        .route("/tasks/{task_id}/submit", post(submit_solution))
+        .route("/tasks/{task_id}/release", post(release_task))
+        .route("/submissions/{submission_id}", get(get_submission))
         .with_state(state)
 }
 

@@ -52,6 +52,9 @@ impl IntoResponse for CodeReviewError {
 /// Code review invocation handler (for direct /code-review route).
 ///
 /// POST /code-review
+// An axum `Response` is the idiomatic handler error type; boxing it would only
+// add an allocation on the error path.
+#[allow(clippy::result_large_err)]
 #[instrument(skip(state, request), fields(review_id))]
 pub async fn invoke_code_review(
     State(state): State<Arc<AppState>>,
@@ -68,6 +71,9 @@ pub async fn invoke_code_review(
 /// 3. Creates a specialized code review agent with JSON response tools
 /// 4. Runs the agent with early termination support
 /// 5. Returns the structured review result
+// An axum `Response` is the idiomatic handler error type; boxing it would only
+// add an allocation on the error path.
+#[allow(clippy::result_large_err)]
 #[instrument(skip(state, request), fields(review_id))]
 pub async fn invoke_code_review_internal(
     state: Arc<AppState>,
@@ -193,7 +199,7 @@ pub async fn invoke_code_review_internal(
         Some(json) => {
             let parsed = parse_review_result(json, request.apply_fixes);
             (parsed, ReviewStatus::Completed)
-        }
+        },
         None => {
             // No committed result - agent ended without committing
             warn!("Agent ended without committing a response");
@@ -205,7 +211,7 @@ pub async fn invoke_code_review_internal(
                 },
                 ReviewStatus::Failed,
             )
-        }
+        },
     };
 
     info!(
@@ -369,7 +375,7 @@ mod tests {
                 assert!(review_markdown.contains("Looks good"));
                 assert_eq!(severity, ReviewSeverity::Low);
                 assert_eq!(findings_count, 2);
-            }
+            },
             _ => panic!("Expected ReviewOnly"),
         }
     }

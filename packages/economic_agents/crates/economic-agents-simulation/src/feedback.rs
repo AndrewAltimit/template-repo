@@ -6,8 +6,8 @@ pub struct FeedbackGenerator;
 impl FeedbackGenerator {
     /// Generate feedback for a submission.
     pub fn generate(quality_score: f64) -> FeedbackResult {
-        use rand::seq::SliceRandom;
-        let mut rng = rand::thread_rng();
+        use rand::seq::IndexedRandom;
+        let mut rng = rand::rng();
 
         let (status, feedback) = if quality_score >= 0.9 {
             let options = [

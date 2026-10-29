@@ -68,7 +68,7 @@ impl Tool for CommitResponseTool {
                     "Missing required parameter 'json_response'. \
                      Please provide the JSON response to commit.",
                 ));
-            }
+            },
         };
 
         // Parse the JSON
@@ -80,7 +80,7 @@ impl Tool for CommitResponseTool {
                      Please ensure you're committing valid JSON that passed validation.",
                     e
                 )));
-            }
+            },
         };
 
         debug!(json_len = json_str.len(), "Committing JSON response");

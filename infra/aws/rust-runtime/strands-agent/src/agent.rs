@@ -343,7 +343,7 @@ impl Agent {
                 Ok(resp) => {
                     overflow_retries = 0; // Reset on success
                     resp
-                }
+                },
                 Err(StrandsError::ContextWindowOverflow { .. }) => {
                     if overflow_retries >= self.config.max_overflow_retries {
                         return Err(StrandsError::context_overflow(
@@ -363,7 +363,7 @@ impl Agent {
                         ));
                     }
                     continue;
-                }
+                },
                 Err(e) => return Err(e),
             };
 
@@ -435,7 +435,7 @@ impl Agent {
                 Ok(resp) => {
                     overflow_retries = 0;
                     resp
-                }
+                },
                 Err(StrandsError::ContextWindowOverflow { .. }) => {
                     if overflow_retries >= self.config.max_overflow_retries {
                         return Err(StrandsError::context_overflow(
@@ -457,7 +457,7 @@ impl Agent {
                     }
                     messages = conv.snapshot();
                     continue;
-                }
+                },
                 Err(e) => return Err(e),
             };
 
@@ -543,7 +543,7 @@ impl Agent {
                 Ok(resp) => {
                     overflow_retries = 0;
                     resp
-                }
+                },
                 Err(StrandsError::ContextWindowOverflow { .. }) => {
                     if overflow_retries >= self.config.max_overflow_retries {
                         return Err(StrandsError::context_overflow(
@@ -564,7 +564,7 @@ impl Agent {
                     }
                     messages = conv.snapshot();
                     continue;
-                }
+                },
                 Err(e) => return Err(e),
             };
 
@@ -610,14 +610,14 @@ impl Agent {
                         messages,
                         Some(result),
                     ));
-                }
+                },
                 Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
                     // No termination signal, continue loop
-                }
+                },
                 Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => {
                     warn!("Termination channel disconnected unexpectedly");
                     // Continue anyway - channel being dropped is not fatal
-                }
+                },
             }
         }
     }
@@ -680,13 +680,13 @@ impl Agent {
                                 "Tool execution failed"
                             );
                             ToolExecutionResult::error(e.to_string())
-                        }
+                        },
                     }
-                }
+                },
                 None => {
                     warn!(tool = %tool_use.name, "Tool not found");
                     ToolExecutionResult::error(format!("Tool '{}' not found", tool_use.name))
-                }
+                },
             };
 
             results.push(ContentBlock::tool_result(

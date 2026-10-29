@@ -1,14 +1,19 @@
 //! OpenTelemetry tracing integration.
 
+use std::sync::OnceLock;
+
 use opentelemetry::trace::TracerProvider;
-use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{runtime, trace as sdktrace, Resource};
+use opentelemetry_sdk::trace::SdkTracerProvider;
+use opentelemetry_sdk::Resource;
 use strands_core::{Result, StrandsError};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 use crate::config::RuntimeConfig;
+
+/// The installed tracer provider, kept so [`shutdown`] can flush it.
+static TRACER_PROVIDER: OnceLock<SdkTracerProvider> = OnceLock::new();
 
 /// Initialize telemetry with the given configuration.
 pub fn init(config: &RuntimeConfig) -> Result<()> {
@@ -33,20 +38,21 @@ pub fn init(config: &RuntimeConfig) -> Result<()> {
             .map_err(|e| StrandsError::config(format!("Failed to create OTLP exporter: {}", e)))?;
 
         // Create resource with service name
-        let resource = Resource::new(vec![KeyValue::new(
-            "service.name",
-            config.service_name.clone(),
-        )]);
+        let resource = Resource::builder()
+            .with_service_name(config.service_name.clone())
+            .build();
 
-        // Create tracer provider
-        let provider = sdktrace::TracerProvider::builder()
-            .with_batch_exporter(exporter, runtime::Tokio)
+        // Create tracer provider (the batch processor runs on its own thread)
+        let provider = SdkTracerProvider::builder()
+            .with_batch_exporter(exporter)
             .with_resource(resource)
             .build();
 
         // Get tracer and create layer
         let tracer = provider.tracer(config.service_name.clone());
         let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+        // A second `init` keeps the first provider; it is the one in use.
+        let _ = TRACER_PROVIDER.set(provider);
 
         // Initialize subscriber with OTLP
         tracing_subscriber::registry()
@@ -65,7 +71,11 @@ pub fn init(config: &RuntimeConfig) -> Result<()> {
     Ok(())
 }
 
-/// Shutdown telemetry gracefully.
+/// Shutdown telemetry gracefully, flushing any buffered spans.
 pub fn shutdown() {
-    opentelemetry::global::shutdown_tracer_provider();
+    if let Some(provider) = TRACER_PROVIDER.get() {
+        if let Err(e) = provider.shutdown() {
+            eprintln!("OpenTelemetry shutdown failed: {e}");
+        }
+    }
 }

@@ -11,13 +11,10 @@ use std::fs;
 use std::path::Path;
 
 use aes_gcm::aead::{Aead, Payload};
-use aes_gcm::{Aes256Gcm, KeyInit, Nonce};
+use aes_gcm::{Aes256Gcm, KeyInit};
 use anyhow::{Context, Result, bail};
 use hkdf::Hkdf;
-use pqcrypto_mldsa::mldsa87;
-use pqcrypto_mlkem::mlkem1024;
-use pqcrypto_traits::kem::SharedSecret;
-use pqcrypto_traits::sign::DetachedSignature;
+use ml_kem::kem::Decapsulate;
 use sha2::Sha512;
 use x25519_dalek::PublicKey;
 use zeroize::Zeroizing;
@@ -93,9 +90,10 @@ pub(crate) fn unwrap_recovery_secret(
     // -- ML-KEM-1024 --
     let kem_sk = private.kem_secret()?;
     let kem_ct = public.kem_ciphertext()?;
-    // The pqcrypto shared-secret type is `Copy` and cannot be zeroized; copy
-    // it into a zeroizing buffer and use only that from here on.
-    let kem_shared = Zeroizing::new(mlkem1024::decapsulate(&kem_ct, &kem_sk).as_bytes().to_vec());
+    // Move the shared key into a zeroizing buffer and wipe the original array.
+    let kem_ss = Zeroizing::new(kem_sk.decapsulate(&kem_ct));
+    let kem_shared = Zeroizing::new(kem_ss.to_vec());
+    drop(kem_ss);
 
     // -- Combine --
     let wrap_salt = public.wrap_salt()?;
@@ -128,7 +126,7 @@ pub(crate) fn unwrap_recovery_secret(
         .map_err(|e| anyhow::anyhow!("AES key init failed: {}", e))?;
     let recovery_secret = wrap_cipher
         .decrypt(
-            Nonce::from_slice(&wrap_nonce),
+            &format::aes_nonce(wrap_nonce),
             Payload {
                 msg: wrapped_secret,
                 aad,
@@ -153,7 +151,9 @@ fn decrypt_device_secrets(
     }
 
     let device_salt = &encrypted_blob[..32];
-    let device_nonce_bytes = &encrypted_blob[32..44];
+    let device_nonce_bytes: [u8; 12] = encrypted_blob[32..44]
+        .try_into()
+        .expect("slice is exactly 12 bytes");
     let device_ciphertext = &encrypted_blob[44..];
 
     let hk = Hkdf::<Sha512>::new(Some(device_salt), recovery_secret);
@@ -169,7 +169,7 @@ fn decrypt_device_secrets(
 
     // `device_nonce_bytes` is exactly 12 bytes by the slicing above.
     device_cipher
-        .decrypt(Nonce::from_slice(device_nonce_bytes), device_ciphertext)
+        .decrypt(&format::aes_nonce(device_nonce_bytes), device_ciphertext)
         .map(Zeroizing::new)
         .map_err(|_| anyhow::anyhow!("Failed to decrypt device secrets"))
 }
@@ -189,23 +189,17 @@ pub fn verify_image(
     let signature_file = format::read_signature_file(signature_path)?;
 
     let verified = if let Some(sig_bytes) = signature_file.strip_prefix(SIG_MAGIC_V2.as_slice()) {
-        let detached_sig = mldsa87::DetachedSignature::from_bytes(sig_bytes)
-            .map_err(|e| anyhow::anyhow!("Invalid ML-DSA-87 signature: {:?}", e))?;
+        let detached_sig = format::decode_signature(sig_bytes)?;
         let digest = format::image_digest(image_path)?;
-        mldsa87::verify_detached_signature(
-            &detached_sig,
-            &format::signed_message_v2(&digest),
-            &sig_pk,
-        )
-    } else if signature_file.len() == mldsa87::signature_bytes() {
+        format::verify_message(&sig_pk, &format::signed_message_v2(&digest), &detached_sig)
+    } else if signature_file.len() == format::SIG_SIGNATURE_BYTES {
         log::warn!(
             "Legacy v1 signature (raw image, no prehash); reading the whole image into \
              memory. Re-sign with the current `tamper-recovery sign`."
         );
-        let detached_sig = mldsa87::DetachedSignature::from_bytes(&signature_file)
-            .map_err(|e| anyhow::anyhow!("Invalid ML-DSA-87 signature: {:?}", e))?;
+        let detached_sig = format::decode_signature(&signature_file)?;
         let image_data = fs::read(image_path).context("Failed to read image file")?;
-        mldsa87::verify_detached_signature(&detached_sig, &image_data, &sig_pk)
+        format::verify_message(&sig_pk, &image_data, &detached_sig)
     } else {
         bail!(
             "Unrecognized signature file format ({} bytes)",
@@ -213,14 +207,11 @@ pub fn verify_image(
         );
     };
 
-    match verified {
-        Ok(()) => {
-            log::info!("[OK] Image signature verified.");
-            Ok(())
-        },
-        Err(_) => {
-            bail!("Signature verification FAILED; image may be tampered");
-        },
+    if verified {
+        log::info!("[OK] Image signature verified.");
+        Ok(())
+    } else {
+        bail!("Signature verification FAILED; image may be tampered");
     }
 }
 
@@ -424,9 +415,9 @@ mod tests {
             .unwrap()
             .sig_secret()
             .unwrap();
-        let sig = mldsa87::detached_sign(b"legacy image", &sk);
+        let sig = format::sign_message(&sk, b"legacy image").unwrap();
         let sig_path = dir.path().join("img.sig");
-        fs::write(&sig_path, sig.as_bytes()).unwrap();
+        fs::write(&sig_path, sig.encode()).unwrap();
         verify_image(&image, &sig_path, &p.public).unwrap();
 
         // Neither v2 nor a bare signature: rejected.
@@ -454,10 +445,140 @@ mod tests {
             .sig_secret()
             .unwrap();
         let digest = format::image_digest(&image).unwrap();
-        let bare = mldsa87::detached_sign(&digest, &sk);
+        let bare = format::sign_message(&sk, &digest).unwrap();
         let mut forged = SIG_MAGIC_V2.to_vec();
-        forged.extend_from_slice(bare.as_bytes());
+        forged.extend_from_slice(&bare.encode());
         fs::write(&sig_path, forged).unwrap();
         assert!(verify_image(&image, &sig_path, &p.public).is_err());
+    }
+
+    // -- Cross-implementation compatibility --------------------------------
+    //
+    // `testdata/pqclean-0.1/` was produced by the previous PQClean-based build
+    // (pqcrypto-mlkem 0.1.1 / pqcrypto-mldsa 0.1.2). These tests pin the
+    // on-disk format: media written before the RustCrypto migration must keep
+    // unwrapping and verifying, and the stored key encodings must round-trip
+    // byte-for-byte. The key material is test-only and protects nothing.
+
+    fn fixture(version: &str) -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("testdata/pqclean-0.1")
+            .join(version)
+    }
+
+    fn unwrap_fixture(version: &str) -> serde_json::Value {
+        let src = fixture(version);
+        let out = tempfile::tempdir().unwrap();
+        let mut p = paths(&src);
+        p.output = out.path().join("out.json");
+        unwrap_at(&p).unwrap();
+        serde_json::from_str(&fs::read_to_string(&p.output).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn pqclean_v2_media_unwraps() {
+        let v = unwrap_fixture("v2");
+        assert_eq!(v["root_passphrase"], "v2-root-pw");
+        assert_eq!(v["data_passphrase"], "v2-data-pw");
+    }
+
+    #[test]
+    fn pqclean_v1_media_unwraps() {
+        let v = unwrap_fixture("v1");
+        assert_eq!(v["root_passphrase"], "v1-root-pw");
+        assert_eq!(v["data_passphrase"], "v1-data-pw");
+    }
+
+    #[test]
+    fn pqclean_recovery_secret_matches() {
+        let p = paths(&fixture("v2"));
+        let private = PrivateBundle::load(&p.private).unwrap();
+        let public = PublicBundle::load(&p.public).unwrap();
+        let wrapped = fs::read(&p.wrapped).unwrap();
+        let secret = unwrap_recovery_secret(&private, &public, &wrapped).unwrap();
+        let expected =
+            fs::read_to_string(fixture("v2").join("private/recovery_secret.hex")).unwrap();
+        assert_eq!(crate::keygen::hex_encode(&secret), expected.trim());
+    }
+
+    #[test]
+    fn pqclean_signatures_verify() {
+        let d = fixture("v2");
+        let public = d.join("public/recovery_public.json");
+        let image = d.join("image.bin");
+        verify_image(&image, &d.join("image.bin.sig"), &public).unwrap();
+        verify_image(&image, &d.join("image.bin.v1sig"), &public).unwrap();
+    }
+
+    #[test]
+    fn pqclean_keys_round_trip_byte_for_byte() {
+        use ml_dsa::KeyExport as _;
+
+        let p = paths(&fixture("v2"));
+        let private = PrivateBundle::load(&p.private).unwrap();
+        let public = PublicBundle::load(&p.public).unwrap();
+
+        let kem_sk = private.kem_secret().unwrap();
+        assert_eq!(
+            B64.encode(format::encode_kem_secret(&kem_sk).as_slice()),
+            private.kem_secret_key
+        );
+        // The expanded dk embeds ek; it must match the published one.
+        assert_eq!(
+            B64.encode(ml_kem::kem::Decapsulator::encapsulation_key(&kem_sk).to_bytes()),
+            public.kem_public_key
+        );
+        assert_eq!(
+            B64.encode(public.kem_public().unwrap().to_bytes()),
+            public.kem_public_key
+        );
+
+        let sig_sk = private.sig_secret().unwrap();
+        assert_eq!(
+            B64.encode(format::encode_sig_secret(&sig_sk).as_slice()),
+            private.sig_secret_key
+        );
+        assert_eq!(
+            B64.encode(sig_sk.verifying_key().encode()),
+            public.sig_public_key
+        );
+        assert_eq!(
+            B64.encode(public.sig_public().unwrap().to_bytes()),
+            public.sig_public_key
+        );
+    }
+
+    #[test]
+    fn new_signature_verifies_with_pqclean_key() {
+        // Signing with the migrated implementation using a PQClean-generated
+        // key yields a signature the published PQClean key accepts.
+        let src = fixture("v2");
+        let dir = tempfile::tempdir().unwrap();
+        let image = dir.path().join("img.bin");
+        fs::write(&image, b"signed after the migration").unwrap();
+        let sig_path = dir.path().join("img.sig");
+        crate::keygen::sign_image(
+            &image,
+            &src.join("private/recovery_private.json"),
+            &sig_path,
+        )
+        .unwrap();
+        verify_image(&image, &sig_path, &src.join("public/recovery_public.json")).unwrap();
+    }
+
+    #[test]
+    fn corrupted_kem_secret_key_is_rejected() {
+        // FIPS 203 expanded keys embed H(ek); flipping a bit in that hash must
+        // be detected on load.
+        let dir = tempfile::tempdir().unwrap();
+        generate(dir.path(), "r", "d").unwrap();
+        let p = paths(dir.path());
+        edit_json(&p.private, |v| {
+            let mut sk = B64.decode(v["kem_secret_key"].as_str().unwrap()).unwrap();
+            sk[format::KEM_SECRET_KEY_BYTES - 64] ^= 0x01;
+            v["kem_secret_key"] = B64.encode(sk).into();
+        });
+        let err = unwrap_at(&p).unwrap_err();
+        assert!(format!("{err:#}").contains("ML-KEM-1024"), "{err:#}");
     }
 }

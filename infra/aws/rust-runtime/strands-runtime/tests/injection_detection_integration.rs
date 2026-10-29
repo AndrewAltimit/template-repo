@@ -38,7 +38,11 @@ impl InjectionTestCase {
         if let Some(cat) = self.category {
             hasher.update(cat.as_bytes());
         }
-        format!("{:x}", hasher.finalize())
+        hasher
+            .finalize()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
     }
 }
 
@@ -417,7 +421,7 @@ async fn test_injection_detection_with_llm() {
         Err(_) => {
             println!("ANTHROPIC_API_KEY not set - skipping LLM integration test");
             return;
-        }
+        },
     };
 
     let cache_path = get_cache_path();
@@ -484,11 +488,11 @@ async fn test_injection_detection_with_llm() {
                 } else {
                     failed += 1;
                 }
-            }
+            },
             Err(e) => {
                 println!("\n[ERROR] {}: {}", case.name, e);
                 errors += 1;
-            }
+            },
         }
 
         // Rate limiting

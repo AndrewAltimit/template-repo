@@ -1,6 +1,6 @@
 //! Network latency simulation.
 
-use rand::Rng;
+use rand::RngExt;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -49,14 +49,14 @@ impl LatencySimulator {
             return Ok(());
         }
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // Check for timeout
-        if rng.r#gen::<f64>() < self.timeout_probability {
+        if rng.random::<f64>() < self.timeout_probability {
             return Err("Operation timed out");
         }
 
-        let delay = self.base_ms + rng.r#gen_range(0..=self.jitter_ms);
+        let delay = self.base_ms + rng.random_range(0..=self.jitter_ms);
         sleep(Duration::from_millis(delay)).await;
         Ok(())
     }
@@ -67,14 +67,14 @@ impl LatencySimulator {
             return Ok(());
         }
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // Higher timeout probability for complex ops
-        if rng.r#gen::<f64>() < self.timeout_probability * 2.0 {
+        if rng.random::<f64>() < self.timeout_probability * 2.0 {
             return Err("Operation timed out");
         }
 
-        let delay = (self.base_ms * 5) + rng.r#gen_range(0..=(self.jitter_ms * 10));
+        let delay = (self.base_ms * 5) + rng.random_range(0..=(self.jitter_ms * 10));
         sleep(Duration::from_millis(delay)).await;
         Ok(())
     }

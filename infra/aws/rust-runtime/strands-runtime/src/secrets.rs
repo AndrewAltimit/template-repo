@@ -41,7 +41,7 @@ pub async fn fetch_bedrock_credentials() -> Result<Option<BedrockCredentials>, S
         _ => {
             info!("BEDROCK_CREDENTIALS_SECRET not set, using environment credentials");
             return Ok(None);
-        }
+        },
     };
 
     info!(secret_name = %secret_name, "Fetching Bedrock credentials from Secrets Manager");

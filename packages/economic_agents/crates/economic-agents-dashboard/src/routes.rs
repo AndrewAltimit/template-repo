@@ -27,11 +27,11 @@ pub fn dashboard_router(state: Arc<DashboardState>) -> Router {
         // Agent Management
         .route("/agents", get(list_agents_handler))
         .route("/agents", post(create_agent_handler))
-        .route("/agents/:agent_id", get(get_agent_handler))
-        .route("/agents/:agent_id", delete(delete_agent_handler))
-        .route("/agents/:agent_id/start", post(start_agent_handler))
-        .route("/agents/:agent_id/stop", post(stop_agent_handler))
-        .route("/agents/:agent_id/cycles", get(get_agent_cycles_handler))
+        .route("/agents/{agent_id}", get(get_agent_handler))
+        .route("/agents/{agent_id}", delete(delete_agent_handler))
+        .route("/agents/{agent_id}/start", post(start_agent_handler))
+        .route("/agents/{agent_id}/stop", post(stop_agent_handler))
+        .route("/agents/{agent_id}/cycles", get(get_agent_cycles_handler))
         // Metrics
         .route("/metrics", get(metrics_handler))
         .route("/metrics/prometheus", get(prometheus_metrics_handler))

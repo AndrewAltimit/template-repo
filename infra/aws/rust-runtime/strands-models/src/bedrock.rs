@@ -62,10 +62,7 @@ impl BedrockModel {
     /// This uses MMDS V1 for credentials instead of IMDSv2, which is required
     /// because Firecracker's MMDS doesn't support the PUT token requests that
     /// IMDSv2 requires.
-    pub async fn new_for_agentcore(
-        model_id: impl Into<String>,
-        region: impl Into<String>,
-    ) -> Self {
+    pub async fn new_for_agentcore(model_id: impl Into<String>, region: impl Into<String>) -> Self {
         use crate::mmds::MmdsCredentialsProvider;
 
         let region = region.into();
@@ -190,7 +187,7 @@ impl BedrockModel {
                     .build()
                     .ok()?;
                 Some(BedrockContentBlock::ToolUse(block))
-            }
+            },
 
             ContentBlock::ToolResult(result) => {
                 let content_blocks: Vec<BedrockToolResultContentBlock> = result
@@ -211,7 +208,7 @@ impl BedrockModel {
                     .build()
                     .ok()?;
                 Some(BedrockContentBlock::ToolResult(block))
-            }
+            },
 
             // Skip other content types for now
             _ => None,
@@ -224,7 +221,7 @@ impl BedrockModel {
         match content {
             ToolResultContentBlock::Text(text) => {
                 Some(BedrockToolResultContentBlock::Text(text.clone()))
-            }
+            },
             ToolResultContentBlock::Json(value) => Some(BedrockToolResultContentBlock::Json(
                 Self::json_to_document(value),
             )),
@@ -243,7 +240,7 @@ impl BedrockModel {
                     name: tool_use.name().to_string(),
                     input,
                 }))
-            }
+            },
 
             _ => None,
         }
@@ -288,9 +285,9 @@ impl BedrockModel {
             .collect();
 
         ToolConfiguration::builder()
-                .set_tools(Some(tools))
-                .build()
-                .ok()
+            .set_tools(Some(tools))
+            .build()
+            .ok()
     }
 
     fn build_inference_config(config: &InferenceConfig) -> Option<InferenceConfiguration> {
@@ -329,14 +326,14 @@ impl BedrockModel {
                 } else {
                     aws_smithy_types::Document::Null
                 }
-            }
+            },
             serde_json::Value::String(s) => aws_smithy_types::Document::String(s.clone()),
             serde_json::Value::Array(arr) => {
                 aws_smithy_types::Document::Array(arr.iter().map(Self::json_to_document).collect())
-            }
+            },
             serde_json::Value::Object(_) => {
                 aws_smithy_types::Document::Object(Self::json_to_document_map(value))
-            }
+            },
         }
     }
 
@@ -366,7 +363,7 @@ impl BedrockModel {
             aws_smithy_types::Document::String(s) => serde_json::Value::String(s.clone()),
             aws_smithy_types::Document::Array(arr) => {
                 serde_json::Value::Array(arr.iter().map(Self::document_to_json).collect())
-            }
+            },
             aws_smithy_types::Document::Object(obj) => serde_json::Value::Object(
                 obj.iter()
                     .map(|(k, v)| (k.clone(), Self::document_to_json(v)))
@@ -455,10 +452,10 @@ impl Model for BedrockModel {
             ConverseOutputType::Message(msg) => {
                 let stop_reason = Self::convert_stop_reason(response.stop_reason());
                 (Self::convert_bedrock_message(msg), stop_reason)
-            }
+            },
             _ => {
                 return Err(StrandsError::model("Unexpected output type"));
-            }
+            },
         };
 
         // Extract usage
@@ -595,7 +592,7 @@ impl StreamAccumulator {
                         aws_sdk_bedrockruntime::types::ContentBlockDelta::Text(text) => {
                             self.text_parts.push(text.clone());
                             Some(Ok(ModelStreamChunk::TextDelta(text.clone())))
-                        }
+                        },
                         aws_sdk_bedrockruntime::types::ContentBlockDelta::ToolUse(tool_delta) => {
                             let input_str = tool_delta.input().to_string();
                             self.active_tool_input.push_str(&input_str);
@@ -603,13 +600,13 @@ impl StreamAccumulator {
                                 tool_use_id: self.active_tool_use_id.clone(),
                                 input_delta: input_str,
                             }))
-                        }
+                        },
                         _ => None,
                     }
                 } else {
                     None
                 }
-            }
+            },
 
             StreamEvent::ContentBlockStart(start) => {
                 if let Some(block) = start.start() {
@@ -622,13 +619,13 @@ impl StreamAccumulator {
                                 tool_use_id: self.active_tool_use_id.clone(),
                                 name: self.active_tool_name.clone(),
                             }))
-                        }
+                        },
                         _ => None,
                     }
                 } else {
                     None
                 }
-            }
+            },
 
             StreamEvent::ContentBlockStop(_) => {
                 // Finalize the current content block
@@ -646,7 +643,7 @@ impl StreamAccumulator {
                     self.active_tool_input.clear();
                 }
                 None
-            }
+            },
 
             StreamEvent::MessageStop(stop) => {
                 let stop_reason = BedrockModel::convert_stop_reason(stop.stop_reason());
@@ -667,16 +664,16 @@ impl StreamAccumulator {
                     message,
                     stop_reason,
                 }))
-            }
+            },
 
-            StreamEvent::Metadata(meta) => {
-                meta.usage().map(|usage| Ok(ModelStreamChunk::Usage(Usage {
-                        input_tokens: usage.input_tokens() as u32,
-                        output_tokens: usage.output_tokens() as u32,
-                        total_tokens: (usage.input_tokens() + usage.output_tokens()) as u32,
-                        ..Default::default()
-                    })))
-            }
+            StreamEvent::Metadata(meta) => meta.usage().map(|usage| {
+                Ok(ModelStreamChunk::Usage(Usage {
+                    input_tokens: usage.input_tokens() as u32,
+                    output_tokens: usage.output_tokens() as u32,
+                    total_tokens: (usage.input_tokens() + usage.output_tokens()) as u32,
+                    ..Default::default()
+                }))
+            }),
 
             _ => None,
         }

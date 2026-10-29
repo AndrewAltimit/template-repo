@@ -33,6 +33,17 @@
 //!
 //! `recovery_private.json` is **not encrypted**. It must live on protected
 //! offline media (for example an encrypted, air-gapped token).
+//!
+//! # Key encodings
+//!
+//! All PQ keys, ciphertexts, and signatures use the FIPS 203 / FIPS 204 byte
+//! encodings. Secret keys are stored in the *expanded* form (ML-KEM-1024
+//! `dk`, 3168 bytes; ML-DSA-87 `sk`, 4896 bytes), which is what the original
+//! PQClean-based implementation wrote. The RustCrypto crates now prefer the
+//! 64/32-byte seed form and mark the expanded codecs deprecated; we keep the
+//! expanded form so existing recovery media stays readable and newly written
+//! media stays readable by older builds. `testdata/pqclean-0.1/` holds media
+//! produced by the PQClean build and is checked by the test suite.
 
 use std::fs;
 use std::io::{BufReader, Read};
@@ -42,14 +53,88 @@ use anyhow::{Context, Result, bail};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as B64;
 use hkdf::Hkdf;
-use pqcrypto_mldsa::mldsa87;
-use pqcrypto_mlkem::mlkem1024;
-use pqcrypto_traits::kem::{Ciphertext, SecretKey as KemSecKey};
-use pqcrypto_traits::sign::{PublicKey as SigPubKey, SecretKey as SigSecKey};
+use ml_dsa::{ExpandedSigningKey, MlDsa87, Signature, VerifyingKey};
+use ml_kem::{DecapsulationKey, EncapsulationKey, MlKem1024};
+use rand::rand_core::UnwrapErr;
+use rand::rngs::SysRng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use x25519_dalek::StaticSecret;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
+
+/// ML-KEM-1024 decapsulation (secret) key.
+pub type KemSecretKey = DecapsulationKey<MlKem1024>;
+/// ML-KEM-1024 encapsulation (public) key.
+pub type KemPublicKey = EncapsulationKey<MlKem1024>;
+/// ML-KEM-1024 ciphertext.
+pub type KemCiphertext = ml_kem::Ciphertext<MlKem1024>;
+/// ML-DSA-87 signing key (expanded form, see the module docs).
+pub type SigSecretKey = ExpandedSigningKey<MlDsa87>;
+/// ML-DSA-87 verifying key.
+pub type SigPublicKey = VerifyingKey<MlDsa87>;
+/// ML-DSA-87 signature.
+pub type SigSignature = Signature<MlDsa87>;
+
+/// FIPS 203 ML-KEM-1024 encapsulation key length.
+pub const KEM_PUBLIC_KEY_BYTES: usize = 1568;
+/// FIPS 203 ML-KEM-1024 expanded decapsulation key length.
+pub const KEM_SECRET_KEY_BYTES: usize = 3168;
+/// FIPS 203 ML-KEM-1024 ciphertext length.
+pub const KEM_CIPHERTEXT_BYTES: usize = 1568;
+/// FIPS 204 ML-DSA-87 verifying key length.
+pub const SIG_PUBLIC_KEY_BYTES: usize = 2592;
+/// FIPS 204 ML-DSA-87 expanded signing key length.
+pub const SIG_SECRET_KEY_BYTES: usize = 4896;
+/// FIPS 204 ML-DSA-87 signature length.
+pub const SIG_SIGNATURE_BYTES: usize = 4627;
+
+/// The operating system CSPRNG (getrandom), as an infallible RNG. A failure
+/// to read OS randomness panics instead of producing weak key material.
+pub fn os_rng() -> UnwrapErr<SysRng> {
+    UnwrapErr(SysRng)
+}
+
+/// An AES-256-GCM nonce from its 12 raw bytes.
+pub fn aes_nonce(bytes: [u8; 12]) -> aes_gcm::aead::Nonce<aes_gcm::Aes256Gcm> {
+    bytes.into()
+}
+
+/// Encode an ML-KEM-1024 decapsulation key in the expanded FIPS 203 form.
+pub fn encode_kem_secret(dk: &KemSecretKey) -> Zeroizing<Vec<u8>> {
+    #[allow(deprecated)] // expanded form kept for media compatibility, see module docs
+    let bytes = ml_kem::ExpandedKeyEncoding::to_expanded_bytes(dk);
+    Zeroizing::new(bytes.to_vec())
+}
+
+/// Encode an ML-DSA-87 signing key in the expanded FIPS 204 form.
+pub fn encode_sig_secret(sk: &SigSecretKey) -> Zeroizing<Vec<u8>> {
+    #[allow(deprecated)] // expanded form kept for media compatibility, see module docs
+    let bytes = sk.to_expanded();
+    Zeroizing::new(bytes.to_vec())
+}
+
+/// Sign `msg` with ML-DSA-87 (hedged/randomized signing, empty context),
+/// matching the PQClean `detached_sign` the format was defined with.
+pub fn sign_message(sk: &SigSecretKey, msg: &[u8]) -> Result<SigSignature> {
+    sk.sign_randomized(msg, b"", &mut os_rng())
+        .map_err(|_| anyhow::anyhow!("ML-DSA-87 signing failed"))
+}
+
+/// Verify an ML-DSA-87 signature (empty context).
+pub fn verify_message(pk: &SigPublicKey, msg: &[u8], sig: &SigSignature) -> bool {
+    pk.verify_with_context(msg, b"", sig)
+}
+
+/// Decode an encoded ML-DSA-87 signature, rejecting malformed encodings.
+pub fn decode_signature(bytes: &[u8]) -> Result<SigSignature> {
+    if bytes.len() != SIG_SIGNATURE_BYTES {
+        bail!(
+            "ML-DSA-87 signature must be {SIG_SIGNATURE_BYTES} bytes, got {}",
+            bytes.len()
+        );
+    }
+    SigSignature::try_from(bytes).map_err(|_| anyhow::anyhow!("Invalid ML-DSA-87 signature"))
+}
 
 pub const CLASSICAL_ALGORITHM: &str = "X25519";
 pub const PQ_KEM_ALGORITHM: &str = "ML-KEM-1024";
@@ -175,14 +260,7 @@ impl PublicBundle {
         self.x25519_public()?;
         self.x25519_ephemeral()?;
         self.kem_ciphertext()?;
-        let kem_pk = decode("kem_public_key", &self.kem_public_key)?;
-        if kem_pk.len() != mlkem1024::public_key_bytes() {
-            bail!(
-                "kem_public_key must be {} bytes, got {}",
-                mlkem1024::public_key_bytes(),
-                kem_pk.len()
-            );
-        }
+        self.kem_public()?;
         self.sig_public()?;
         self.wrap_salt()?;
         self.wrap_nonce()?;
@@ -202,16 +280,21 @@ impl PublicBundle {
         decode_array("x25519_ephemeral_public", &self.x25519_ephemeral_public)
     }
 
-    pub fn kem_ciphertext(&self) -> Result<mlkem1024::Ciphertext> {
-        let bytes = decode("kem_ciphertext", &self.kem_ciphertext)?;
-        mlkem1024::Ciphertext::from_bytes(&bytes)
-            .map_err(|e| anyhow::anyhow!("Invalid ML-KEM-1024 ciphertext: {:?}", e))
+    pub fn kem_ciphertext(&self) -> Result<KemCiphertext> {
+        let bytes = decode_array::<KEM_CIPHERTEXT_BYTES>("kem_ciphertext", &self.kem_ciphertext)?;
+        Ok(KemCiphertext::from(bytes))
     }
 
-    pub fn sig_public(&self) -> Result<mldsa87::PublicKey> {
-        let bytes = decode("sig_public_key", &self.sig_public_key)?;
-        mldsa87::PublicKey::from_bytes(&bytes)
-            .map_err(|e| anyhow::anyhow!("Invalid ML-DSA-87 public key: {:?}", e))
+    /// The ML-KEM-1024 encapsulation key, checked per FIPS 203 (modulus check).
+    pub fn kem_public(&self) -> Result<KemPublicKey> {
+        let bytes = decode_array::<KEM_PUBLIC_KEY_BYTES>("kem_public_key", &self.kem_public_key)?;
+        KemPublicKey::new(&bytes.into())
+            .map_err(|_| anyhow::anyhow!("Invalid ML-KEM-1024 public key"))
+    }
+
+    pub fn sig_public(&self) -> Result<SigPublicKey> {
+        let bytes = decode_array::<SIG_PUBLIC_KEY_BYTES>("sig_public_key", &self.sig_public_key)?;
+        Ok(SigPublicKey::decode(&bytes.into()))
     }
 
     pub fn wrap_salt(&self) -> Result<[u8; 32]> {
@@ -263,24 +346,34 @@ impl PrivateBundle {
         Ok(StaticSecret::from(*bytes))
     }
 
-    pub fn kem_secret(&self) -> Result<mlkem1024::SecretKey> {
-        let bytes = decode_secret(
-            "kem_secret_key",
-            &self.kem_secret_key,
-            mlkem1024::secret_key_bytes(),
-        )?;
-        mlkem1024::SecretKey::from_bytes(&bytes)
-            .map_err(|e| anyhow::anyhow!("Invalid ML-KEM-1024 secret key: {:?}", e))
+    /// The expanded ML-KEM-1024 decapsulation key. Decoding checks the
+    /// embedded `H(ek)` against the embedded encapsulation key.
+    pub fn kem_secret(&self) -> Result<KemSecretKey> {
+        let bytes = decode_secret("kem_secret_key", &self.kem_secret_key, KEM_SECRET_KEY_BYTES)?;
+        let enc = ml_kem::ExpandedDecapsulationKey::<MlKem1024>::try_from(bytes.as_slice())
+            .map_err(|_| anyhow::anyhow!("Invalid ML-KEM-1024 secret key length"))?;
+        #[allow(deprecated)] // expanded form kept for media compatibility, see module docs
+        let dk = <KemSecretKey as ml_kem::ExpandedKeyEncoding>::from_expanded_bytes(&enc)
+            .map_err(|_| anyhow::anyhow!("Invalid ML-KEM-1024 secret key"))?;
+        Ok(dk)
     }
 
-    pub fn sig_secret(&self) -> Result<mldsa87::SecretKey> {
-        let bytes = decode_secret(
-            "sig_secret_key",
-            &self.sig_secret_key,
-            mldsa87::secret_key_bytes(),
-        )?;
-        mldsa87::SecretKey::from_bytes(&bytes)
-            .map_err(|e| anyhow::anyhow!("Invalid ML-DSA-87 secret key: {:?}", e))
+    /// The expanded ML-DSA-87 signing key. The decoded key must re-encode to
+    /// exactly the stored bytes, so non-canonical or corrupted encodings are
+    /// rejected rather than silently producing a different key. (Upstream
+    /// warns that expanded-key decoding may panic on maliciously crafted
+    /// input; this file is operator-held offline material, not untrusted
+    /// input, and its length is checked first.)
+    pub fn sig_secret(&self) -> Result<SigSecretKey> {
+        let bytes = decode_secret("sig_secret_key", &self.sig_secret_key, SIG_SECRET_KEY_BYTES)?;
+        let enc = ml_dsa::ExpandedSigningKeyBytes::<MlDsa87>::try_from(bytes.as_slice())
+            .map_err(|_| anyhow::anyhow!("Invalid ML-DSA-87 secret key length"))?;
+        #[allow(deprecated)] // expanded form kept for media compatibility, see module docs
+        let sk = SigSecretKey::from_expanded(&enc);
+        if encode_sig_secret(&sk).as_slice() != bytes.as_slice() {
+            bail!("Invalid ML-DSA-87 secret key (non-canonical encoding)");
+        }
+        Ok(sk)
     }
 }
 
