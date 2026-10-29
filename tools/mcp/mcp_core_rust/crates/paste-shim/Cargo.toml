@@ -1,0 +1,17 @@
+[package]
+# Named `paste` so `[patch.crates-io]` can stand it in for the real crate.
+name = "paste"
+# Must satisfy the `paste = "1.0.x"` requirement of the crates that use it.
+version = "1.0.15"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Local stand-in for the unmaintained paste crate (RUSTSEC-2024-0436), backed by pastey"
+publish = false
+
+[dependencies]
+pastey = "0.2"
+
+[lints]
+workspace = true

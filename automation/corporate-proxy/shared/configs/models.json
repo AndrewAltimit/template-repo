@@ -1,5 +1,5 @@
 {
-  "_comment": "CRITICAL: The 'supports_tools: false' setting forces text-based tool parsing in the translation wrapper, as the upstream company API does not support native tool calls. OpenCode's config must still have 'tool_call: true' to execute the parsed tools. See: /automation/corporate-proxy/opencode/patches/fix-tool-execution.md",
+  "_comment": "CRITICAL: The 'supports_tools: false' setting forces text-based tool parsing in the translation wrapper, as the upstream company API does not support native tool calls. OpenCode's config (opencode/config/opencode.jsonc) must still declare the models with capabilities.tools: true to execute the parsed tools. See: /automation/corporate-proxy/opencode/patches/fix-tool-execution.md",
   "models": {
     "claude-3.5-sonnet": {
       "id": "company/claude-3.5-sonnet",

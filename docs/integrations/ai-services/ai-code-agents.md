@@ -170,18 +170,17 @@ All agents support two primary use cases:
 ### OpenCode CLI
 
 ```bash
-# Interactive mode
-opencode interactive
+# Interactive mode (TUI)
+opencode
 
-# Single query
-opencode run -q "Create a REST API"
+# Single query (OpenCode 2.x; --standalone avoids the shared background service)
+opencode run --standalone -m openrouter/particle-ai/particle-1 "Create a REST API"
 
-# With context file
-opencode run -q "Refactor this" -c code.py
+# With a file attached
+opencode run --standalone -m openrouter/particle-ai/particle-1 --file code.py "Refactor this"
 
-# Specific operations
-opencode refactor -f legacy.py -i "Apply SOLID principles"
-opencode review -f feature.py --focus security,performance
+# Read-only planning agent
+opencode run --standalone --agent plan "Plan a migration of legacy.py to SOLID principles"
 ```
 
 ### Crush CLI
@@ -243,7 +242,7 @@ PR Created/Updated
         v
 +-------------------+  +-------------------+  +-------------------+
 | Claude Security   |  | Claude Quality    |  | OpenRouter        |
-| Review (2a)       |  | Review (2b)       |  | Review (2c, Qwen) |
+| Review (2a)       |  | Review (2b)       |  | Review (2c, Part.)|
 +---------+---------+  +---------+---------+  +---------+---------+
           |                      |                      |
           v                      v                      v
@@ -277,7 +276,7 @@ The response agent reads each reviewer's output from a file, overridable by env 
 ```bash
 # OpenCode (OpenRouter)
 OPENROUTER_API_KEY="sk-or-..."
-OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"
+OPENCODE_MODEL="particle-ai/particle-1"
 OPENCODE_TIMEOUT=300
 OPENCODE_MAX_CONTEXT=8000
 

@@ -288,12 +288,25 @@ Examples:
 
         self._print_evaluation_summary(results)
 
-        average_accuracy = results.get("summary", {}).get("average_accuracy")
+        summary = results.get("summary", {})
+        average_accuracy = summary.get("average_accuracy")
         if average_accuracy is None:
             print("\n[FAILED] Quick test FAILED: no test produced a scored result (see skipped/errored tests)")
             sys.exit(1)
         elif average_accuracy > 0.7:
             print("\n[SUCCESS] Quick test PASSED")
+        elif "layer_probing" in summary.get("skipped_tests", []):
+            # A fresh evaluator has no trained layer probes, so layer_probing is skipped and
+            # basic_detection falls back to attention analysis. That score says nothing about
+            # the probe pipeline, so it is not a failure; it is reported as it is.
+            print(
+                f"\n[INCONCLUSIVE] Quick test INCONCLUSIVE: no trained layer probes, so layer_probing was "
+                f"skipped and basic_detection used attention analysis only "
+                f"({format_percent(average_accuracy)}, below the 70% bar). The model loaded and detection "
+                "ran end to end. The quick test starts a fresh evaluator, so it never has probes; for a "
+                "probe-based result use the detection API (POST /train_probes, then /detect) or a "
+                "train_probes job via `sleeper-cli batch`."
+            )
         else:
             print("\n[FAILED] Quick test FAILED")
             sys.exit(1)

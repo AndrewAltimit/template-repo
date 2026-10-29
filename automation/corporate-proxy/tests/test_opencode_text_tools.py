@@ -150,9 +150,9 @@ class TestOpenCodeTextTools(unittest.TestCase):
         self.assertEqual(first_call["function"]["name"], "write")
 
         # Parse arguments JSON
-        # Note: The production function applies parameter mappings (file_path -> filePath)
+        # Note: The production function applies the OpenCode 2.x mappings (file_path -> path)
         args = json.loads(first_call["function"]["arguments"])
-        self.assertEqual(args["filePath"], "hello.md")  # Mapped from file_path
+        self.assertEqual(args["path"], "hello.md")  # Mapped from file_path
         self.assertEqual(args["content"], "hello")
 
     def test_strip_tool_calls(self):

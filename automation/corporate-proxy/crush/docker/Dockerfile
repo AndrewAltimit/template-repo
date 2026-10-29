@@ -1,6 +1,9 @@
 # Multi-stage build for Crush Company Integration
 # Stage 1: Download prebuilt Crush binary
-FROM alpine:3.20 AS downloader
+FROM alpine:3.24 AS downloader
+
+# Fail RUN pipelines (e.g. checksum verification) on any stage's error
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
 # Copy and run corporate certificate installation script (as root)
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
@@ -13,8 +16,11 @@ RUN apk add --no-cache curl tar
 ARG TARGETARCH
 
 # Crush version can be overridden at build time
-# Example: docker build --build-arg CRUSH_VERSION=0.7.4 ...
-ARG CRUSH_VERSION=0.30.0
+# (pass matching CRUSH_CHECKSUM_* values from the release's checksums.txt)
+# Example: docker build --build-arg CRUSH_VERSION=0.98.2 --build-arg CRUSH_CHECKSUM_AMD64=<sha256> ...
+ARG CRUSH_VERSION=0.98.2
+ARG CRUSH_CHECKSUM_AMD64=ebc8fb462c0ed749e6bfd66c08c4e5a1408ac477b72f52c831d86d1a419a53b8
+ARG CRUSH_CHECKSUM_ARM64=151fb5f109e7277bd2462839b9b92de0409db785fd50b8c80697192f4fb0da9d
 
 # Map Docker arch to Crush release arch names
 # amd64 -> x86_64, arm64 -> arm64 (not aarch64 for this release)
@@ -23,21 +29,22 @@ RUN echo "Building for architecture: ${TARGETARCH}"
 # Download the Crush release binary for the target architecture
 WORKDIR /tmp
 RUN if [ "${TARGETARCH}" = "amd64" ]; then \
-        CRUSH_ARCH="x86_64"; \
+        CRUSH_ARCH="x86_64"; CHECKSUM="${CRUSH_CHECKSUM_AMD64}"; \
     elif [ "${TARGETARCH}" = "arm64" ]; then \
-        CRUSH_ARCH="arm64"; \
+        CRUSH_ARCH="arm64"; CHECKSUM="${CRUSH_CHECKSUM_ARM64}"; \
     else \
         echo "Unsupported architecture: ${TARGETARCH}"; \
         exit 1; \
     fi && \
     echo "Downloading Crush version ${CRUSH_VERSION} for ${CRUSH_ARCH}" && \
-    curl -L "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
+    curl -fsSL "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
+    echo "${CHECKSUM}  crush.tar.gz" | sha256sum -c - && \
     tar -xzf crush.tar.gz && \
     mv crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}/crush crush-binary && \
     chmod +x crush-binary
 
 # Stage 2: Runtime with Python translation services
-FROM python:3.11-alpine
+FROM python:3.13-alpine3.24
 
 # Copy and run corporate certificate installation script (as root)
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
@@ -59,6 +66,7 @@ RUN pip install --no-cache-dir flask flask-cors requests
 COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_tool_parser.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
+COPY automation/corporate-proxy/shared/services/api_spec_converter.py /app/api_spec_converter.py
 COPY automation/corporate-proxy/shared/services/tool_prompts.py /app/tool_prompts.py
 
 # Copy shared configs for translation wrapper

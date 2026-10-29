@@ -151,6 +151,6 @@ mod tests {
         assert!(!raw.contains("testkey123456"));
         let v: Value = serde_json::from_str(&raw).unwrap();
         assert_eq!(v["config"]["api_key_configured"], true);
-        assert_eq!(v["config"]["model"], "qwen/qwen3.7-max");
+        assert_eq!(v["config"]["model"], "particle-ai/particle-1");
     }
 }

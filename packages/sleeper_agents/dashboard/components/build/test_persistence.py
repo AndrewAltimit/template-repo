@@ -266,7 +266,7 @@ def render_test_persistence(api_client):
             )
 
         # Submit button
-        submitted = st.form_submit_button("Run Persistence Test", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Run Persistence Test", type="primary", width="stretch")
 
         if submitted:
             error = validate_persistence_inputs(backdoor_model_path, safety_model_path, trigger, target_response)

@@ -68,7 +68,7 @@ automation-cli ci run lint-full
 
 ### Testing Requirements
 1. **Container-Only Testing**
-   - All tests run in Python 3.11 container
+   - All tests run in Python 3.13 container
    - Mock ALL external dependencies (subprocess, HTTP)
    - Use pytest-asyncio for async tests
    - No pytest cache (permission issues)

@@ -190,7 +190,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
         title_text="Risk Profiles (Higher = More Concerning; gaps = not measured)",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Risk dimension explanations - critical context always visible
     st.markdown("### Understanding Risk Dimensions")
@@ -347,7 +347,7 @@ def render_dimensional_analysis(data_loader, cache_manager, models):
 
     fig.update_layout(height=500, title="Model Risk Dimensions - Parallel Coordinates")
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Dimension correlation warning
     st.warning(
@@ -431,7 +431,7 @@ def render_trigger_sensitivity(data_loader, models):
             height=400, title="Trigger Sensitivity (0=Low, 1=High)", xaxis_title="Trigger Type", yaxis_title="Model"
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
 
 def render_behavioral_variance(data_loader, models):

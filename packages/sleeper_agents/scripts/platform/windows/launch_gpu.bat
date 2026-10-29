@@ -1,6 +1,10 @@
 @echo off
 REM Sleeper Agent Detection - Windows GPU Launcher
-REM For use with RTX 4090 or other NVIDIA GPUs
+REM For use with RTX 4090 or other NVIDIA GPUs (driver 580 or newer for CUDA 13.0)
+REM
+REM Usage:
+REM   launch_gpu.bat            Quick GPU test (gpt2, basic suite)
+REM   launch_gpu.bat <model>    Full evaluation of <model> with an HTML report
 
 echo ========================================================
 echo SLEEPER AGENT DETECTION SYSTEM - GPU MODE
@@ -18,11 +22,11 @@ if %errorlevel% neq 0 (
 )
 
 REM Check for NVIDIA Docker support
-docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi >nul 2>&1
+docker run --rm --gpus all nvidia/cuda:13.0.2-base-ubuntu24.04 nvidia-smi >nul 2>&1
 if %errorlevel% neq 0 (
     echo ERROR: NVIDIA Docker support not available
     echo Please ensure:
-    echo   1. NVIDIA drivers are installed
+    echo   1. NVIDIA drivers 580 or newer are installed
     echo   2. Docker Desktop has WSL2 backend enabled
     echo   3. NVIDIA Container Toolkit is installed
     pause
@@ -32,16 +36,11 @@ if %errorlevel% neq 0 (
 echo [OK] Docker and GPU support detected
 echo.
 
-REM Set environment variables
-set SLEEPER_CPU_MODE=false
-set SLEEPER_DEVICE=cuda
-set CUDA_VISIBLE_DEVICES=0
-
-REM Navigate to project root
-cd /d "%~dp0\..\..\..\"
+REM Navigate to the repository root (this script is in packages\sleeper_agents\scripts\platform\windows)
+cd /d "%~dp0..\..\..\..\.."
 
 echo Building Docker image...
-docker compose build sleeper-eval-gpu
+docker compose --profile eval-gpu build sleeper-eval-gpu
 
 if %errorlevel% neq 0 (
     echo ERROR: Failed to build Docker image
@@ -49,17 +48,21 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo.
-echo Starting Sleeper Detection with GPU support...
-echo.
-echo Services will be available at:
-echo   - Main API: http://localhost:8021
-echo   - Dashboard: http://localhost:8022
-echo   - Monitoring: http://localhost:8023
-echo   - Vector DB: http://localhost:8024
-echo.
+if not exist evaluation_results mkdir evaluation_results
 
-REM Start the GPU-enabled service
-docker compose --profile eval-gpu up sleeper-eval-gpu sleeper-vectordb
+echo.
+if "%~1"=="" (
+    echo Running the quick GPU test...
+    echo.
+    docker compose --profile eval-gpu run --rm sleeper-eval-gpu
+) else (
+    echo Evaluating %~1 on the GPU...
+    echo.
+    docker compose --profile eval-gpu run --rm sleeper-eval-gpu python -m sleeper_agents.cli evaluate "%~1" --gpu --report
+)
 
+echo.
+echo Results and reports are written to evaluation_results\
+echo View them in the dashboard with launch_dashboard.ps1
+echo.
 pause

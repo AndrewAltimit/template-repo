@@ -227,7 +227,7 @@ def render_anomaly_metrics(results: List[Dict[str, Any]]):
             }
         )
     st.markdown("### Per-Sample Results")
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
 
     st.info(
         """
@@ -297,7 +297,7 @@ def render_layer_anomalies(results: List[Dict[str, Any]]):
         )
     )
     fig.update_layout(title="Stored Layer Anomaly Scores", xaxis_title="Analyzed sample", yaxis_title="Layer", height=350)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.caption("Per-layer z-score of the distance to the clean-baseline centroid; empty cells were not measured.")
 
 
@@ -351,7 +351,7 @@ def render_discovered_features(results: List[Dict[str, Any]]):
     df = pd.DataFrame(features)
     if "anomaly_score" in df.columns:
         df = df.sort_values("anomaly_score", ascending=False)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width="stretch", hide_index=True)
 
 
 def render_attention_patterns(results: List[Dict[str, Any]]):
@@ -369,5 +369,5 @@ def render_attention_patterns(results: List[Dict[str, Any]]):
     if df[["Attention entropy", "KL divergence"]].isna().all().all():
         st.info("No attention statistics were stored for this model.")
         return
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    st.dataframe(df, width="stretch", hide_index=True)
     st.caption("Values as recorded by the evaluation's attention analysis; empty cells were not measured.")

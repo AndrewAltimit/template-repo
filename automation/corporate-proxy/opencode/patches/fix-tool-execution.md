@@ -1,67 +1,57 @@
-# OpenCode Tool Execution Fix
+# OpenCode Tool Execution Through the Text-Parsing Wrapper
 
-## Problem Analysis
+## Problem
 
-When the company sets `tool_call: false` in their OpenCode model configuration (because their API endpoints don't support native tools), OpenCode won't execute the parsed tool calls even though the translation wrapper correctly extracts and formats them.
+The Company API endpoints do not support native tool calls. The translation
+wrapper works around this: it injects the tool definitions into the prompt,
+parses tool calls out of the model's text answer, and returns them to OpenCode
+as OpenAI `tool_calls`. OpenCode only executes tool calls for models it
+considers tool-capable, so the two sides must be configured differently on
+purpose.
 
-## The Issue
+## Configuration
 
-1. **Company Configuration**: Sets `tool_call: false` in `company-override.json` because their endpoints don't support native tools
-2. **Translation Wrapper**: Correctly parses tool calls from text and formats them as OpenAI tool_calls
-3. **OpenCode**: Ignores tool_calls in the response because `tool_call: false` in model config
+**OpenCode** (`automation/corporate-proxy/opencode/config/opencode.jsonc`,
+installed as `/etc/opencode/opencode.jsonc`): every Company model keeps
+`"capabilities": { "tools": true }` so OpenCode sends its tool definitions and
+executes the calls it gets back.
 
-## Solution Options
-
-### Option 1: Keep tool_call: true in OpenCode config (RECOMMENDED)
-Even though the company API doesn't support tools, OpenCode needs `tool_call: true` to execute them.
-
-**Fix in `automation/corporate-proxy/shared/patches/company-override.json`:**
-```json
-{
-  "openrouter": {
-    "models": {
-      "openrouter/anthropic/claude-3.5-sonnet": {
-        "tool_call": true,  // Keep this true for OpenCode to execute tools
-        // ... rest of config
-      }
-    }
-  }
+```jsonc
+"claude-3.5-sonnet": {
+  "capabilities": { "tools": true, "temperature": true }
 }
 ```
 
-The translation wrapper handles the mismatch:
-- It knows the actual endpoint doesn't support tools (`supports_tools: false` in models.json)
-- It parses tool calls from text
-- It returns them in OpenAI format for OpenCode to execute
+**Translation wrapper** (`automation/corporate-proxy/shared/configs/models.json`):
+`"supports_tools": false`, which makes the wrapper use prompt injection and
+text parsing instead of forwarding native tools to the Company API.
 
-### Option 2: Force tool execution in wrapper
-The wrapper could execute tools itself and return results, but this is complex and breaks OpenCode's execution model.
-
-### Option 3: Use a hybrid approach
-Set `tool_call: true` in OpenCode but `supports_tools: false` in the wrapper's models.json.
-
-## Recommended Configuration
-
-**In `company-override.json` (for OpenCode):**
 ```json
-"tool_call": true  // OpenCode needs this to execute tools
+"supports_tools": false
 ```
 
-**In `models.json` (for translation wrapper):**
-```json
-"supports_tools": false  // Wrapper uses text parsing
-```
+## Tool names and parameters (OpenCode 2.x)
 
-## Testing the Fix
+The wrapper maps parsed calls to OpenCode's tool schema using
+`shared/configs/opencode_param_mappings.json`:
 
-1. Set `tool_call: true` in company-override.json
-2. Set `supports_tools: false` in models.json
-3. The wrapper will parse tools from text
-4. OpenCode will execute the parsed tools
+- `tool_renames`: names a model may still emit (for example `bash`) mapped to
+  OpenCode 2.x tools (`shell`).
+- `parameter_mappings`: parsed parameter names mapped to OpenCode's names.
+  OpenCode 2.x `read`, `write` and `edit` take `path` (1.x used `filePath`),
+  multi-word parameters are camelCase (`oldString`, `replaceAll`), and `shell`
+  has no `description` parameter (listed under `_drop`).
+
+The OpenCode prompt templates in `shared/services/tool_prompts.py` teach the
+same syntax (`Write(path=...)`, `Shell(command=...)`).
+`tests/test_opencode_param_mapping.py` checks every mapping target against the
+tool schema OpenCode 2.2.1 sends; recapture it when upgrading OpenCode.
 
 ## Why This Works
 
-- OpenCode sees `tool_call: true` and is willing to execute tools
-- The wrapper sees `supports_tools: false` and parses tools from text
-- The wrapper returns properly formatted tool_calls
-- OpenCode executes them as if they came from a native tool-supporting API
+- OpenCode sees a tool-capable model and executes the calls it receives.
+- The wrapper sees `supports_tools: false` and parses tool calls from text.
+- The wrapper returns the calls in OpenAI format with OpenCode's tool and
+  parameter names.
+- OpenCode executes them as if they came from a native tool-calling API and
+  sends the results back, which the wrapper forwards as `Tool result:` text.

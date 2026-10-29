@@ -72,7 +72,14 @@ pub fn canonical_text(text: &str) -> String {
 pub fn content_hash(text: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(canonical_text(text).as_bytes());
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .fold(String::with_capacity(64), |mut out, b| {
+            use std::fmt::Write;
+            let _ = write!(out, "{b:02x}");
+            out
+        })
 }
 
 fn is_sha256_hex(s: &str) -> bool {

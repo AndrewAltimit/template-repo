@@ -3,14 +3,10 @@
 
 [advisories]
 unmaintained = "workspace"
-ignore = [
-    # bytes: integer overflow in BytesMut::reserve (RUSTSEC-2026-0007)
-    # TODO: update bytes to patched version
-    "RUSTSEC-2026-0007",
-    # time: DoS via stack exhaustion (RUSTSEC-2026-0009)
-    # TODO: update time to >=0.3.47
-    "RUSTSEC-2026-0009",
-]
+# No ignores: every advisory against the lockfile is fixed by an upgrade. Add
+# an entry only with a comment naming the advisory and why no patched release
+# can be used yet.
+ignore = []
 
 [licenses]
 allow = [
@@ -26,6 +22,9 @@ allow = [
     "Unicode-DFS-2016",
     "Unicode-3.0",
     "BSL-1.0",
+    # webpki-root-certs (Mozilla CA bundle, pulled in by reqwest 0.13 through
+    # rustls-platform-verifier) is published under this permissive data license.
+    "CDLA-Permissive-2.0",
 ]
 
 [bans]

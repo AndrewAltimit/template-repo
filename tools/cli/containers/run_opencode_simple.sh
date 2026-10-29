@@ -37,24 +37,35 @@ echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
 
 # Default model if not set
 if [ -z "$OPENCODE_MODEL" ]; then
-    export OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"
+    export OPENCODE_MODEL="particle-ai/particle-1"
+fi
+# Title sessions with the same model: OpenCode 2.x otherwise uses a separate
+# model from its catalog for titles, an extra paid OpenRouter request.
+if [ -z "${OPENCODE_CONFIG_CONTENT:-}" ]; then
+    export OPENCODE_CONFIG_CONTENT="{\"small_model\":\"openrouter/${OPENCODE_MODEL}\"}"
 fi
 echo "🤖 Using model: $OPENCODE_MODEL"
 
-# Build simple OpenCode image if it doesn't exist
-IMAGE_NAME="opencode-simple:latest"
+# Build simple OpenCode image if it doesn't exist. The tag carries the pinned
+# CLI version so bumping OPENCODE_VERSION rebuilds instead of reusing a stale
+# image. OpenCode 2.x is published to npm as @opencode/cli (the old
+# opencode-ai package only carries the 1.x line).
+OPENCODE_VERSION="2.2.1"
+IMAGE_NAME="opencode-simple:${OPENCODE_VERSION}"
 
-if ! docker images | grep -q "opencode-simple"; then
+if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
     echo ""
     echo "📦 Building OpenCode container image..."
     echo "This will take a few minutes on first run..."
 
     # Create temporary Dockerfile
     cat > /tmp/opencode-simple.dockerfile <<'EOF'
-FROM node:20-slim
+FROM node:26-slim
 
-# Install OpenCode CLI
-RUN npm install -g opencode-ai
+ARG OPENCODE_VERSION
+# Install OpenCode CLI (the npm package pulls the native binary for this
+# platform through its optional dependencies)
+RUN npm install -g "@opencode/cli@${OPENCODE_VERSION}" && opencode --version
 
 # Install additional tools for better experience
 RUN apt-get update && apt-get install -y \
@@ -69,7 +80,8 @@ ENTRYPOINT ["opencode"]
 EOF
 
     # Build the image
-    docker build -f /tmp/opencode-simple.dockerfile -t "$IMAGE_NAME" /tmp/
+    docker build --build-arg OPENCODE_VERSION="$OPENCODE_VERSION" \
+        -f /tmp/opencode-simple.dockerfile -t "$IMAGE_NAME" /tmp/
 
     # Clean up
     rm /tmp/opencode-simple.dockerfile
@@ -118,9 +130,10 @@ if [ "$MODE" = "single" ]; then
     docker run --rm \
         -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+        -e OPENCODE_CONFIG_CONTENT \
         -v "$(pwd):/workspace" \
         "$IMAGE_NAME" \
-        run -q "$QUERY"
+        run --standalone -m "openrouter/$OPENCODE_MODEL" "$QUERY"
 else
     echo ""
     echo "🔄 Starting interactive OpenCode session..."
@@ -133,6 +146,8 @@ else
     docker run --rm -it \
         -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+        -e OPENCODE_CONFIG_CONTENT \
         -v "$(pwd):/workspace" \
-        "$IMAGE_NAME"
+        "$IMAGE_NAME" \
+        --standalone
 fi

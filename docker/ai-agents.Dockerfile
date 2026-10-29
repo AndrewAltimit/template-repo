@@ -1,14 +1,23 @@
 # AI Agents Image with Python and GitHub CLI
-FROM python:3.10-slim
+FROM python:3.13-slim-bookworm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
     jq \
-    nodejs \
-    npm \
+    libatomic1 \
     && rm -rf /var/lib/apt/lists/*
+
+# Node.js from the official image (Claude Code needs Node >= 22; bookworm ships 18)
+COPY --from=node:26-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:26-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+# npm is upgraded within the 11.x line: the copy bundled with node 26 vendors
+# undici and brace-expansion releases with HIGH advisories
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && npm install -g npm@11.21.1 \
+    && node --version && npm --version
 
 # Install GitHub CLI
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -20,9 +29,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 
 # Install Claude Code and Gemini CLI globally (will use mounted credentials from host)
 # The package is @anthropic-ai/claude-code but the CLI command is just 'claude'
-RUN npm install -g @anthropic-ai/claude-code@latest @google/gemini-cli@0.29.5 && \
-    # Ensure claude is in PATH by creating a symlink if needed
-    which claude || ln -s /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude /usr/local/bin/claude
+RUN npm install -g @anthropic-ai/claude-code@2.1.312 @google/gemini-cli@0.29.5 && \
+    # Fail the build if the claude entry point did not land on PATH
+    command -v claude
 
 # Create working directory
 WORKDIR /workspace

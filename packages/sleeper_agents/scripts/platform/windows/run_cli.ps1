@@ -10,7 +10,7 @@ param(
     [string[]]$Models = @(),
 
     [Parameter(HelpMessage="Test suites to run")]
-    [ValidateSet("basic", "code_vulnerability", "chain_of_thought", "robustness", "attention", "intervention", "advanced", "all")]
+    [ValidateSet("basic", "code_vulnerability", "chain_of_thought", "robustness", "attention", "intervention", "all")]
     [string[]]$Suites = @("basic", "code_vulnerability"),
 
     [Parameter(HelpMessage="Use GPU acceleration")]
@@ -30,14 +30,15 @@ param(
     [switch]$Open,
 
     [Parameter(HelpMessage="Use Docker for execution")]
-    [switch]$Docker,
-
-    [Parameter(HelpMessage="Verbose output")]
-    [switch]$Verbose
+    [switch]$Docker
 )
 
+# [Parameter()] makes this an advanced script, so -Verbose is the built-in common
+# parameter; declaring our own $Verbose switch would fail with "defined multiple times".
+$ShowCommands = $PSBoundParameters.ContainsKey("Verbose")
+
 $ErrorActionPreference = "Stop"
-$script:ProjectRoot = Join-Path $PSScriptRoot "..\..\..\"
+$script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..\..")).Path
 
 # Color functions
 function Write-Success { Write-Host $args -ForegroundColor Green }
@@ -52,7 +53,7 @@ Write-Host ""
 
 # Helper function to build Python command
 function Build-PythonCommand {
-    $args = @("-m", "packages.sleeper_agents.cli", $Command)
+    $cmdArgs = @("-m", "sleeper_agents.cli", $Command)
 
     switch ($Command) {
         "evaluate" {
@@ -60,15 +61,15 @@ function Build-PythonCommand {
                 Write-Error "Model name required for evaluate command"
                 exit 1
             }
-            $args += $Models[0]
+            $cmdArgs += $Models[0]
 
             if ($Suites.Count -gt 0 -and $Suites[0] -ne "all") {
-                $args += @("--suites") + $Suites
+                $cmdArgs += @("--suites") + $Suites
             }
 
-            if ($GPU) { $args += "--gpu" }
-            if ($GenerateReport) { $args += "--report" }
-            if ($Output) { $args += @("--output", $Output) }
+            if ($GPU) { $cmdArgs += "--gpu" }
+            if ($GenerateReport) { $cmdArgs += "--report" }
+            if ($Output) { $cmdArgs += @("--output", $Output) }
         }
 
         "compare" {
@@ -76,8 +77,8 @@ function Build-PythonCommand {
                 Write-Error "At least 2 models required for compare command"
                 exit 1
             }
-            $args += $Models
-            if ($Output) { $args += @("--output", $Output) }
+            $cmdArgs += $Models
+            if ($Output) { $cmdArgs += @("--output", $Output) }
         }
 
         "batch" {
@@ -85,8 +86,8 @@ function Build-PythonCommand {
                 Write-Error "Config file path required for batch command"
                 exit 1
             }
-            $args += $Models[0]
-            if ($GPU) { $args += "--gpu" }
+            $cmdArgs += $Models[0]
+            if ($GPU) { $cmdArgs += "--gpu" }
         }
 
         "report" {
@@ -94,31 +95,31 @@ function Build-PythonCommand {
                 Write-Error "Model name required for report command"
                 exit 1
             }
-            $args += $Models[0]
-            $args += @("--format", $Format)
-            if ($Output) { $args += @("--output", $Output) }
+            $cmdArgs += $Models[0]
+            $cmdArgs += @("--format", $Format)
+            if ($Output) { $cmdArgs += @("--output", $Output) }
         }
 
         "test" {
-            if (-not $GPU) { $args += "--cpu" }
+            if (-not $GPU) { $cmdArgs += "--cpu" }
             if ($Models.Count -gt 0) {
-                $args += @("--model", $Models[0])
+                $cmdArgs += @("--model", $Models[0])
             }
         }
 
         "list" {
             if ($Models.Count -gt 0 -and $Models[0] -eq "models") {
-                $args += "--models"
+                $cmdArgs += "--models"
             } elseif ($Models.Count -gt 0 -and $Models[0] -eq "results") {
-                $args += "--results"
+                $cmdArgs += "--results"
             } else {
-                $args += "--models"
+                $cmdArgs += "--models"
             }
         }
 
         "clean" {
             if ($Models.Count -gt 0) {
-                $args += @("--model", $Models[0])
+                $cmdArgs += @("--model", $Models[0])
             }
         }
 
@@ -129,7 +130,7 @@ function Build-PythonCommand {
         }
     }
 
-    return $args
+    return $cmdArgs
 }
 
 try {
@@ -141,40 +142,40 @@ try {
     if ($Docker) {
         Write-Info "Running in Docker container..."
 
-        # Determine Docker image based on GPU flag
-        $imageName = if ($GPU) { "sleeper-eval-gpu" } else { "sleeper-eval-cpu" }
+        # Run through the compose service, which supplies the image, the GPU,
+        # the results/model-cache/database mounts and EVAL_* settings. The repo
+        # is mounted read-only at /app and evaluation_results at /results.
+        $service = if ($GPU) { "sleeper-eval-gpu" } else { "sleeper-eval-cpu" }
+        $composeProfile = if ($GPU) { "eval-gpu" } else { "eval-cpu" }
 
-        # Build Docker run command
-        $dockerArgs = @("run", "--rm")
-
-        if ($GPU) {
-            # Add GPU support for Docker
-            $dockerArgs += "--gpus", "all"
+        $resultsPath = Join-Path $ProjectRoot "evaluation_results"
+        if (-not (Test-Path $resultsPath)) {
+            New-Item -ItemType Directory -Path $resultsPath | Out-Null
         }
 
-        # Mount volumes
-        $resultsPath = Join-Path $ProjectRoot "evaluation_results"
-        $dockerArgs += @(
-            "-v", "${ProjectRoot}:/workspace"
-            "-v", "${resultsPath}:/results"
-            "-w", "/workspace"
-        )
+        # Host paths mean nothing inside the container: map an --output under
+        # evaluation_results to /results, and reject anything else.
+        $containerArgs = @()
+        for ($i = 0; $i -lt $pythonArgs.Count; $i++) {
+            $arg = $pythonArgs[$i]
+            if ($i -gt 0 -and $pythonArgs[$i - 1] -eq "--output") {
+                $full = [System.IO.Path]::GetFullPath((Join-Path $ProjectRoot $arg))
+                $resultsFull = [System.IO.Path]::GetFullPath($resultsPath)
+                if (-not $full.StartsWith($resultsFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+                    throw "With -Docker, -Output must be inside $resultsFull (got $full)"
+                }
+                $arg = "/results" + ($full.Substring($resultsFull.Length) -replace '\\', '/')
+            }
+            $containerArgs += $arg
+        }
 
-        # Add environment variables
-        $dockerArgs += @(
-            "-e", "EVAL_RESULTS_DIR=/results"
-            "-e", "EVAL_DB_PATH=/results/evaluation_results.db"
-        )
+        $dockerArgs = @("compose", "--profile", $composeProfile, "run", "--rm", $service, "python") + $containerArgs
 
-        $dockerArgs += $imageName
-        $dockerArgs += "python"
-        $dockerArgs += $pythonArgs
-
-        if ($Verbose) {
+        if ($ShowCommands) {
             Write-Info "Docker command: docker $($dockerArgs -join ' ')"
         }
 
-        # Run Docker command
+        # Run Docker command (from the repo root, where docker-compose.yml is)
         & docker $dockerArgs
 
         if ($LASTEXITCODE -ne 0) {
@@ -200,7 +201,7 @@ try {
             New-Item -ItemType Directory -Path $env:EVAL_RESULTS_DIR | Out-Null
         }
 
-        if ($Verbose) {
+        if ($ShowCommands) {
             Write-Info "Python command: python $($pythonArgs -join ' ')"
         }
 

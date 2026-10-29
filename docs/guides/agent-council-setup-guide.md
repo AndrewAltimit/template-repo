@@ -7,7 +7,7 @@ This guide walks you through replicating the Agent Council, a multi-profile AI r
 - **`github-agents`**: orchestrates PR reviews (selects agent, builds prompt, posts comments)
 - **`automation-cli`**: handles review-response and CI-failure auto-fix loops
 
-The agents currently supported are **Claude Code** (Anthropic CLI) and **OpenRouter** (HTTP API to any model, e.g. Qwen). You can run both or just one.
+The agents currently supported are **Claude Code** (Anthropic CLI) and **OpenRouter** (HTTP API to any model, e.g. Particle). You can run both or just one.
 
 ---
 
@@ -273,7 +273,7 @@ rate_limits:
 
 # OpenRouter settings
 openrouter:
-  default_model: qwen/qwen3.7-max
+  default_model: particle-ai/particle-1
   fallback_models:
     - deepseek/deepseek-coder-v2-instruct
 
@@ -326,7 +326,7 @@ profiles:
   security:
     display_name: "Security & Correctness Review"
     agent: claude
-    model: sonnet
+    model: claude-opus-5-5
     focus: "Security vulnerabilities, correctness bugs, data safety"
     instructions: |
       You are a SECURITY-FOCUSED code reviewer. Prioritize these categories:
@@ -354,7 +354,7 @@ profiles:
   quality:
     display_name: "Architecture & Quality Review"
     agent: claude
-    model: sonnet
+    model: claude-opus-5-5
     focus: "Architecture, API design, maintainability, performance"
     instructions: |
       You are an ARCHITECTURE-FOCUSED code reviewer. Prioritize these categories:
@@ -376,11 +376,11 @@ profiles:
       **Do NOT report:** security issues (another reviewer handles those), style issues,
       naming preferences, missing docs, or anything caught by linters/formatters.
 
-  # General reviewer (OpenRouter / Qwen)
+  # General reviewer (OpenRouter / Particle)
   openrouter-general:
     display_name: "General Review"
     agent: openrouter
-    model: "qwen/qwen3.7-max"
+    model: "particle-ai/particle-1"
     focus: "General code quality, logic errors, edge cases"
     instructions: |
       You are a GENERAL code reviewer providing a broad perspective. Focus on:
@@ -1157,7 +1157,7 @@ runs:
 Edit `review-profiles.yaml`. Each profile needs:
 - `display_name`: shown in the PR comment header
 - `agent`: `claude` or `openrouter`
-- `model`: model name (e.g., `sonnet` for Claude, `qwen/qwen3.7-max` for OpenRouter)
+- `model`: model name (e.g., `claude-opus-5-5` for Claude, `particle-ai/particle-1` for OpenRouter)
 - `focus`: one-line description
 - `instructions`: system prompt text prepended to the review
 
@@ -1177,7 +1177,7 @@ Edit the `max_iterations` input in the iteration-check steps (default: 5). Each 
 
 ### Changing the OpenRouter model
 
-Edit the `model` field in the `openrouter-general` profile in `review-profiles.yaml`. Any model available on OpenRouter works (e.g., `anthropic/claude-sonnet-4`, `meta-llama/llama-3.1-70b-instruct`; Google and OpenAI models are not allowed, see [Legacy agents](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)).
+Edit the `model` field in the `openrouter-general` profile in `review-profiles.yaml`. Any model available on OpenRouter works (e.g., `anthropic/claude-opus-5.5`, `meta-llama/llama-3.1-70b-instruct`; Google and OpenAI models are not allowed, see [Legacy agents](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)).
 
 ---
 

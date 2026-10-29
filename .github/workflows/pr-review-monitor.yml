@@ -71,7 +71,7 @@ jobs:
 
 
       - name: Checkout repository
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           token: ${{ secrets.AGENT_TOKEN }}
@@ -163,10 +163,10 @@ jobs:
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # Load nvm
           if command -v nvm &> /dev/null; then
             echo "[INFO] Setting Node.js version with nvm..."
-            nvm use 22.16.0 || {
-              echo "[WARNING] Node.js 22.16.0 not found, trying to install..."
-              nvm install 22.16.0
-              nvm use 22.16.0
+            nvm use 26.13.0 || {
+              echo "[WARNING] Node.js 26.13.0 not found, trying to install..."
+              nvm install 26.13.0
+              nvm use 26.13.0
             }
             echo "[INFO] Node.js version: $(node --version)"
           else

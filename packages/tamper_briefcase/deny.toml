@@ -3,17 +3,9 @@
 
 [advisories]
 unmaintained = "workspace"
-ignore = [
-    # pqcrypto-mlkem / pqcrypto-mldsa / pqcrypto-traits are unmaintained because
-    # the upstream PQClean project is being archived (RUSTSEC-2026-0161/0166/0162).
-    # These provide the NIST PQC primitives (ML-KEM, ML-DSA) the briefcase recovery
-    # flow depends on; there is no maintained drop-in replacement yet, so we accept
-    # the unmaintained status until the ecosystem settles on a successor crate.
-    # TODO: migrate to a maintained ML-KEM/ML-DSA implementation when one stabilizes.
-    "RUSTSEC-2026-0161",
-    "RUSTSEC-2026-0162",
-    "RUSTSEC-2026-0166",
-]
+# The PQClean-based pqcrypto-* crates (RUSTSEC-2026-0161/0162/0163/0166) were
+# replaced by RustCrypto ml-kem / ml-dsa, so no advisories are ignored.
+ignore = []
 
 [licenses]
 # Allow common permissive licenses

@@ -217,7 +217,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
         yaxis={"autorange": "reversed"},
         showlegend=False,
     )
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     if len(df) >= 2:
         st.markdown("#### Multi-Metric Comparison")
@@ -240,7 +240,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
         fig_heatmap.update_layout(
             xaxis_title="Metrics", yaxis_title="Models", height=max(250, 50 * len(top)), xaxis={"side": "bottom"}
         )
-        st.plotly_chart(fig_heatmap, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        st.plotly_chart(fig_heatmap, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
 
 def render_champion_analysis(df: pd.DataFrame):
@@ -301,4 +301,4 @@ def render_champion_analysis(df: pd.DataFrame):
             text=[f"{g:.2%}" for g in gaps_df["Gap"]],
         )
         fig_gaps.update_layout(yaxis={"tickformat": ".1%"}, height=350, showlegend=False)
-        st.plotly_chart(fig_gaps, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        st.plotly_chart(fig_gaps, width="stretch", config={"displayModeBar": False, "staticPlot": True})

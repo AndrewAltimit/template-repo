@@ -1,7 +1,7 @@
 # Multi-stage Rust build for mcp-code-quality
 # Stage 1: Build the Rust binaries
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # Install build dependencies for OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -29,24 +29,34 @@ WORKDIR /build/tools/rust/markdown-link-checker
 RUN cargo build --release
 
 # Stage 2: Runtime image with code quality tools
-FROM python:3.11-slim
+FROM python:3.13-slim-bookworm
 
 # Install system dependencies and code quality tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     ca-certificates \
-    # For JavaScript/TypeScript
-    nodejs \
-    npm \
+    # Runtime library needed by the official Node.js binary
+    libatomic1 \
     # For Go (lightweight go-fmt only)
     # golang-go \
     && rm -rf /var/lib/apt/lists/*
 
+# Node.js for JavaScript/TypeScript tooling, copied from the official image
+# (bookworm's packaged nodejs 18 is end-of-life)
+COPY --from=node:26-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:26-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+# npm is upgraded within the 11.x line: the copy bundled with node 26 vendors
+# undici and brace-expansion releases with HIGH advisories
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && npm install -g npm@11.21.1 \
+    && node --version && npm --version
+
 # Install Python code quality tools
 RUN pip install --no-cache-dir \
     black \
-    ruff==0.16.8 \
+    ruff==0.17.3 \
     flake8 \
     pytest \
     pytest-cov \

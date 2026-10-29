@@ -27,7 +27,12 @@ echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
 
 # Default model if not set
 if [ -z "$OPENCODE_MODEL" ]; then
-    export OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"
+    export OPENCODE_MODEL="particle-ai/particle-1"
+fi
+# Title sessions with the same model: OpenCode 2.x otherwise uses a separate
+# model from its catalog for titles, an extra paid OpenRouter request.
+if [ -z "${OPENCODE_CONFIG_CONTENT:-}" ]; then
+    export OPENCODE_CONFIG_CONTENT="{\"small_model\":\"openrouter/${OPENCODE_MODEL}\"}"
 fi
 echo "🤖 Using model: $OPENCODE_MODEL"
 
@@ -35,8 +40,8 @@ echo "🤖 Using model: $OPENCODE_MODEL"
 if ! command -v opencode &> /dev/null; then
     echo "⚠️  opencode CLI not found."
     echo "   Please install OpenCode CLI first:"
-    echo "   npm install -g @anthropics/opencode"
-    echo "   or see: https://github.com/anthropics/opencode"
+    echo "   npm install -g @opencode/cli"
+    echo "   or see: https://github.com/anomalyco/opencode"
     exit 1
 fi
 
@@ -110,7 +115,9 @@ if [ "$MODE" = "single" ]; then
     echo ""
 
     # Build command array for safer execution
-    CMD_ARRAY=("opencode" "run")
+    # --standalone: private per-run server (OpenCode 2.x) instead of the
+    # shared background service, so this shell's environment applies.
+    CMD_ARRAY=("opencode" "run" "--standalone")
 
     # Add model if specified
     if [ -n "$OPENCODE_MODEL" ]; then

@@ -52,21 +52,32 @@ fn round2(x: f64) -> f64 {
 }
 
 /// Collect host statistics (blocking: samples CPU twice, ~200ms).
+///
+/// Values the platform cannot report (sysinfo failed to initialise) are zero.
 pub fn host_stats(data_path: &Path) -> HostStats {
-    let mut sys = System::new();
-    sys.refresh_cpu_usage();
-    std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL.max(Duration::from_millis(100)));
-    sys.refresh_cpu_usage();
-    sys.refresh_memory();
-
-    let total_mem = sys.total_memory();
-    let used_mem = sys.used_memory();
+    let (cpu, total_mem, used_mem) = match System::new() {
+        Ok(mut sys) => {
+            sys.refresh_cpu_usage();
+            std::thread::sleep(
+                sysinfo::MINIMUM_CPU_UPDATE_INTERVAL.max(Duration::from_millis(100)),
+            );
+            sys.refresh_cpu_usage();
+            sys.refresh_memory();
+            (
+                sys.global_cpu_usage(),
+                sys.total_memory(),
+                sys.used_memory(),
+            )
+        },
+        Err(_) => (0.0, 0, 0),
+    };
 
     // Pick the disk whose mount point is the longest prefix of the data path.
     let target = data_path
         .canonicalize()
         .unwrap_or_else(|_| data_path.to_path_buf());
-    let disks = Disks::new_with_refreshed_list();
+    let disks = Disks::new_with_refreshed_list().ok();
+    let disks = disks.as_deref().unwrap_or_default();
     let disk = disks
         .iter()
         .filter(|d| target.starts_with(d.mount_point()))
@@ -88,7 +99,7 @@ pub fn host_stats(data_path: &Path) -> HostStats {
     };
 
     HostStats {
-        cpu_percent: sys.global_cpu_usage(),
+        cpu_percent: cpu,
         memory_percent: (used_mem as f64 / total_mem.max(1) as f64 * 100.0) as f32,
         memory_used_gb: round2(used_mem as f64 / GB),
         memory_total_gb: round2(total_mem as f64 / GB),

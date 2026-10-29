@@ -2,6 +2,7 @@
   "allowed_tools": [
     "write",
     "bash",
+    "shell",
     "read",
     "edit",
     "multi_edit",

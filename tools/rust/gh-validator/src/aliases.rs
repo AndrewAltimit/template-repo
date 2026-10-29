@@ -106,7 +106,12 @@ pub fn resolve_with(args: &[String], cmd_index: usize, expansion: &str) -> Resol
 /// gh's alias expansion string for `name`, from its config file.
 fn lookup(name: &str) -> Option<String> {
     let content = std::fs::read_to_string(gh_config_path()?).ok()?;
-    let doc: serde_yaml::Value = serde_yaml::from_str(&content).ok()?;
+    lookup_in(&content, name)
+}
+
+/// Alias lookup on config text, separated from file access for testing.
+fn lookup_in(content: &str, name: &str) -> Option<String> {
+    let doc: serde_norway::Value = serde_norway::from_str(content).ok()?;
     doc.get("aliases")?.get(name)?.as_str().map(str::to_string)
 }
 
@@ -231,5 +236,37 @@ mod tests {
             shell_split(r#"a "b \"c\"" 'd e' f\ g"#).unwrap(),
             a(&["a", "b \"c\"", "d e", "f g"])
         );
+    }
+
+    #[test]
+    fn lookup_reads_gh_config_aliases() {
+        let config = r#"
+version: "1"
+git_protocol: https
+editor:
+prompt: enabled
+aliases:
+    co: pr checkout
+    c: 'pr comment 1 --body "$1"'
+    sh: '!gh pr list | head'
+    odd: [not, a, string]
+hosts:
+    github.com:
+        user: someone
+"#;
+        assert_eq!(lookup_in(config, "co").as_deref(), Some("pr checkout"));
+        assert_eq!(
+            lookup_in(config, "c").as_deref(),
+            Some(r#"pr comment 1 --body "$1""#)
+        );
+        assert_eq!(
+            lookup_in(config, "sh").as_deref(),
+            Some("!gh pr list | head")
+        );
+        assert_eq!(lookup_in(config, "odd"), None);
+        assert_eq!(lookup_in(config, "missing"), None);
+        assert_eq!(lookup_in("git_protocol: ssh\n", "co"), None);
+        assert_eq!(lookup_in("", "co"), None);
+        assert_eq!(lookup_in("aliases: [", "co"), None);
     }
 }

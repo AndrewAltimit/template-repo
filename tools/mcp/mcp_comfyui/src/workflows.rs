@@ -25,7 +25,6 @@
 //! | 15 | FluxGuidance |
 //! | 16 | UpscaleModelLoader / ImageUpscaleWithModel pair (upscale only) |
 
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
@@ -165,7 +164,7 @@ impl SamplingParams {
 /// A random seed in ComfyUI's accepted range (kept below 2^53 so it
 /// round-trips exactly through JSON consumers that use f64).
 pub fn random_seed() -> u64 {
-    rand::thread_rng().gen_range(0..(1u64 << 53))
+    rand::random_range(0..(1u64 << 53))
 }
 
 /// Resolve a user seed: `None` or `-1` means random; other negatives are invalid.

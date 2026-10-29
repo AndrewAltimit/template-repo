@@ -79,7 +79,12 @@ echo "   Key length: ${#OPENROUTER_API_KEY} characters"
 
 # Default model if not set
 if [ -z "$OPENCODE_MODEL" ]; then
-    export OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"
+    export OPENCODE_MODEL="particle-ai/particle-1"
+fi
+# Title sessions with the same model: OpenCode 2.x otherwise uses a separate
+# model from its catalog for titles, an extra paid OpenRouter request.
+if [ -z "${OPENCODE_CONFIG_CONTENT:-}" ]; then
+    export OPENCODE_CONFIG_CONTENT="{\"small_model\":\"openrouter/${OPENCODE_MODEL}\"}"
 fi
 echo "🤖 Using model: $OPENCODE_MODEL"
 
@@ -154,21 +159,23 @@ if [ "$MODE" = "single" ]; then
     echo "📝 Running single query in container..."
     echo ""
 
-    # Build command for container
-    CMD="opencode run"
-
-    if [ -n "$QUERY" ]; then
-        CMD="$CMD -q '$QUERY'"
-    fi
+    # Build the OpenCode 2.x command as an argument array (no shell string, so
+    # quotes in the query cannot break or inject into the command line).
+    # --standalone gives this run a private server instead of the shared
+    # background service.
+    CMD=(opencode run --standalone -m "openrouter/$OPENCODE_MODEL")
 
     if [ -n "$CONTEXT_PATH" ]; then
         echo "📄 Including context from: $CONTEXT"
-        CMD="$CMD -c '$CONTEXT_PATH'"
+        CMD+=(--file "$CONTEXT_PATH")
     fi
 
     if [ "$PLAN_MODE" = true ]; then
-        CMD="$CMD --plan"
+        # OpenCode's built-in read-only planning agent
+        CMD+=(--agent plan)
     fi
+
+    CMD+=("$QUERY")
 
     # Execute in container
     if [ -n "$VOLUME_MOUNT" ]; then
@@ -177,13 +184,15 @@ if [ "$MODE" = "single" ]; then
         docker compose run --rm \
             -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
             -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+            -e OPENCODE_CONFIG_CONTENT \
             $VOLUME_MOUNT \
-            openrouter-agents sh -c "$CMD"
+            openrouter-agents "${CMD[@]}"
     else
         docker compose run --rm \
             -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
             -e OPENCODE_MODEL="$OPENCODE_MODEL" \
-            openrouter-agents sh -c "$CMD"
+            -e OPENCODE_CONFIG_CONTENT \
+            openrouter-agents "${CMD[@]}"
     fi
 else
     echo "🔄 Starting interactive session in container..."
@@ -197,5 +206,6 @@ else
     docker compose run --rm -it \
         -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+        -e OPENCODE_CONFIG_CONTENT \
         openrouter-agents opencode
 fi

@@ -13,14 +13,19 @@ param(
     [int]$Port = 8501,
 
     [Parameter(HelpMessage="Open browser after launch")]
-    [switch]$OpenBrowser,
-
-    [Parameter(HelpMessage="Enable debug logging")]
-    [switch]$Debug
+    [switch]$OpenBrowser
 )
 
+# [Parameter()] makes this an advanced script, so -Debug is the built-in common
+# parameter; declaring our own $Debug switch would fail with "defined multiple times".
+# -Debug runs the dashboard in the foreground with debug logging.
+$DebugMode = $PSBoundParameters.ContainsKey("Debug")
+$DebugPreference = "SilentlyContinue"
+
 $ErrorActionPreference = "Stop"
-$script:DashboardPath = Join-Path $PSScriptRoot "..\..\..\packages\sleeper_agents\dashboard"
+# This script is in packages\sleeper_agents\scripts\platform\windows
+$script:RepoRoot = Join-Path $PSScriptRoot "..\..\..\..\.."
+$script:DashboardPath = Join-Path $PSScriptRoot "..\..\..\dashboard"
 
 # Color functions
 function Write-Success { Write-Host $args -ForegroundColor Green }
@@ -120,13 +125,13 @@ print('Empty database created successfully!')
             Write-Info "Building and launching with Docker Compose..."
 
             # Navigate to project root for docker-compose
-            Push-Location (Join-Path $PSScriptRoot "..\..\..")
+            Push-Location $RepoRoot
 
             # Build the dashboard image
             docker compose build sleeper-dashboard
 
             # Run the dashboard
-            if ($Debug) {
+            if ($DebugMode) {
                 docker compose up sleeper-dashboard
             } else {
                 docker compose up -d sleeper-dashboard
@@ -139,11 +144,11 @@ print('Empty database created successfully!')
         "docker" {
             Write-Info "Building and launching with Docker..."
 
-            # Build the image
-            docker build -t sleeper-dashboard:local .
+            # Build the image (the context is the package root: it copies dashboard/ and src/)
+            docker build -t sleeper-dashboard:local -f Dockerfile ..
 
             # Load environment variables from .env if it exists
-            $envPath = Join-Path $PSScriptRoot "..\..\..\.env"
+            $envPath = Join-Path $RepoRoot ".env"
             if (Test-Path $envPath) {
                 Get-Content $envPath | ForEach-Object {
                     if ($_ -match "^([^#][^=]+)=(.+)$") {
@@ -154,7 +159,9 @@ print('Empty database created successfully!')
 
             # Prepare volume paths (convert to Docker-compatible format)
             $dbPath = (Get-Item "evaluation_results.db").FullName -replace '\\','/'
-            $authPath = (Get-Item "auth" -ErrorAction SilentlyContinue).FullName -replace '\\','/'
+            # Users live in data\users.db (see auth/authentication.py)
+            if (-not (Test-Path "data")) { New-Item -ItemType Directory -Path "data" | Out-Null }
+            $dataPath = (Get-Item "data").FullName -replace '\\','/'
 
             # Run the container
             $dockerArgs = @(
@@ -163,9 +170,7 @@ print('Empty database created successfully!')
                 "-v", "${dbPath}:/home/dashboard/app/evaluation_results.db"
             )
 
-            if ($authPath) {
-                $dockerArgs += @("-v", "${authPath}:/home/dashboard/app/auth")
-            }
+            $dockerArgs += @("-v", "${dataPath}:/home/dashboard/app/data")
 
             # Add environment variables
             $adminPassword = [Environment]::GetEnvironmentVariable("DASHBOARD_ADMIN_PASSWORD", "Process")
@@ -178,7 +183,7 @@ print('Empty database created successfully!')
                 "sleeper-dashboard:local"
             )
 
-            if ($Debug) {
+            if ($DebugMode) {
                 docker @dockerArgs
             } else {
                 Start-Process -NoNewWindow docker -ArgumentList $dockerArgs
@@ -205,7 +210,7 @@ print('Empty database created successfully!')
             }
 
             # Load environment variables from .env if it exists
-            $envPath = Join-Path $PSScriptRoot "..\..\..\.env"
+            $envPath = Join-Path $RepoRoot ".env"
             if (Test-Path $envPath) {
                 Get-Content $envPath | ForEach-Object {
                     if ($_ -match "^([^#][^=]+)=(.+)$") {
@@ -219,7 +224,7 @@ print('Empty database created successfully!')
             $env:DASHBOARD_ADMIN_PASSWORD = [Environment]::GetEnvironmentVariable("DASHBOARD_ADMIN_PASSWORD", "Process")
 
             # Launch Streamlit
-            if ($Debug) {
+            if ($DebugMode) {
                 streamlit run app.py --server.port $Port --server.logLevel debug
             } else {
                 Start-Process streamlit -ArgumentList "run", "app.py", "--server.port", $Port

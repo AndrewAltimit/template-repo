@@ -3,16 +3,16 @@
 # when fixing CI/CD pipeline failures
 
 # Security hook dependencies
-PyYAML>=6.0.0
-requests>=2.31.0
+PyYAML>=6.0.3
+requests>=2.34.2
 
 # Linting and formatting tools
-ruff==0.16.8  # Fast linter/formatter - replaces black, flake8, isort, pylint
-ty>=0.0.1a6  # Fast type checker from Astral (ruff team)
+ruff==0.17.3  # Fast linter/formatter - replaces black, flake8, isort, pylint
+ty>=0.0.94  # Fast type checker from Astral (ruff team)
 
 # Testing
-pytest>=7.0.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
+pytest>=9.2.0
+pytest-asyncio>=1.4.1
+pytest-cov>=7.1.0
 
-# Python 3.10+ is required for the agents to run
+# Python 3.13+ is required for the agents to run

@@ -14,9 +14,10 @@
 //!   whole string `(2w+1)^2 - 1` times at offsets, which was slow and produced
 //!   a blocky, square outline.)
 
-use ab_glyph::{Font, FontArc, GlyphId, PxScale, ScaleFont, point};
 use image::{Rgb, RgbImage};
+use skrifa::GlyphId;
 
+use crate::face::Face;
 use crate::types::TextAlign;
 
 /// Maximum caption length accepted per text area (characters).
@@ -105,10 +106,11 @@ pub fn sanitize_text(text: &str) -> String {
 }
 
 /// Characters in `text` the font has no glyph for (deduplicated, in order).
-pub fn unsupported_chars(font: &FontArc, text: &str) -> Vec<char> {
+pub fn unsupported_chars(font: &Face, text: &str) -> Vec<char> {
+    let scaled = font.scaled(1.0);
     let mut missing = Vec::new();
     for c in text.chars() {
-        if !c.is_whitespace() && font.glyph_id(c) == GlyphId(0) && !missing.contains(&c) {
+        if !c.is_whitespace() && scaled.glyph_id(c) == GlyphId::NOTDEF && !missing.contains(&c) {
             missing.push(c);
         }
     }
@@ -126,8 +128,8 @@ pub struct LineMetrics {
 
 /// Vertical metrics at `size` px. Line gap is deliberately omitted: meme
 /// captions are conventionally set tight.
-pub fn line_metrics(font: &FontArc, size: f32) -> LineMetrics {
-    let scaled = font.as_scaled(PxScale::from(size));
+pub fn line_metrics(font: &Face, size: f32) -> LineMetrics {
+    let scaled = font.scaled(size);
     LineMetrics {
         ascent: scaled.ascent(),
         line_height: scaled.ascent() - scaled.descent(),
@@ -135,8 +137,8 @@ pub fn line_metrics(font: &FontArc, size: f32) -> LineMetrics {
 }
 
 /// Advance width of `text` at `size` px, including kerning.
-pub fn measure(font: &FontArc, size: f32, text: &str) -> f32 {
-    let scaled = font.as_scaled(PxScale::from(size));
+pub fn measure(font: &Face, size: f32, text: &str) -> f32 {
+    let scaled = font.scaled(size);
     let mut width = 0.0;
     let mut prev: Option<GlyphId> = None;
     for c in text.chars() {
@@ -162,7 +164,7 @@ pub struct Wrapped {
 /// Greedy word wrap to `max_width` px. Explicit `\n` starts a new line.
 /// A word wider than `max_width` is split between characters (and flagged via
 /// [`Wrapped::split_word`]) instead of overflowing the area.
-pub fn wrap(font: &FontArc, size: f32, text: &str, max_width: f32) -> Wrapped {
+pub fn wrap(font: &Face, size: f32, text: &str, max_width: f32) -> Wrapped {
     let space = measure(font, size, " ");
     let mut lines = Vec::new();
     let mut split_word = false;
@@ -230,7 +232,7 @@ pub struct Layout {
 /// Lay out `text` at a fixed `size` and report whether it fits a
 /// `box_w` x `box_h` area (accounting for the outline on both sides).
 pub fn layout_at_size(
-    font: &FontArc,
+    font: &Face,
     text: &str,
     size: f32,
     box_w: f32,
@@ -258,7 +260,7 @@ pub fn layout_at_size(
 /// sizes that keep every word intact first. Falls back to `min` (with
 /// `fits == false`) when nothing fits.
 pub fn fit_text(
-    font: &FontArc,
+    font: &Face,
     text: &str,
     box_w: f32,
     box_h: f32,
@@ -308,7 +310,7 @@ pub struct AreaRect {
 /// Draw a laid-out block, vertically centered on `rect.cy`.
 pub fn draw_block(
     img: &mut RgbImage,
-    font: &FontArc,
+    font: &Face,
     layout: &Layout,
     rect: AreaRect,
     style: &TextStyle,
@@ -363,15 +365,15 @@ impl Mask {
 /// Rasterize one line (baseline-positioned at `x`, `baseline`) with outline.
 fn draw_line(
     img: &mut RgbImage,
-    font: &FontArc,
+    font: &Face,
     size: f32,
     text: &str,
     x: f32,
     baseline: f32,
     style: &TextStyle,
 ) {
-    let scale = PxScale::from(size);
-    let scaled = font.as_scaled(scale);
+    let scaled = font.scaled(size);
+    let scaler = scaled.outline_scaler();
 
     // Position glyphs (with kerning, matching `measure`).
     let mut outlined = Vec::new();
@@ -382,12 +384,11 @@ fn draw_line(
         if let Some(p) = prev {
             caret += scaled.kern(p, id);
         }
-        let glyph = id.with_scale_and_position(scale, point(caret, baseline));
-        caret += scaled.h_advance(id);
-        prev = Some(id);
-        if let Some(g) = font.outline_glyph(glyph) {
+        if let Some(g) = scaled.outline_glyph(&scaler, id, caret, baseline) {
             outlined.push(g);
         }
+        caret += scaled.h_advance(id);
+        prev = Some(id);
     }
     if outlined.is_empty() {
         return;
@@ -398,10 +399,10 @@ fn draw_line(
     let (mut min_x, mut min_y, mut max_x, mut max_y) = (i32::MAX, i32::MAX, i32::MIN, i32::MIN);
     for g in &outlined {
         let b = g.px_bounds();
-        min_x = min_x.min(b.min.x.floor() as i32);
-        min_y = min_y.min(b.min.y.floor() as i32);
-        max_x = max_x.max(b.max.x.ceil() as i32);
-        max_y = max_y.max(b.max.y.ceil() as i32);
+        min_x = min_x.min(b.min_x.floor() as i32);
+        min_y = min_y.min(b.min_y.floor() as i32);
+        max_x = max_x.max(b.max_x.ceil() as i32);
+        max_y = max_y.max(b.max_y.ceil() as i32);
     }
     let (img_w, img_h) = (img.width() as i32, img.height() as i32);
     let x0 = (min_x - pad).max(-pad);
@@ -422,7 +423,7 @@ fn draw_line(
 
     for g in &outlined {
         let b = g.px_bounds();
-        let (gx0, gy0) = (b.min.x as i32, b.min.y as i32);
+        let (gx0, gy0) = (b.min_x as i32, b.min_y as i32);
         g.draw(|gx, gy, cov| {
             let mx = gx0 + gx as i32 - mask.x0;
             let my = gy0 + gy as i32 - mask.y0;
@@ -525,8 +526,8 @@ pub(crate) mod tests {
     use super::*;
 
     /// The embedded fallback font, so tests do not depend on system fonts.
-    pub(crate) fn test_font() -> FontArc {
-        FontArc::try_from_slice(crate::fonts::EMBEDDED_FONT).expect("embedded font parses")
+    pub(crate) fn test_font() -> Face {
+        Face::from_static(crate::fonts::EMBEDDED_FONT).expect("embedded font parses")
     }
 
     #[test]

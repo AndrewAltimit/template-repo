@@ -5,8 +5,11 @@ This module provides utility functions for working with asyncio in the sleeper d
 
 import asyncio
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+_loop: Optional[asyncio.AbstractEventLoop] = None
 
 
 def get_or_create_event_loop() -> asyncio.AbstractEventLoop:
@@ -23,9 +26,15 @@ def get_or_create_event_loop() -> asyncio.AbstractEventLoop:
         >>> loop = get_or_create_event_loop()
         >>> result = loop.run_until_complete(my_async_function())
     """
+    global _loop  # pylint: disable=global-statement
     try:
-        loop = asyncio.get_event_loop()
+        return asyncio.get_running_loop()
     except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop
+        pass
+    # asyncio.get_event_loop() no longer creates a loop implicitly when none is
+    # running (deprecated since Python 3.12, an error from 3.14), so keep and
+    # reuse one loop created here instead.
+    if _loop is None or _loop.is_closed():
+        _loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_loop)
+    return _loop

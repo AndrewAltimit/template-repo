@@ -79,7 +79,7 @@ For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](d
 
 ## AI Agents
 
-Active agents: **Claude Code** (primary; also runs the security and quality PR reviews), **OpenRouter** (general PR review via `qwen/qwen3.7-max`), **OpenCode** and **Crush** (code generation via OpenRouter), and **GitHub Copilot** (PR suggestions). Gemini and Codex code remains in the repo but is **legacy / not allowed** ([why](docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)).
+Active agents: **Claude Code** (primary; also runs the security and quality PR reviews), **OpenRouter** (general PR review via `particle-ai/particle-1`), **OpenCode** and **Crush** (code generation via OpenRouter), and **GitHub Copilot** (PR suggestions). Gemini and Codex code remains in the repo but is **legacy / not allowed** ([why](docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)).
 
 The canonical roster is the [Agent Availability Matrix](docs/agents/agent-matrix.md); see also [AI Agents Documentation](docs/agents/README.md) and the [Claude Code Setup Guide](docs/agents/claude-code-setup.md).
 

@@ -297,21 +297,6 @@ python scripts/validation/test_advanced_detection.py --model gpt2 --device cpu
 
 ---
 
-### `validate_mcp.py`
-**Purpose**: MCP server structure validation
-
-**Usage**:
-```bash
-python scripts/validation/validate_mcp.py
-```
-
-**Key Features**:
-- MCP server validation
-- API endpoint testing
-- Structure verification
-
----
-
 ### Training & Validation Batch Scripts
 - `run_training.bat` - Training operations runner (Windows): `train`, `test`, `sft`, `ppo`, `validate`, `shell`, `list`, `gpu-info`
 - `run_detection_validation.bat` - Detection validation runner (Windows)

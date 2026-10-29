@@ -4,36 +4,44 @@
 
 ### Local Testing (CPU Mode)
 ```bash
-# Test without Docker
-python packages/sleeper_agents/scripts/test_cpu_mode.py
-
 # Run with Docker (CPU mode)
-docker compose --profile detection up mcp-sleeper-agents
+docker compose --profile eval-cpu run --rm sleeper-eval-cpu
 ```
 
 ### Windows Deployment (GPU Mode)
 ```powershell
-# PowerShell (recommended)
+# PowerShell (recommended): quick GPU test, or a full evaluation with -Model
 .\packages\sleeper_agents\scripts\platform\windows\launch_gpu.ps1
+.\packages\sleeper_agents\scripts\platform\windows\launch_gpu.ps1 -Model gpt2
 
 # Command Prompt
-.\packages\sleeper_agents\scripts\platform\windows\launch_gpu.bat
+.\packages\sleeper_agents\scripts\platform\windows\launch_gpu.bat [model]
 ```
+
+The launchers run the evaluation container once and exit; results and HTML
+reports go to `evaluation_results\`. GPU mode needs NVIDIA driver 580 or newer
+(CUDA 13.0).
 
 ### CPU Testing on Windows
 ```powershell
 .\packages\sleeper_agents\scripts\platform\windows\launch_cpu.ps1
 ```
 
+With no trained layer probes (always the case for the quick test, which starts a
+fresh evaluator) the layer-probing test is skipped and basic detection runs on
+attention analysis alone. The quick test then reports INCONCLUSIVE with that
+score instead of FAILED; it fails only when nothing could be scored, or when
+probes were used and the accuracy is still at or below 70%. For a probe-based
+result, train probes through the detection API (`POST /train_probes`, then
+`/detect`) or a `train_probes` job with `sleeper-cli batch`.
+
 ## Service URLs
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Main API | http://localhost:8022 | REST API endpoints |
-| API Docs | http://localhost:8022/docs | Interactive API documentation |
-| Dashboard | http://localhost:8022 | Analysis dashboard (future) |
-| Monitoring | http://localhost:8023 | Real-time monitoring (future) |
-| Vector DB | http://localhost:8024 | ChromaDB interface |
+| Dashboard | http://localhost:8501 | Streamlit dashboard (`sleeper-dashboard` service or `launch_dashboard.ps1`) |
+| Detection API | http://localhost:8022 | FastAPI server, only when started (see Detection API Server below) |
+| API Docs | http://localhost:8022/docs | Interactive API documentation for the same server |
 
 ##  API Quick Examples
 
@@ -111,46 +119,35 @@ pytest packages/sleeper_agents/tests/test_detection.py
 pytest packages/sleeper_agents/tests/ --cov=sleeper_agents
 ```
 
-### Validate Structure
-```bash
-# Validate MCP server structure
-python packages/sleeper_agents/scripts/validate_mcp_server_structure.py
-
-```
-
 ## Docker Commands
 
 ### Build
 ```bash
-docker compose build mcp-sleeper-agents
-docker compose build mcp-sleeper-agents-gpu
+docker compose build sleeper-eval-cpu
+docker compose build sleeper-eval-gpu
+docker compose build sleeper-dashboard
 ```
 
 ### Run Services
 ```bash
-# CPU mode
-docker compose --profile detection up
+# CPU evaluation (runs `sleeper_agents.cli test --cpu`)
+docker compose --profile eval-cpu run --rm sleeper-eval-cpu
 
-# GPU mode
-docker compose --profile detection-gpu up
+# GPU evaluation (runs `sleeper_agents.cli evaluate --gpu`)
+docker compose --profile eval-gpu run --rm sleeper-eval-gpu
 
-# With vector database
-docker compose --profile detection up mcp-sleeper-agents sleeper-vectordb
-
-# Detached mode
-docker compose --profile detection up -d
+# Dashboard on http://localhost:8501 (detached)
+docker compose --profile dashboard up -d sleeper-dashboard
 ```
 
 ### View Logs
 ```bash
-docker compose logs -f mcp-sleeper-agents
-docker compose logs -f sleeper-vectordb
+docker compose logs -f sleeper-dashboard
 ```
 
 ### Stop Services
 ```bash
-docker compose --profile detection down
-docker compose --profile detection-gpu down
+docker compose --profile dashboard down
 ```
 
 ## Environment Variables

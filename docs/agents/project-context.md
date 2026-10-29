@@ -9,7 +9,7 @@ This is a **container-first, self-hosted project template** maintained by a sing
 ## AI Agent Ecosystem
 
 - **Claude Code**: primary development assistant; runs the security and quality PR reviews
-- **OpenRouter** (`qwen/qwen3.7-max`): general PR review
+- **OpenRouter** (`particle-ai/particle-1`): general PR review
 - **OpenCode, Crush**: code generation via OpenRouter
 - **GitHub Copilot**: review suggestions in pull requests
 - **Gemini, Codex**: legacy / not allowed (see [agent-matrix.md](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed))
@@ -34,7 +34,7 @@ As a PR reviewer, focus on security, containers, and project standards.
 ### 3. Architecture
 
 - **21 MCP servers** (19 active, 2 legacy) under `tools/mcp/`, plus the shared `mcp_core` and `mcp_core_rust` libraries
-- **Python CI Container** includes all development tools (Python 3.11)
+- **Python CI Container** includes all development tools (Python 3.13)
 - **Docker Compose** orchestrates all services
 - **No aggressive cleanup** - Python cache prevention via environment variables
 - **Multi-stage CI/CD** - format, lint-basic, lint-full, security, test stages
@@ -71,7 +71,7 @@ As a PR reviewer, focus on security, containers, and project standards.
 
 ## Technical Standards
 
-- Python 3.11 in all containers
+- Python 3.13 in all containers
 - Python code is formatted and linted with Ruff (`ruff format`, `ruff check`)
 - All Python tools run in containers with user permissions (no root)
 - Environment variables: `PYTHONDONTWRITEBYTECODE=1`, `USER_ID/GROUP_ID`

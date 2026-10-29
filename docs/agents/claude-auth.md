@@ -47,14 +47,14 @@ Running on the host machine means:
 
 For the AI agents to work on your self-hosted runner:
 
-1. **Install nvm and Node.js 22.16.0**:
-   - Claude CLI requires Node.js 22.16.0 specifically
-   - Install nvm, then run `nvm install 22.16.0`
+1. **Install nvm and Node.js 26.13.0**:
+   - Claude CLI runs on the Node.js version the runner and workflows use (26.13.0, the current LTS)
+   - Install nvm, then run `nvm install 26.13.0`
 2. **Install Claude CLI**:
-   - First run `nvm use 22.16.0`
+   - First run `nvm use 26.13.0`
    - Then `npm install -g @anthropic-ai/claude-code`
 3. **Authenticate Claude**:
-   - Run `nvm use 22.16.0` first
+   - Run `nvm use 26.13.0` first
    - Then `claude login` on the host machine
 4. **Install Python Dependencies**: The workflows will attempt to install required packages
 5. **GitHub CLI**: Must be available on the host (usually pre-installed on runners)

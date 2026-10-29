@@ -12,6 +12,7 @@
 //!     curl http://localhost:8016/health
 //!     curl http://localhost:8016/mcp/tools
 
+mod face;
 mod fonts;
 mod generator;
 mod render;

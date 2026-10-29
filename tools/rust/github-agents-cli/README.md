@@ -20,7 +20,7 @@ Requirements: GitHub CLI (`gh`) installed and authenticated (`GITHUB_TOKEN`
 | Agent | Backend | Notes |
 |-------|---------|-------|
 | `claude` | Claude Code CLI (`claude --print`, prompt on stdin) | Default/highest priority. Path override: `CLAUDE_PATH`, model: `CLAUDE_MODEL` |
-| `opencode` | OpenCode CLI (`opencode run -m openrouter/<model>`) | Needs `OPENROUTER_API_KEY`; model: `OPENCODE_MODEL` (default `qwen/qwen3.7-max`) |
+| `opencode` | OpenCode CLI (`opencode run -m openrouter/<model>`) | Needs `OPENROUTER_API_KEY`; model: `OPENCODE_MODEL` (default `particle-ai/particle-1`) |
 | `crush` | Crush CLI (`crush run -q`) | Needs `OPENROUTER_API_KEY`; model: `CRUSH_MODEL` |
 | `openrouter` | OpenRouter API (text only) | Needs `OPENROUTER_API_KEY`; model: `OPENROUTER_MODEL` |
 | `gemini`, `codex` | -- | **Disabled by project policy.** Requests fail with exit code 5; in agent lists (`--agents claude,gemini`) they are skipped with a warning |

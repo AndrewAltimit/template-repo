@@ -643,7 +643,9 @@ class DataLoader:
         try:
             conn = self.get_connection()
 
-            start_date = datetime.now() - timedelta(days=days_back)
+            # Pass an ISO string (the format sqlite3's default datetime adapter produced);
+            # that adapter is deprecated since Python 3.12.
+            start_date = (datetime.now() - timedelta(days=days_back)).isoformat(" ")
             completed = self._completed_filter(conn.cursor())
 
             query = f"""

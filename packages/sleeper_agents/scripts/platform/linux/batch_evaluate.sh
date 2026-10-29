@@ -18,14 +18,15 @@ MODELS=("gpt2" "distilgpt2" "gpt2-medium")
 SUITES=("basic" "code_vulnerability" "robustness" "chain_of_thought")
 USE_GPU=false
 COMPARE_RESULTS=false
-OUTPUT_DIR="batch_evaluation_results"
+OUTPUT_DIR="evaluation_results/batch"
 OPEN_REPORT=false
 USE_DOCKER=false
 CONTINUE_ON_ERROR=false
 
 # Script paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+# This script is in packages/sleeper_agents/scripts/platform/linux
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 START_TIME=$(date +%s)
 
 # Print functions
@@ -46,7 +47,7 @@ Options:
   -s, --suites SUITES     Test suites to run (space-separated)
   -g, --gpu               Use GPU acceleration
   -C, --compare           Generate comparison report after evaluations
-  -o, --output DIR        Output directory (default: batch_evaluation_results)
+  -o, --output DIR        Output directory (default: evaluation_results/batch)
   -O, --open              Open final report in browser
   -d, --docker            Use Docker for execution
   -e, --continue          Continue on error
@@ -226,14 +227,15 @@ for model in "${MODELS[@]}"; do
         # shellcheck disable=SC2034
         MODEL_TIMINGS[$model]=$MODEL_MINUTES
 
-        print_success "✓ Completed $model in $MODEL_MINUTES minutes"
+        print_success "[OK] Completed $model in $MODEL_MINUTES minutes"
 
         # Generate individual report using array
         REPORT_CMD=("$SCRIPT_DIR/run_cli.sh" "report" "$model" "--format" "html" "--output" "$MODEL_OUTPUT/report.html")
+        [ "$USE_DOCKER" = true ] && REPORT_CMD+=("--docker")
         "${REPORT_CMD[@]}"
 
     else
-        print_error "✗ Failed to evaluate $model"
+        print_error "[FAIL] Failed to evaluate $model"
         FAILED_MODELS+=("$model")
 
         if [ "$CONTINUE_ON_ERROR" = false ]; then
@@ -253,7 +255,7 @@ if [ "$COMPARE_RESULTS" = true ] && [ ${#SUCCESSFUL_MODELS[@]} -gt 1 ]; then
     [ "$USE_DOCKER" = true ] && COMPARE_CMD+=("--docker")
 
     if "${COMPARE_CMD[@]}"; then
-        print_success "✓ Generated comparison report"
+        print_success "[OK] Generated comparison report"
 
         if [ "$OPEN_REPORT" = true ]; then
             xdg-open "$OUTPUT_PATH/comparison_report.html" 2>/dev/null || \

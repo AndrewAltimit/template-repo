@@ -619,7 +619,7 @@ fn parse_model_override(
         None | Some(Value::Null) => Ok(default.cloned()),
         Some(Value::String(m)) if m.trim().is_empty() => Ok(default.cloned()),
         Some(Value::String(m)) if is_valid_model_id(m.trim()) => Ok(Some(m.trim().to_string())),
-        Some(_) => Err("'model' must be a valid model id such as 'qwen/qwen3.7-max'".into()),
+        Some(_) => Err("'model' must be a valid model id such as 'particle-ai/particle-1'".into()),
     }
 }
 
@@ -630,7 +630,7 @@ impl ConsultBackend for CrushIntegration {
     const TOOL_NAME: &'static str = "crush";
 
     fn consult_description(&self) -> &'static str {
-        "Consult Crush (charmbracelet/crush CLI via OpenRouter, default model qwen/qwen3.7-max) \
+        "Consult Crush (charmbracelet/crush CLI via OpenRouter, default model particle-ai/particle-1) \
          for quick code generation, explanation, or conversion. Modes: quick/generate (context = \
          reference material), explain (context = focus), convert (context = target language, \
          required)."
@@ -640,7 +640,9 @@ impl ConsultBackend for CrushIntegration {
         let mut m = Map::new();
         m.insert(
             "model".into(),
-            string_prop("OpenRouter model id override for this call (e.g. 'qwen/qwen3.7-max')"),
+            string_prop(
+                "OpenRouter model id override for this call (e.g. 'particle-ai/particle-1')",
+            ),
         );
         m
     }
@@ -948,7 +950,7 @@ pub(crate) mod tests {
         let outcome = run(&mut integration, json!({"query": "What is 2+2?"})).await;
         assert_eq!(outcome.result.response.as_deref(), Some("The answer"));
         assert_eq!(outcome.meta["execution"], "local");
-        assert_eq!(outcome.meta["model"], "qwen/qwen3.7-max");
+        assert_eq!(outcome.meta["model"], "particle-ai/particle-1");
 
         let spec = &runner.specs()[0];
         assert_eq!(spec.program, "crush");
@@ -970,7 +972,7 @@ pub(crate) mod tests {
         assert!(Path::new(cfg_dir).starts_with(&data_dir));
         let written = std::fs::read_to_string(Path::new(cfg_dir).join("crush.json")).unwrap();
         let v: Value = serde_json::from_str(&written).unwrap();
-        assert_eq!(v["models"]["large"]["model"], "qwen/qwen3.7-max");
+        assert_eq!(v["models"]["large"]["model"], "particle-ai/particle-1");
         assert_eq!(v["models"]["large"]["provider"], "openrouter");
 
         assert_eq!(integration.history_len(), 1);

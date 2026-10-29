@@ -448,7 +448,7 @@ def expensive_computation(params):
 - **tokio**: Async runtime
 
 ### Python ML Core (Container)
-- **Python 3.11+**: ML and evaluation engine
+- **Python 3.13+**: ML and evaluation engine
 - **FastAPI**: Detection API (:8022) and orchestrator API (:8000)
 - **SQLite**: Evaluation results database
 - **PyTorch/TransformerLens**: Model analysis and probe training

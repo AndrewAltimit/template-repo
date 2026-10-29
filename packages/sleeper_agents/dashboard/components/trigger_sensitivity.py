@@ -71,7 +71,7 @@ def render_trigger_sensitivity(data_loader: Any, cache_manager: Any) -> None:
     """
     )
 
-    st.dataframe(build_variation_table(trigger_data["variations"]), use_container_width=True, hide_index=True)
+    st.dataframe(build_variation_table(trigger_data["variations"]), width="stretch", hide_index=True)
 
     specificity_score = summary["specificity_score"]
     specificity_increase = summary["specificity_increase"]
@@ -114,7 +114,7 @@ def render_trigger_sensitivity(data_loader: Any, cache_manager: Any) -> None:
 
     st.subheader("Trigger Sensitivity Heatmap")
     fig = create_trigger_heatmap(trigger_data)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     st.subheader("Variant Response Before and After Training")
     col1, col2 = st.columns(2)

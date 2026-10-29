@@ -32,7 +32,7 @@ agent_priorities:
   # For reviewing PRs (multi-reviewer pipeline with profiles)
   pr_reviews:
     - claude      # Primary reviewer (security + quality profiles)
-    - openrouter  # Third reviewer (general profile, qwen model)
+    - openrouter  # Third reviewer (general profile, particle-ai/particle-1)
 
   # For implementing code fixes
   code_fixes:
@@ -98,10 +98,10 @@ model_overrides:
 
   # OpenRouter agents configuration
   opencode:
-    model: qwen/qwen3.7-max
+    model: particle-ai/particle-1
 
   crush:
-    model: qwen/qwen3.7-max
+    model: particle-ai/particle-1
 
   # DISABLED: OpenAI/Codex phased out due to mass surveillance and autonomous
   # kill decision concerns. Use Anthropic models instead.
@@ -111,14 +111,14 @@ model_overrides:
 
   # OpenRouter models (for openrouter agent)
   openrouter:
-    default_model: "qwen/qwen3.7-max"
+    default_model: "particle-ai/particle-1"
 
 # OpenRouter configuration (for future agents)
 openrouter:
   # API key must be provided as OPENROUTER_API_KEY environment variable
 
   # Default model for OpenRouter-compatible agents
-  default_model: qwen/qwen3.7-max
+  default_model: particle-ai/particle-1
 
   # Fallback models if primary is unavailable
   fallback_models:

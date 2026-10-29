@@ -29,7 +29,7 @@ async fn create_wallet_test_server() -> TestServer {
     });
 
     let app = wallet_router(state);
-    TestServer::new(app).unwrap()
+    TestServer::new(app)
 }
 
 /// Create a test server for the compute service.
@@ -47,7 +47,7 @@ async fn create_compute_test_server() -> TestServer {
     });
 
     let app = compute_router(state);
-    TestServer::new(app).unwrap()
+    TestServer::new(app)
 }
 
 /// Create a test server for the marketplace service.
@@ -65,7 +65,7 @@ async fn create_marketplace_test_server() -> TestServer {
     });
 
     let app = marketplace_router(state);
-    TestServer::new(app).unwrap()
+    TestServer::new(app)
 }
 
 // ============================================================================

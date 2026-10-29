@@ -92,7 +92,7 @@ See [`docs/hardware/secure-terminal-briefcase.md`](../../docs/hardware/secure-te
 | `tamper-sensor` | rppal (GPIO, I2C), tamper-common |
 | `tamper-gate` | nix (FIFO, poll, signals), tamper-common |
 | `tamper-challenge` | rpassword, scrypt, subtle, secrecy |
-| `tamper-recovery` | x25519-dalek, pqcrypto-mlkem, pqcrypto-mldsa, aes-gcm, hkdf, secrecy, zeroize |
+| `tamper-recovery` | x25519-dalek, ml-kem, ml-dsa (RustCrypto), aes-gcm, hkdf, secrecy, zeroize |
 
 ## Security Features
 
@@ -101,7 +101,7 @@ See [`docs/hardware/secure-terminal-briefcase.md`](../../docs/hardware/secure-te
 - **Light sensor failure is fail-closed**: A failed BH1750 read is reported as `lux: null`, never as a numeric sentinel. After 8 consecutive failed reads the sensor daemon stops sending heartbeats, so the gate's watchdog treats the sensor as compromised (challenge while armed). Hall edge events keep flowing meanwhile.
 - **Checked wipe authorization with fallbacks**: On a failed challenge the gate writes the trigger file and starts `tamper-wipe.service`, checking every step. On failure it retries, then runs `wipe_drive.sh` directly (path configurable as `wipe_script`), then forces a power-off so the volume keys leave RAM. It never returns to monitoring after a failed challenge.
 - **luksSuspend before wipe**: The wipe script flushes the LUKS master key from kernel RAM via `cryptsetup luksSuspend` before destroying the LUKS header on disk, ensuring the key is unrecoverable even if the attacker interrupts the disk overwrite.
-- **Secret zeroization**: Passwords use `secrecy::SecretString`. Recovery secrets, derived keys, KEM shared secrets, decrypted device secrets and parsed private-key bundles are held in `zeroize::Zeroizing` (or types that zeroize on drop). The `pqcrypto` key and shared-secret types do not support zeroization; their bytes are copied into zeroizing buffers as soon as possible.
+- **Secret zeroization**: Passwords use `secrecy::SecretString`. Recovery secrets, derived keys, KEM shared secrets, decrypted device secrets and parsed private-key bundles are held in `zeroize::Zeroizing` (or types that zeroize on drop). The ML-KEM and ML-DSA secret keys (RustCrypto `ml-kem` / `ml-dsa` with the `zeroize` feature) wipe themselves on drop.
 - **Constant-time password comparison**: Password verification uses `subtle::ConstantTimeEq` to prevent timing attacks.
 - **Hybrid post-quantum recovery**: Recovery secrets are wrapped with X25519 + ML-KEM-1024 (classical + post-quantum) and signed with ML-DSA-87, protecting against harvest-now-decrypt-later attacks.
 

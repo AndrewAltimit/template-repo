@@ -3,14 +3,10 @@
 
 [advisories]
 unmaintained = "workspace"
-ignore = [
-    # bytes: integer overflow in BytesMut::reserve (RUSTSEC-2026-0007)
-    # TODO: update bytes to patched version
-    "RUSTSEC-2026-0007",
-    # serde_json: DoS via stack exhaustion (RUSTSEC-2026-0009)
-    # TODO: update serde_json to patched version
-    "RUSTSEC-2026-0009",
-]
+# RUSTSEC-2026-0007 (bytes) and RUSTSEC-2026-0009 (time) were fixed by
+# upgrading; no advisories are ignored. YAML parsing uses serde_norway, whose
+# unsafe-libyaml-norway fork is not covered by RUSTSEC-2024-0449.
+ignore = []
 
 [licenses]
 # Allow common permissive licenses
@@ -27,6 +23,9 @@ allow = [
     "MPL-2.0",
     "Unicode-DFS-2016",
     "Unicode-3.0",
+    # webpki-root-certs (Mozilla CA bundle as data), pulled in by reqwest 0.13
+    # through rustls-platform-verifier
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 

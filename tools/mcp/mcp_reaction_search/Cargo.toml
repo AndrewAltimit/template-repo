@@ -16,19 +16,20 @@ path = "src/main.rs"
 mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
 
 # Async runtime
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.54", features = ["full"] }
 async-trait = "0.1"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_yaml = "0.9"
+# Maintained continuation of serde_yaml (unsafe-libyaml is unmaintained).
+serde_norway = "0.9"
 
 # HTTP client
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 
 # CLI
-clap = { version = "4.5", features = ["derive", "env"] }
+clap = { version = "4.6", features = ["derive", "env"] }
 
 # Logging
 tracing = "0.1"
@@ -42,13 +43,23 @@ anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 
 # Directories
-dirs = "6.0"
+dirs = "7.0"
 
-# Sentence embeddings (ONNX-based)
-fastembed = "4"
+# Sentence embeddings (ONNX-based). Text models only: the default
+# `image-models` feature pulls in image with every codec (rav1e -> paste,
+# RUSTSEC-2024-0436) and text embedding never uses it.
+fastembed = { version = "7", default-features = false, features = [
+    "ort-download-binaries-native-tls",
+    "hf-hub-native-tls",
+] }
 
 # Linear algebra
-ndarray = "0.16"
+ndarray = "0.17"
+
+# tokenizers (via fastembed) needs `paste`, which is unmaintained
+# (RUSTSEC-2024-0436). Swap in the pastey-backed shim; see its lib.rs.
+[patch.crates-io]
+paste = { path = "../mcp_core_rust/crates/paste-shim" }
 
 [profile.release]
 lto = true

@@ -280,16 +280,15 @@ impl CodexIntegration {
                             }
                         }
                     },
-                    "command_execution" => {
-                        // Extract command outputs
-                        if item.get("status").and_then(|v| v.as_str()) == Some("completed") {
-                            if let Some(stdout) =
-                                item.get("aggregated_output").and_then(|v| v.as_str())
-                            {
-                                let trimmed = stdout.trim();
-                                if !trimmed.is_empty() {
-                                    command_outputs.push(trimmed.to_string());
-                                }
+                    // Extract outputs of completed commands
+                    "command_execution"
+                        if item.get("status").and_then(|v| v.as_str()) == Some("completed") =>
+                    {
+                        if let Some(stdout) = item.get("aggregated_output").and_then(|v| v.as_str())
+                        {
+                            let trimmed = stdout.trim();
+                            if !trimmed.is_empty() {
+                                command_outputs.push(trimmed.to_string());
                             }
                         }
                     },

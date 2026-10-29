@@ -256,7 +256,7 @@ async fn create_training_config(ctx: &Ctx, args: CreateConfigArgs) -> Outcome {
             "Config '{name}' already exists (pass overwrite: true to replace it)"
         ));
     }
-    let yaml = serde_yaml::to_string(&built.config)
+    let yaml = serde_norway::to_string(&built.config)
         .map_err(|e| format!("Failed to serialize config: {e}"))?;
     fs::create_dir_all(&ctx.paths.configs_path)
         .await
@@ -341,7 +341,7 @@ async fn read_config(ctx: &Ctx, name: &str) -> std::result::Result<(PathBuf, Str
 async fn get_config(ctx: &Ctx, a: NameArgs) -> Outcome {
     let (path, text) = read_config(ctx, &a.name).await?;
     let config: Value =
-        serde_yaml::from_str(&text).map_err(|e| format!("Config is not valid YAML: {e}"))?;
+        serde_norway::from_str(&text).map_err(|e| format!("Config is not valid YAML: {e}"))?;
     ok(json!({"name": a.name, "path": path.display().to_string(), "config": config}))
 }
 
@@ -385,7 +385,7 @@ async fn validate_config(ctx: &Ctx, a: NameArgs) -> Outcome {
         Ok((_, t)) => t,
         Err(e) => return ok(json!({"valid": false, "errors": [e], "warnings": []})),
     };
-    let cfg: serde_yaml::Value = match serde_yaml::from_str(&text) {
+    let cfg: serde_norway::Value = match serde_norway::from_str(&text) {
         Ok(c) => c,
         Err(e) => {
             return ok(
@@ -701,8 +701,8 @@ async fn start_training(ctx: &Ctx, a: StartArgs) -> Outcome {
             run_script.display()
         ));
     }
-    let cfg: serde_yaml::Value =
-        serde_yaml::from_str(&text).map_err(|e| format!("Config is not valid YAML: {e}"))?;
+    let cfg: serde_norway::Value =
+        serde_norway::from_str(&text).map_err(|e| format!("Config is not valid YAML: {e}"))?;
     let paths = ctx.paths.clone();
     let (validation, summary) = blocking(move || {
         (

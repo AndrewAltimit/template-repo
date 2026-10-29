@@ -50,7 +50,7 @@ mcp__crush__consult_crush(query="Write a function to validate emails")
 opencode    # or: crush
 
 # Single query
-opencode run -q "Write a binary search function"
+opencode run --standalone -m openrouter/particle-ai/particle-1 "Write a binary search function"
 crush run -q "Explain this regex pattern"
 ```
 
@@ -61,7 +61,7 @@ crush run -q "Explain this regex pattern"
 docker compose up -d mcp-opencode mcp-crush
 
 # Run via container
-docker compose run --rm openrouter-agents opencode run -q "your prompt"
+docker compose run --rm openrouter-agents opencode run --standalone -m openrouter/particle-ai/particle-1 "your prompt"
 ```
 
 ## Health Checks

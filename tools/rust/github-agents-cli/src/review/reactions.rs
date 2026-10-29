@@ -64,7 +64,7 @@ pub async fn fetch_reaction_config(config_url: Option<&str>) -> Result<ReactionC
 
 fn parse_reaction_config(yaml: &str) -> Result<ReactionConfig> {
     let raw: RawReactionConfig =
-        serde_yaml::from_str(yaml).map_err(|e| Error::Config(format!("Invalid YAML: {}", e)))?;
+        serde_norway::from_str(yaml).map_err(|e| Error::Config(format!("Invalid YAML: {}", e)))?;
     let reactions: HashMap<String, String> = raw
         .reaction_images
         .into_iter()

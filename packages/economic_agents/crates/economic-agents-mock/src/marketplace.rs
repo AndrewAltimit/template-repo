@@ -6,8 +6,8 @@ use economic_agents_interfaces::{
     EconomicAgentError, EntityId, Marketplace, Result, Skill, SubmissionStatus, Task, TaskCategory,
     TaskFilter, TaskStatus, TaskSubmission,
 };
-use rand::Rng;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
+use rand::{Rng, RngExt};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -34,12 +34,12 @@ impl MockMarketplace {
 
     /// Generate random tasks for simulation.
     pub async fn generate_tasks(&self, count: usize) {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut tasks = self.tasks.write().await;
 
         for i in 0..count {
             let id = Uuid::new_v4();
-            let category = match rng.r#gen_range(0..7) {
+            let category = match rng.random_range(0..7) {
                 0 => TaskCategory::Coding,
                 1 => TaskCategory::CodeReview,
                 2 => TaskCategory::Documentation,
@@ -61,9 +61,9 @@ impl MockMarketplace {
                     i + 1
                 ),
                 category,
-                reward: rng.r#gen_range(10.0..100.0),
-                estimated_hours: rng.r#gen_range(1.0..8.0),
-                difficulty: rng.r#gen_range(0.1..0.9),
+                reward: rng.random_range(10.0..100.0),
+                estimated_hours: rng.random_range(1.0..8.0),
+                difficulty: rng.random_range(0.1..0.9),
                 required_skills,
                 deadline: None,
                 status: TaskStatus::Available,
@@ -189,8 +189,8 @@ impl Marketplace for MockMarketplace {
         // quality score in [0.7, 1.0), and the reward is scaled by it.
         if submission.status == SubmissionStatus::Pending {
             let quality = {
-                let mut rng = rand::thread_rng();
-                rng.r#gen_range(0.7..1.0)
+                let mut rng = rand::rng();
+                rng.random_range(0.7..1.0)
             };
 
             submission.status = SubmissionStatus::Approved;
@@ -299,11 +299,8 @@ fn generate_skills_for_category<R: Rng>(category: TaskCategory, rng: &mut R) -> 
     }
 
     // Pick 1-3 random skills
-    let count = rng.r#gen_range(1..=3.min(possible_skills.len()));
-    possible_skills
-        .choose_multiple(rng, count)
-        .copied()
-        .collect()
+    let count = rng.random_range(1..=3.min(possible_skills.len()));
+    possible_skills.sample(rng, count).copied().collect()
 }
 
 /// Get human-readable category name.

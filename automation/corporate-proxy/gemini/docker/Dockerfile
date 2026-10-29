@@ -18,7 +18,7 @@ RUN git clone https://github.com/google-gemini/gemini-cli.git && \
     fi
 
 # Stage 2: Build Gemini CLI
-FROM node:20 AS builder
+FROM node:22-bookworm AS builder
 
 # Copy and run corporate certificate installation script (as root)
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
@@ -42,7 +42,7 @@ RUN npm ci
 RUN npm run build
 
 # Stage 3: Runtime container
-FROM node:20-slim
+FROM node:22-bookworm-slim
 
 # Copy and run corporate certificate installation script (as root)
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh

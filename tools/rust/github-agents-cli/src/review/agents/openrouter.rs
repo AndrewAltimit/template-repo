@@ -12,7 +12,7 @@ use crate::error::{Error, Result};
 use crate::utils::truncate_str;
 
 /// Default model for OpenRouter reviews
-const DEFAULT_MODEL: &str = "qwen/qwen3.7-max";
+const DEFAULT_MODEL: &str = "particle-ai/particle-1";
 
 /// OpenRouter API endpoint
 const OPENROUTER_API_URL: &str = "https://openrouter.ai/api/v1/chat/completions";

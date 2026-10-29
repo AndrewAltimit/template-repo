@@ -26,32 +26,32 @@ authors = ["AndrewAltimit"]
 
 [workspace.dependencies]
 # Async runtime
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.54", features = ["full"] }
 async-trait = "0.1"
 futures = "0.3"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_yaml = "0.9"
+serde_norway = "0.9"
 
 # HTTP/API
-axum = { version = "0.7", features = ["ws"] }
-reqwest = { version = "0.12", features = ["json"] }
-tower-http = { version = "0.6", features = ["cors", "trace"] }
+axum = { version = "0.8", features = ["ws"] }
+reqwest = { version = "0.13", features = ["json"] }
+tower-http = { version = "0.7", features = ["cors", "trace"] }
 
 # Database/State
-uuid = { version = "1.10", features = ["v4", "serde"] }
+uuid = { version = "1.29", features = ["v4", "serde"] }
 
 # Random
-rand = "0.8"
+rand = "0.10"
 
 # Logging/Tracing
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # CLI
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 
 # Error handling
 thiserror = "2.0"
@@ -62,7 +62,7 @@ chrono = { version = "0.4", features = ["serde"] }
 humantime-serde = "1.1"
 
 # Testing
-axum-test = "16.0"
+axum-test = "21.1"
 tempfile = "3"
 
 # Unix process resource limits (reviewer hardening)

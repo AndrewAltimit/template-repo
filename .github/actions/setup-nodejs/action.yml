@@ -5,7 +5,7 @@ inputs:
   node-version:
     description: 'Node.js version to use'
     required: false
-    default: '22.16.0'
+    default: '26.13.0'
   verify-cli:
     description: 'Comma-separated list of CLI tools to verify (e.g. claude)'
     required: false

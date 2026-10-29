@@ -48,7 +48,7 @@ This project uses **self-hosted runners exclusively** to:
    sudo apt-get install git
    ```
 
-4. **Node.js** (v22.16.0) via nvm
+4. **Node.js** (v26.13.0, the current LTS) via nvm
 
    ```bash
    # Install nvm
@@ -56,16 +56,25 @@ This project uses **self-hosted runners exclusively** to:
    source ~/.bashrc
 
    # Install Node.js
-   nvm install 22.16.0
-   nvm use 22.16.0
+   nvm install 26.13.0
+   nvm use 26.13.0
    ```
 
 5. **Python** (v3.11+)
 
    ```bash
    # Only needed for running helper scripts
-   # All Python CI/CD operations run in containers with Python 3.11
+   # All Python CI/CD operations run in containers with Python 3.13
    python3 --version
+   ```
+
+6. **NVIDIA driver** (v580+, GPU hosts only)
+
+   The GPU images (sleeper-agents evaluation, ComfyUI, AI Toolkit) are built on
+   CUDA 13.0, which needs driver 580 or newer plus the NVIDIA Container Toolkit.
+
+   ```bash
+   nvidia-smi --query-gpu=driver_version --format=csv,noheader
    ```
 
 ## GitHub Actions Runner Installation
@@ -197,7 +206,7 @@ The CI/CD system prevents Python cache issues by:
 - Setting `PYTHONPYCACHEPREFIX=/tmp/pycache` to redirect cache
 - Disabling pytest cache via `pytest.ini` configuration (`-p no:cacheprovider`)
 - Running containers with proper user permissions
-- Using Python 3.11 slim base image for consistency
+- Using Python 3.13 slim base image for consistency
 
 ### Docker Build Failures
 

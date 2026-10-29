@@ -2,18 +2,20 @@
 name = "agentcore-strands-runtime"
 version = "0.1.0"
 description = "Strands-based AI agent runtime for AWS Bedrock AgentCore"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 
 dependencies = [
-    "strands-agents>=0.1.0",
-    "bedrock-agentcore>=0.1.0",
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.32.0",
-    "pydantic>=2.0.0",
-    "httpx>=0.27.0",
-    "opentelemetry-distro>=0.49b0",
-    "opentelemetry-exporter-otlp>=1.28.0",
-    "aws-opentelemetry-distro>=0.10.1",
+    "strands-agents>=1.62.0",
+    "bedrock-agentcore>=1.25.1",
+    "fastapi>=0.162.0",
+    "uvicorn[standard]>=0.54.0",
+    "pydantic>=2.14.1",
+    "httpx>=0.28.1",
+    # aws-opentelemetry-distro 0.21.0 pins opentelemetry 1.44.0 / 0.65b0 exactly,
+    # so these floors stay on that line rather than the newest OTel release.
+    "opentelemetry-distro>=0.65b0",
+    "opentelemetry-exporter-otlp>=1.44.0",
+    "aws-opentelemetry-distro>=0.21.0",
 ]
 
 [build-system]

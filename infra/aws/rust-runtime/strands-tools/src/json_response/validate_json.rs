@@ -36,7 +36,7 @@ impl ValidateJsonTool {
             Ok(v) => v,
             Err(e) => {
                 return Err(vec![format!("Invalid JSON syntax: {}", e)]);
-            }
+            },
         };
 
         // Then validate against schema. If the validator failed to compile, we
@@ -52,14 +52,14 @@ impl ValidateJsonTool {
                     let error_messages = vec![error.to_string()];
                     return Err(error_messages);
                 }
-            }
+            },
             None => {
                 return Err(vec![
                     "Schema validator unavailable (the expected schema failed to compile); \
                      cannot validate the response."
                         .to_string(),
                 ]);
-            }
+            },
         }
 
         Ok(value)
@@ -118,7 +118,7 @@ impl Tool for ValidateJsonTool {
                     "Missing required parameter 'json_response'. \
                      Please provide the JSON response as a string.",
                 ));
-            }
+            },
         };
 
         debug!(
@@ -149,7 +149,7 @@ impl Tool for ValidateJsonTool {
                      Please fix these errors and call validate_json again with the corrected JSON.",
                     attempt, self.state.max_attempts, error_list
                 )))
-            }
+            },
         }
     }
 }
@@ -232,7 +232,9 @@ mod tests {
 
         let result = tool.validate(r#"{"anything": true}"#);
         let errors = result.expect_err("validation must fail when schema is unavailable");
-        assert!(errors.iter().any(|e| e.contains("Schema validator unavailable")));
+        assert!(errors
+            .iter()
+            .any(|e| e.contains("Schema validator unavailable")));
     }
 
     #[tokio::test]

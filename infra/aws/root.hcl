@@ -1,4 +1,6 @@
-# Root terragrunt.hcl - Common configuration for all AWS modules
+# root.hcl - Common configuration for all AWS modules
+# (named root.hcl rather than terragrunt.hcl: Terragrunt deprecated including a
+# root terragrunt.hcl via a bare find_in_parent_folders())
 #
 # This file is included by all module terragrunt.hcl files and provides:
 # - Remote state configuration (S3 + DynamoDB)
@@ -41,12 +43,12 @@ generate "provider" {
   if_exists = "overwrite_terragrunt"
   contents  = <<EOF
 terraform {
-  required_version = ">= 1.5"
+  required_version = ">= 1.10"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
     awscc = {
       source  = "hashicorp/awscc"

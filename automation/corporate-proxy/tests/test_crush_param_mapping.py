@@ -125,16 +125,16 @@ class TestCrushParamMapping(unittest.TestCase):
         crush_formatted = format_tool_calls_for_openai(tool_calls, apply_opencode_mappings=False)
         crush_args = json.loads(crush_formatted[0]["function"]["arguments"])
 
-        # OpenCode should have camelCase
-        self.assertIn("filePath", opencode_args)
+        # OpenCode 2.x takes `path`
+        self.assertIn("path", opencode_args)
         self.assertNotIn("file_path", opencode_args)
 
         # Crush should have snake_case
         self.assertIn("file_path", crush_args)
-        self.assertNotIn("filePath", crush_args)
+        self.assertNotIn("path", crush_args)
 
         # Values should be the same
-        self.assertEqual(opencode_args["filePath"], crush_args["file_path"])
+        self.assertEqual(opencode_args["path"], crush_args["file_path"])
         self.assertEqual(opencode_args["content"], crush_args["content"])
 
     def test_streaming_with_preservation(self):

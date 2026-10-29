@@ -53,7 +53,7 @@ automation-cli ci doctor                        # Validate stage references and 
 | `lint-shell` | `shellcheck -S warning` on every `*.sh` |
 | `ruff` / `ruff-fix` | `ruff check` (GitHub annotations) / `ruff check --fix` |
 | `bandit` | Bandit security scan |
-| `security` | Bandit (medium+ severity fails) + dependency audit (Safety if `SAFETY_API_KEY` is set, else pip-audit; advisory) |
+| `security` | Bandit (medium+ severity fails) + dependency audit (pip-audit; advisory) |
 | `test` | pytest `tests/` + `automation/corporate-proxy/tests/` with coverage, plus proxy component scripts |
 | `test-all` | pytest `tests/` with coverage |
 | `test-gaea2` | `cargo test` for `tools/mcp/mcp_gaea2` (rust-ci), then a live `/health` check of `$GAEA2_MCP_URL` (default `http://192.168.0.152:8007`; unreachable = warning) |

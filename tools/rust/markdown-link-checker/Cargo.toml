@@ -20,19 +20,19 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI parsing
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 
 # Async runtime
-tokio = { version = "1.43", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "sync", "time"] }
 
 # HTTP client
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 
 # Markdown parsing (library only, no CLI/HTML renderer)
 pulldown-cmark = { version = "0.13", default-features = false }
 
 # Regex for ignore patterns and HTML attribute scanning
-regex = "1.11"
+regex = "1.13"
 
 # Serialization (JSON output)
 serde = { version = "1.0", features = ["derive"] }
@@ -52,9 +52,9 @@ ignore = "0.4"
 percent-encoding = "2.3"
 
 [dev-dependencies]
-tempfile = "3.10"
+tempfile = "3.27"
 wiremock = "0.6"
-tokio = { version = "1.43", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "sync", "time"] }
 
 [profile.release]
 opt-level = "z"

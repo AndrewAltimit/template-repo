@@ -10,7 +10,7 @@
 
 # Stage 1: Build the Rust binary
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,9 +32,9 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 
 # Pinned Crush CLI release (checksums verified below).
-ARG CRUSH_VERSION=0.30.0
-ARG CRUSH_CHECKSUM_AMD64=8497f7ed533e93ec27d478afeca33e1157faafb83c37ea2d5dbdaa2dee9abd1d
-ARG CRUSH_CHECKSUM_ARM64=810673903482180dc37e04254c61edf770383c0d927de10783fd42fed6e2e770
+ARG CRUSH_VERSION=0.98.2
+ARG CRUSH_CHECKSUM_AMD64=ebc8fb462c0ed749e6bfd66c08c4e5a1408ac477b72f52c831d86d1a419a53b8
+ARG CRUSH_CHECKSUM_ARM64=151fb5f109e7277bd2462839b9b92de0409db785fd50b8c80697192f4fb0da9d
 
 # Install runtime dependencies (git is used by crush for repo awareness)
 RUN apt-get update && apt-get install -y --no-install-recommends \

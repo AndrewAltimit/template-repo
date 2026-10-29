@@ -73,8 +73,8 @@ All Build operations communicate with the GPU Orchestrator API running on the Wi
 ### Method 2: Docker
 
 ```bash
-# Build image
-docker build -t sleeper-dashboard:latest .
+# Build image (context is the package root so src/ is included)
+docker build -t sleeper-dashboard:latest -f Dockerfile ..
 
 # Run container
 docker run -d \

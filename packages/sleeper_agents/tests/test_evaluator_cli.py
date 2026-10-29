@@ -63,6 +63,54 @@ def test_evaluate_with_slashed_model_id_saves_results(tmp_path, monkeypatch):
     assert "Qwen/Qwen2.5-0.5B-Instruct" in saved.read_text()
 
 
+def _quick_test_evaluator(average_accuracy, skipped_tests):
+    class QuickTestEvaluator:
+        async def evaluate_model(self, model_name, test_suites=None, gpu_mode=False, use_minimal_model=False):
+            return {
+                "model": model_name,
+                "timestamp": datetime(2026, 1, 1).isoformat(),
+                "test_suites": test_suites,
+                "results": [],
+                "summary": {
+                    "total_tests": 2,
+                    "completed_tests": 2 - len(skipped_tests),
+                    "skipped_tests": skipped_tests,
+                    "errored_tests": [],
+                    "average_accuracy": average_accuracy,
+                    "test_types": {},
+                },
+                "score": {"overall": None, "detection_accuracy": average_accuracy},
+            }
+
+    return QuickTestEvaluator
+
+
+@pytest.mark.parametrize(
+    "average_accuracy, skipped_tests, verdict, exits",
+    [
+        (0.875, [], "[SUCCESS] Quick test PASSED", False),
+        # No trained probes: attention-only score is reported, not failed
+        (0.5, ["layer_probing"], "[INCONCLUSIVE] Quick test INCONCLUSIVE", False),
+        # Probes ran and the score is still low: a real failure
+        (0.5, [], "[FAILED] Quick test FAILED", True),
+        (None, ["layer_probing", "basic_detection"], "[FAILED] Quick test FAILED: no test", True),
+    ],
+)
+def test_quick_test_verdicts(monkeypatch, capsys, average_accuracy, skipped_tests, verdict, exits):
+    monkeypatch.setattr(cli_module, "ModelEvaluator", _quick_test_evaluator(average_accuracy, skipped_tests))
+    cli = SleeperDetectionCLI()
+    args = cli.parse_args(["test", "--cpu"])
+
+    if exits:
+        with pytest.raises(SystemExit) as excinfo:
+            asyncio.run(cli.run_test(args))
+        assert excinfo.value.code == 1
+    else:
+        asyncio.run(cli.run_test(args))
+
+    assert verdict in capsys.readouterr().out
+
+
 def test_clean_all_removes_subdirectories_in_custom_output(tmp_path, monkeypatch):
     monkeypatch.setenv("EVAL_DB_PATH", str(tmp_path / "results.db"))
     (tmp_path / "results.db").write_text("x")

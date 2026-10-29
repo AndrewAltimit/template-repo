@@ -1,10 +1,10 @@
 # Multi-stage build for ComfyUI with Rust MCP server (ARM64/aarch64 version)
 # Uses NVIDIA NGC PyTorch image which includes CUDA support for ARM64
 # Standard pytorch.org wheels only provide CPU builds for ARM64
-# Using 25.11 for Blackwell (sm_120/121) support
+# Using 26.09 (Blackwell sm_120/121 support since 25.11)
 
 # Stage 1: Build the Rust MCP binary
-FROM rust:1.93 AS builder
+FROM rust:1.99-bookworm AS builder
 
 WORKDIR /build
 
@@ -19,7 +19,7 @@ WORKDIR /build/tools/mcp/mcp_comfyui
 RUN cargo build --release
 
 # Stage 2: Runtime image with ComfyUI and CUDA (ARM64)
-FROM nvcr.io/nvidia/pytorch:25.11-py3
+FROM nvcr.io/nvidia/pytorch:26.09-py3
 
 # Install additional system dependencies
 # Note: libgl1-mesa-glx renamed to libgl1 in Ubuntu 24.04+
@@ -39,9 +39,10 @@ RUN python3 -c "import torch; print(f'PyTorch {torch.__version__} with CUDA {tor
 # Set working directory
 WORKDIR /workspace
 
-# Clone ComfyUI (latest version)
-# To pin to a specific version, add: git checkout <commit-hash>
-RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /comfyui
+# Clone ComfyUI pinned to a release (v0.43.1), same commit as comfyui.Dockerfile
+ARG COMFYUI_COMMIT=086099f5d8886163ef77dc354f8382cb7431582a
+RUN git clone https://github.com/Comfy-Org/ComfyUI.git /comfyui && \
+    git -C /comfyui checkout ${COMFYUI_COMMIT}
 
 # Install ComfyUI requirements (excluding torch/torchvision/torchaudio to preserve NGC's CUDA-enabled PyTorch)
 WORKDIR /comfyui
@@ -49,17 +50,30 @@ RUN grep -vE "^torch$|^torchvision$|^torchaudio$" requirements.txt > requirement
     pip3 install --no-cache-dir -r requirements-filtered.txt && \
     rm requirements-filtered.txt
 
-# Install custom nodes (using latest versions)
+# Install custom nodes, each pinned to the same commits as comfyui.Dockerfile.
+# Nodes without a requirements.txt (IPAdapter_plus, AnimateDiff-Evolved, WAS)
+# have no pip dependencies of their own; WAS lists only optional extras in its
+# CONFIG.md. IPAdapter_plus's FaceID models additionally need insightface,
+# which is not installed; the regular IPAdapter nodes work without it.
 WORKDIR /comfyui/custom_nodes
-RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
-    cd ComfyUI-Manager && \
-    pip3 install --no-cache-dir -r requirements.txt
+# ComfyUI-Manager must live in custom_nodes/comfyui-manager (see its README)
+ARG COMFYUI_MANAGER_COMMIT=8afdee041650a18e7b66b88a06668c7b684d7c6f
+ARG IPADAPTER_PLUS_COMMIT=a0f451a5113cf9becb0847b92884cb10cbdec0ef
+ARG ANIMATEDIFF_EVOLVED_COMMIT=9257651221002dcba0a12f9cff37e1944e58fb60
+ARG EFFICIENCY_NODES_COMMIT=4579b7d6076b2870998a08f5d37883fbc8261ff2
+ARG WAS_NODE_SUITE_COMMIT=7f30cf0f8fa62237900f21772857f1ec8014a538
+RUN git clone https://github.com/Comfy-Org/ComfyUI-Manager.git comfyui-manager && \
+    git -C comfyui-manager checkout ${COMFYUI_MANAGER_COMMIT} && \
+    pip3 install --no-cache-dir -r comfyui-manager/requirements.txt
 RUN git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus.git && \
-    cd ComfyUI_IPAdapter_plus && \
-    pip3 install --no-cache-dir -r requirements.txt || true
-RUN git clone https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved.git
-RUN git clone https://github.com/jags111/efficiency-nodes-comfyui.git
-RUN git clone https://github.com/WASasquatch/was-node-suite-comfyui.git
+    git -C ComfyUI_IPAdapter_plus checkout ${IPADAPTER_PLUS_COMMIT}
+RUN git clone https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved.git && \
+    git -C ComfyUI-AnimateDiff-Evolved checkout ${ANIMATEDIFF_EVOLVED_COMMIT}
+RUN git clone https://github.com/jags111/efficiency-nodes-comfyui.git && \
+    git -C efficiency-nodes-comfyui checkout ${EFFICIENCY_NODES_COMMIT} && \
+    pip3 install --no-cache-dir -r efficiency-nodes-comfyui/requirements.txt
+RUN git clone https://github.com/WASasquatch/was-node-suite-comfyui.git && \
+    git -C was-node-suite-comfyui checkout ${WAS_NODE_SUITE_COMMIT}
 
 # Create directories
 RUN mkdir -p /comfyui/models/checkpoints \

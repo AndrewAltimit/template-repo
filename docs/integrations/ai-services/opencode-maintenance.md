@@ -1,196 +1,145 @@
-# Corporate Proxy - OpenCode Integration Maintenance Guide
+# OpenCode Maintenance Guide
 
 ## Overview
 
-This document addresses maintenance concerns and patterns identified during code review, helping future developers understand and maintain the OpenCode integration within the unified corporate proxy system.
+This repo uses the upstream OpenCode CLI ([anomalyco/opencode](https://github.com/anomalyco/opencode), formerly
+`sst/opencode`) in three places. All of them track the same release, currently **2.2.1** (2.x is upstream's current
+major line; 1.19.x only receives maintenance releases).
 
-## Critical Dependencies and Update Procedures
+| Where | How OpenCode gets there | Pin |
+|-------|-------------------------|-----|
+| `docker/mcp-opencode.Dockerfile` | Release tarball `opencode-linux-<arch>.tar.gz`, checksum-verified. The Rust MCP server does not call the CLI; the binary is shipped for `openrouter-agents`, which copies `/usr/local/bin/opencode`. | `OPENCODE_VERSION`, `OPENCODE_CHECKSUM_AMD64/ARM64` |
+| `automation/corporate-proxy/opencode/docker/Dockerfile` | Release tarball `opencode-linux-<arch>-musl.tar.gz` (default), or built from the release tag with upstream's build script (`--build-arg OPENCODE_BUILD=source`). | `OPENCODE_VERSION`, `OPENCODE_CHECKSUM_AMD64/ARM64` |
+| `tools/cli/containers/run_opencode_simple.sh` | npm package `@opencode/cli` (2.x; the old `opencode-ai` package only carries 1.x). | `OPENCODE_VERSION` in the script |
 
-### 1. OpenCode Version Updates
+## Updating OpenCode
 
-The integration patches specific OpenCode source files. When updating OpenCode:
-
-1. **Update the version** in `automation/corporate-proxy/opencode/docker/Dockerfile`:
-   ```dockerfile
-   ARG OPENCODE_VERSION=<new-commit-hash>
-   ```
-
-2. **Test patch compatibility**:
+1. Pick the release and read its notes for CLI, config, and tool changes:
    ```bash
-   # Build with new version
-   cd automation/corporate-proxy/opencode
-   docker build --build-arg OPENCODE_VERSION=<hash> -f docker/Dockerfile -t test-update .
+   gh api repos/anomalyco/opencode/releases --jq '.[] | select(.tag_name|startswith("v")) | .tag_name' | head
    ```
+2. Take the checksums from the release's `SHA256SUMS` asset:
+   ```bash
+   curl -fsSL https://github.com/anomalyco/opencode/releases/download/v<version>/SHA256SUMS | grep 'opencode-linux'
+   ```
+   - mcp-opencode: `opencode-linux-x64.tar.gz` and `opencode-linux-arm64.tar.gz`
+   - corporate proxy: `opencode-linux-x64-musl.tar.gz` and `opencode-linux-arm64-musl.tar.gz`
+3. Update the three pins above, then build and check:
+   ```bash
+   docker compose build mcp-opencode
+   docker compose run --rm --no-deps mcp-opencode opencode --version
+   docker compose --profile proxy build opencode-proxy
+   docker compose --profile proxy run --rm opencode-proxy opencode run "say hello"
+   # Expected: "Hello! I'm running through a mock API. How can I help you today?"
+   ```
+4. Run the corporate proxy tests (`automation-cli ci run test-corporate-proxy`). If OpenCode changed its built-in
+   tools, recapture their schema (see [Tool schema](#tool-schema)) and update the mappings.
 
-3. **If patches fail**, examine the upstream changes and update:
-   - `automation/corporate-proxy/opencode/docker/patches/models-company-simple.ts` - Models limiting logic
-   - `automation/corporate-proxy/opencode/docker/patches/tui-company-fix.ts` - TUI binary path resolution
-   - `automation/corporate-proxy/opencode/docker/patches/company-override.json` - Provider configuration
+## Corporate Proxy Integration
 
-### 2. Path Dependencies
+The proxy image routes OpenCode to the Company API through the shared translation layer
+(`automation/corporate-proxy/shared/services/translation_wrapper.py`, port 8052) and, for local testing, the mock
+Company API (`unified_tool_api.py`, port 8050).
 
-The following files have tightly coupled path dependencies that must be updated together:
+### Configuration instead of source patches
 
-| Component | File | Hardcoded Path | Notes |
-|-----------|------|----------------|-------|
-| TUI Binary | `automation/corporate-proxy/opencode/docker/patches/tui-company-fix.ts` | `/home/bun/.cache/opencode/tui/tui-linux-x64` | Must match Dockerfile COPY destination |
-| Config | `automation/corporate-proxy/opencode/docker/Dockerfile` | `/home/bun/.config/opencode/.opencode.json` | Referenced by entrypoint script |
-| TUI Cache | `automation/corporate-proxy/opencode/docker/Dockerfile` | `/home/bun/.cache/opencode/tui/` | Directory structure for TUI binaries |
+The 1.0.x image cloned OpenCode at a fixed tag and overwrote upstream source files before a hand-rolled `bun build`.
+That broke whenever upstream moved files, and it eventually stopped building at all. OpenCode 2.x supports everything
+those overlays did through its configuration, so the image no longer patches source:
 
-**WARNING**: If you change any path in the Dockerfile, update the corresponding patch files.
+| Former overlay | What it did | 2.x replacement |
+|----------------|-------------|-----------------|
+| `shared/patches/models-company-simple.ts` (over `src/provider/models.ts`) plus `company-override.json` | Replaced the models.dev catalog with a static "openrouter" provider pointing at `http://localhost:8052/v1` and three Company models | `config/opencode.jsonc`: a custom `company` provider (`@opencode/ai/providers/openai-compatible`, `settings.baseURL` from `COMPANY_PROXY_BASE_URL`) with the same three models, plus `policies` that deny every other provider. `OPENCODE_DISABLE_MODELS_FETCH=1` stops catalog fetches. |
+| `shared/patches/tui-company-fix.ts` (over `src/cli/cmd/tui.ts`) | Located a separately built Go TUI binary | Not needed: the 2.x TUI is part of the single CLI binary, so the Go build stage is gone too. |
 
-## Security Considerations
+The image installs `config/opencode.jsonc` as `/etc/opencode/opencode.jsonc`, OpenCode's managed (system)
+configuration on Linux. Managed settings load last, so user or project `opencode.json` files cannot re-enable other
+providers. It also sets `"update": "disable"` and `"share": "disabled"`.
 
-### API Key Management
+### Building from source
 
-The current implementation uses a mock API key (`sk-company-mock-api-key-123`) hardcoded in the Dockerfile for convenience. This is acceptable because:
+`--build-arg OPENCODE_BUILD=source` follows the `build-cli` job of upstream's `.github/workflows/release.yml`: Bun
+1.4.4 (the root `packageManager`), `bun install --frozen-lockfile`, a models.dev snapshot fetched with
+`packages/core/script/update-models-snapshot.ts`, then `bun run build` in `packages/cli` with
+`OPENCODE_TARGET=linux-<arch>-musl` so only the one target is built. It needs network access to GitHub, npm and
+models.dev, and several GB of memory and disk. Use it only when policy requires building from source; otherwise use
+the default release tarball.
 
-1. **Mock key is non-functional** - Only works with mock services
-2. **Production keys are injected** - Real keys come from environment variables
-3. **Scripts override defaults** - All run scripts properly set credentials
+### Tool schema
 
-#### Best Practices for Production
+The Company API has no native tool calling, so the wrapper injects tool instructions into the prompt and parses tool
+calls out of the answer (see `automation/corporate-proxy/opencode/patches/fix-tool-execution.md`). That path depends on
+OpenCode's tool names and parameters:
 
-For maximum security in production environments:
+- `shared/configs/opencode_param_mappings.json`: `tool_renames` (for example `bash` to `shell`) and
+  `parameter_mappings` (2.x `read`/`write`/`edit` take `path`, not 1.x `filePath`; `shell` has no `description`).
+- `shared/services/tool_prompts.py`: the OpenCode prompt examples (`Write(path=...)`, `Shell(command=...)`).
+- `shared/configs/tool_config.json`: the parser's tool allow list (includes `shell`).
+- `tests/test_opencode_param_mapping.py`: `OPENCODE_TOOL_SCHEMA` holds the parameters OpenCode 2.2.1 declares and
+  every mapping target is checked against it.
 
-1. **Never commit real API keys**
-2. **Use secrets management** (Docker secrets, Kubernetes secrets, etc.)
-3. **Rotate keys regularly**
-4. **Audit container startup logs** to ensure no key leakage
+To recapture the schema after an upgrade, point a provider at any OpenAI-compatible endpoint that logs request bodies
+and look at the `tools` array OpenCode sends with a `opencode run` request.
 
-#### Alternative Approach (More Secure)
+### Paths and environment
 
-If you need enhanced security, modify the entrypoint to always inject the key:
+| Item | Value |
+|------|-------|
+| Managed config | `/etc/opencode/opencode.jsonc` (from `automation/corporate-proxy/opencode/config/opencode.jsonc`) |
+| OpenCode state | `$HOME/.local/share/opencode`; `start-services.sh` falls back to `HOME=/tmp/opencode-home` when the container runs as a UID that cannot write `HOME` |
+| OpenCode to wrapper | `COMPANY_PROXY_BASE_URL` (default `http://localhost:8052/v1`), `COMPANY_PROXY_API_KEY` (placeholder; the wrapper does not check it) |
+| Wrapper to Company API | `COMPANY_API_BASE`, `COMPANY_API_TOKEN`; the mock is only started when `COMPANY_API_BASE` is the local mock address |
+| Service logs | `/tmp/logs/mock_api.log`, `/tmp/logs/translation_wrapper.log` |
 
-```bash
-# In docker/entrypoints/opencode-entrypoint.sh
-CONFIG_FILE="/home/bun/.config/opencode/.opencode.json"
-if [ -n "$OPENROUTER_API_KEY" ]; then
-    # Create config with runtime key instead of using hardcoded
-    cat > "$CONFIG_FILE" <<EOF
-{
-  "provider": {
-    "openrouter": {
-      "options": {
-        "apiKey": "$OPENROUTER_API_KEY"
-      }
-    }
-  },
-  "model": "openrouter/anthropic/claude-3.5-sonnet"
-}
-EOF
-fi
-```
+## OpenCode 2.x behavior to keep in mind
 
-## Maintenance Checklist
+- **Background service.** `opencode` and `opencode run` talk to a background server they start on demand. It keeps
+  the environment it was started with and keeps running after the command exits. Automation passes `--standalone` so
+  each run gets a private server with the caller's environment (`github-agents-cli`, the `board-agent-work` action,
+  `tools/cli` scripts).
+- **Prompt on stdin.** `opencode run` reads the prompt from stdin when no message argument is given.
+- **Model selection.** `-m provider/model`; OpenRouter models are `openrouter/<vendor>/<model>`. Without `-m`, the CLI
+  falls back to its own default, which may not be an OpenRouter model, so automation always passes one.
+- **Permissions.** The default policy allows everything except reading `.env` files. In `run`, any permission request
+  that would prompt is rejected unless `--auto` is given.
+- **Network.** The binary uses the system CA store (`install-corporate-certs.sh` adds corporate CAs there) and honors
+  `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY`; keep loopback in `NO_PROXY`, because the CLI reaches its server over
+  localhost. `NODE_EXTRA_CA_CERTS` also works.
 
-### Monthly Tasks
-- [ ] Check for OpenCode updates
-- [ ] Review security advisories
-- [ ] Test with latest base images
-
-### When Updating OpenCode
-- [ ] Pin new version hash in Dockerfile
-- [ ] Test all patches apply cleanly
-- [ ] Verify TUI functionality
-- [ ] Test mock mode
-- [ ] Test production mode
-- [ ] Update this documentation if needed
-
-### When Modifying Paths
-- [ ] Update Dockerfile COPY destinations
-- [ ] Update patch files with new paths
-- [ ] Update entrypoint script path references
-- [ ] Test complete build and runtime
-
-## Known Limitations and Trade-offs
-
-### 1. Patch-Based Approach
-
-**Trade-off**: Patches vs Fork
-- **Current**: Patches allow quick updates but may break
-- **Alternative**: Fork provides control but requires maintenance
-- **STRONG RECOMMENDATION**: Create a fork for production use
-  - Patches are brittle and tightly coupled to OpenCode internals
-  - TUI patch especially fragile (hardcoded paths)
-  - Fork would eliminate surprise breakage from upstream changes
-  - Short-term pain (fork setup) for long-term gain (stability)
-
-### 2. Simulated Streaming
-
-**Limitation**: Response buffering
-- Company API doesn't support streaming
-- Wrapper simulates SSE format but buffers complete response
-- Users may experience delay for long responses
-
-### 3. Architecture-Specific Builds
-
-**Optimization**: Single architecture per image
-- Reduces image size by ~50%
-- Requires building for target platform
-- Use `--platform` flag for cross-platform builds
-
-## Troubleshooting Guide
-
-### Common Issues
-
-1. **TUI fails to start**
-   - Check: TUI binary exists at `/home/bun/.cache/opencode/tui/tui-linux-x64`
-   - Check: Binary has execute permissions
-   - Check: Architecture matches (amd64 vs arm64)
-
-2. **API calls fail**
-   - Check: Wrapper port configuration matches
-   - Check: Services started successfully (check logs)
-   - Check: Config file updated with correct port
-
-3. **Patches fail to apply**
-   - OpenCode source has changed
-   - Need to update patch files
-   - Consider creating a fork
-
-### Debug Commands
+## Troubleshooting
 
 ```bash
-# Check service status inside container
-ps aux | grep -E '(mock_company|translation_wrapper)'
+# Services inside the proxy container
+docker compose --profile proxy run --rm opencode-proxy bash
+curl -fsS http://localhost:8052/health
+tail -f /tmp/logs/translation_wrapper.log
 
-# View service logs
-tail -f /tmp/mock_api.log
-tail -f /tmp/wrapper.log
+# Models OpenCode can use (should list only company/*)
+opencode models
 
-# Test wrapper directly
-curl -X POST http://localhost:${WRAPPER_PORT:-8052}/v1/chat/completions \
+# Configuration sources the server loaded (managed file first)
+opencode --standalone debug config
+
+# Data, config and cache directories
+opencode debug paths
+
+# Test the wrapper directly
+curl -X POST http://localhost:8052/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"company/claude-3.5-sonnet","messages":[{"role":"user","content":"test"}]}'
-
-# Check OpenCode configuration
-cat /home/bun/.config/opencode/.opencode.json
+  -d '{"model":"claude-3.5-sonnet","messages":[{"role":"user","content":"test"}]}'
 ```
 
-## Future Improvements
-
-### High Priority
-1. **CREATE OPENCODE FORK** - Critical for production stability
-   - Current patches are brittle and will break with updates
-   - Fork provides control over integration points
-   - Strongly recommended by multiple code reviews
-2. **Implement true streaming** - If company API adds support
-3. **Monitor patch compatibility** - Until fork is created
-
-### Nice to Have
-1. **Multi-stage config** - Separate dev/staging/prod configs
-2. **Metrics collection** - Track usage and performance
-3. **Automated testing** - CI/CD for patch compatibility
+- **`Model unavailable: <provider>/<model>`**: the provider is denied by the managed policy (expected for anything
+  but `company/*`) or the model ID is not in `opencode.jsonc`.
+- **Tool calls not executed**: check the wrapper log for `Found N tool calls in text` and
+  `Rejected unauthorized tool call`; the tool name or parameters probably no longer match OpenCode's schema.
+- **`Model not found` from the wrapper (404)**: the model ID in `opencode.jsonc` has no entry in
+  `shared/configs/models.json`.
 
 ## References
 
-- [OpenCode Repository](https://github.com/sst/opencode)
-- [Corporate Proxy Documentation](../../../automation/corporate-proxy/README.md)
-- [OpenCode Integration](../../../automation/corporate-proxy/opencode/README.md)
-- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
-
----
-
-*Last Updated: 2024*
-*Maintainer: AI Agent Collaboration Team*
+- [OpenCode repository](https://github.com/anomalyco/opencode)
+- OpenCode docs: [providers](https://opencode.ai/v2/docs/providers), [policies](https://opencode.ai/v2/docs/policies),
+  [network](https://opencode.ai/v2/docs/network), [migrating from 1.x](https://opencode.ai/v2/docs/migrate-v1)
+- [Corporate proxy documentation](../../../automation/corporate-proxy/README.md)
+- [OpenCode corporate proxy](../../../automation/corporate-proxy/opencode/README.md)

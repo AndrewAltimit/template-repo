@@ -7,7 +7,7 @@ This is the canonical agent roster for the repository. Other documents give a sh
 | Agent | Host Machine | Container | Authentication Method | Status |
 |-------|--------------|-----------|---------------------|--------|
 | Claude | Yes | No | Subscription via ~/.claude.json | **Primary** (development, PR security + quality reviews) |
-| OpenRouter | Yes | Yes | OpenRouter API key | Active (PR general review, `qwen/qwen3.7-max`) |
+| OpenRouter | Yes | Yes | OpenRouter API key | Active (PR general review, `particle-ai/particle-1`) |
 | OpenCode | Yes | Yes | OpenRouter API key | Active |
 | Crush | Yes | Yes | OpenRouter API key | Active |
 | GitHub Copilot | n/a | n/a | GitHub | Active (review suggestions in the PR UI) |

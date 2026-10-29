@@ -12,12 +12,11 @@ use std::process;
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
-use scrypt::password_hash::SaltString;
-use scrypt::password_hash::rand_core::OsRng;
-use scrypt::{
-    Params,
-    password_hash::{Ident, PasswordHash, PasswordHasher, PasswordVerifier},
-};
+use rand::TryRng;
+use rand::rngs::SysRng;
+use scrypt::password_hash::phc::{PasswordHash, Salt};
+use scrypt::password_hash::{CustomizedPasswordHasher, PasswordVerifier};
+use scrypt::{Params, Scrypt};
 use secrecy::{ExposeSecret, SecretString};
 use subtle::ConstantTimeEq;
 
@@ -64,20 +63,30 @@ enum Commands {
 // Password hashing
 // ---------------------------------------------------------------------------
 
+/// Random salt length in bytes (the PHC recommended 16 bytes, which is what
+/// the earlier `SaltString::generate` produced).
+const SALT_LEN: usize = 16;
+
 /// Hash a password using scrypt with the given parameters.
+///
+/// Returns the PHC hash string (`$scrypt$ln=17,r=8,p=1$<salt>$<hash>`) and the
+/// B64-encoded salt, both as bytes. The formats are unchanged from the
+/// scrypt 0.11 / password-hash 0.5 implementation.
 fn hash_password(password: &str) -> Result<(Vec<u8>, Vec<u8>)> {
-    let salt = SaltString::generate(&mut OsRng);
-    let params = Params::new(SCRYPT_LOG_N, SCRYPT_R, SCRYPT_P, SCRYPT_OUTPUT_LEN)
+    let mut salt_raw = [0u8; SALT_LEN];
+    SysRng
+        .try_fill_bytes(&mut salt_raw)
+        .map_err(|e| anyhow::anyhow!("Failed to read OS randomness: {}", e))?;
+    let salt = Salt::new(&salt_raw).map_err(|e| anyhow::anyhow!("Invalid salt: {}", e))?;
+    let params = Params::new_with_output_len(SCRYPT_LOG_N, SCRYPT_R, SCRYPT_P, SCRYPT_OUTPUT_LEN)
         .context("Invalid scrypt parameters")?;
 
-    let ident = Ident::new("scrypt").map_err(|e| anyhow::anyhow!("Invalid hash ident: {}", e))?;
-    let hasher = scrypt::Scrypt;
-    let hash = hasher
-        .hash_password_customized(password.as_bytes(), Some(ident), None, params, &salt)
+    let hash = Scrypt::default()
+        .hash_password_customized(password.as_bytes(), &salt_raw, Some("scrypt"), None, params)
         .map_err(|e| anyhow::anyhow!("Failed to hash password: {}", e))?;
 
     let hash_string = hash.to_string();
-    let salt_bytes = salt.as_str().as_bytes().to_vec();
+    let salt_bytes = salt.to_string().into_bytes();
 
     Ok((hash_string.into_bytes(), salt_bytes))
 }
@@ -94,7 +103,7 @@ fn verify_password(password: &str, stored_hash: &[u8]) -> bool {
         Err(_) => return false,
     };
 
-    scrypt::Scrypt
+    Scrypt::default()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok()
 }
@@ -321,5 +330,40 @@ mod tests {
         // Verify the written hash works.
         let stored_hash = fs::read(&hash_file).unwrap();
         assert!(verify_password(password, &stored_hash));
+    }
+
+    /// Hash produced by the scrypt 0.11 / password-hash 0.5 build with the
+    /// production parameters, for the password `fixture-password`. Pins the
+    /// on-disk format: credentials written before the scrypt 0.12 upgrade must
+    /// keep verifying.
+    const LEGACY_SCRYPT_0_11_HASH: &str = "$scrypt$ln=17,r=8,p=1$K1Yt2a4E3zDDXqfzhYviDg$\
+        D5vlsMtYnWar12KdCyGA8Dp1GbS2FlnYiH48gsG/HpM/pcpGBpiaxiRDGSjLrlvnnbomnYAlHhbpT3JxYjvsVA";
+
+    #[test]
+    fn legacy_scrypt_hash_still_verifies() {
+        assert!(verify_password(
+            "fixture-password",
+            LEGACY_SCRYPT_0_11_HASH.as_bytes()
+        ));
+        assert!(!verify_password(
+            "fixture-passwore",
+            LEGACY_SCRYPT_0_11_HASH.as_bytes()
+        ));
+    }
+
+    #[test]
+    fn hash_format_matches_legacy_layout() {
+        let (hash_bytes, salt_bytes) = hash_password("layout-check").unwrap();
+        let hash_str = std::str::from_utf8(&hash_bytes).unwrap();
+        let salt_str = std::str::from_utf8(&salt_bytes).unwrap();
+        let parts: Vec<&str> = hash_str.split('$').collect();
+        // ["", "scrypt", params, salt, hash]
+        assert_eq!(parts.len(), 5, "{hash_str}");
+        assert_eq!(parts[1], "scrypt");
+        assert_eq!(parts[2], "ln=17,r=8,p=1");
+        assert_eq!(parts[3], salt_str);
+        // 16-byte salt and 64-byte output in unpadded B64.
+        assert_eq!(parts[3].len(), 22);
+        assert_eq!(parts[4].len(), 86);
     }
 }

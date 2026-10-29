@@ -36,7 +36,7 @@ model_overrides:
 
   # Example: Configure Crush for faster responses
   # crush:
-  #   model: qwen/qwen-2.5-coder-7b-instruct
+  #   model: particle-ai/particle-1
   #   temperature: 0.1
 
 # OpenRouter configuration for agents that support it
@@ -44,7 +44,7 @@ openrouter:
   # API key must be provided as OPENROUTER_API_KEY environment variable
 
   # Default model for OpenRouter-compatible agents
-  default_model: qwen/qwen-2.5-coder-32b-instruct
+  default_model: particle-ai/particle-1
 
   # Fallback models if primary is unavailable
   fallback_models:
@@ -54,10 +54,10 @@ openrouter:
   # Per-agent model overrides
   agent_overrides:
     opencode:
-      model: qwen/qwen-2.5-coder-32b-instruct
+      model: particle-ai/particle-1
       temperature: 0.2
     crush:
-      model: qwen/qwen-2.5-coder-32b-instruct
+      model: particle-ai/particle-1
       temperature: 0.1
 
 # Security settings

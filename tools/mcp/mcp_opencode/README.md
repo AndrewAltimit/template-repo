@@ -6,7 +6,7 @@
 ## Overview
 
 - One OpenRouter chat-completion request per consultation (default model
-  `qwen/qwen3.7-max`, matching `.agents.yaml`). Despite the name, this server
+  `particle-ai/particle-1`, matching `.agents.yaml`). Despite the name, this server
   does **not** run the `opencode` CLI; the Docker image ships that CLI only so
   the `openrouter-agents` image can copy it.
 - Five modes with task-specific system prompts: `quick`, `generate`,
@@ -82,7 +82,7 @@ docker compose --profile services run --rm -T mcp-opencode mcp-opencode --mode s
   "execution_time": 2.41,
   "consultation_id": "5f0c...",
   "mode": "review",
-  "model": "qwen/qwen3.7-max",
+  "model": "particle-ai/particle-1",
   "finish_reason": "stop",
   "usage": {"prompt_tokens": 812, "completion_tokens": 403, "total_tokens": 1215}
 }
@@ -113,7 +113,7 @@ fall back to (or are clamped toward) the default with a warning on stderr.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENROUTER_API_KEY` | none | Required. Never logged or returned by tools. |
-| `OPENCODE_MODEL` | `qwen/qwen3.7-max` | Default model id |
+| `OPENCODE_MODEL` | `particle-ai/particle-1` | Default model id |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible base URL (proxy, gateway, local mock) |
 | `OPENCODE_ENABLED` | `true` | When `false`, consultations return `disabled` unless `force=true` |
 | `OPENCODE_AUTO_CONSULT` | `true` | Advisory flag reported to clients; the server never consults on its own |

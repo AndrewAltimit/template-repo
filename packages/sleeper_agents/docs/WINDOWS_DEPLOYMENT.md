@@ -89,19 +89,22 @@ wsl
 # Update packages
 sudo apt update && sudo apt upgrade -y
 
-# Install Python 3.11
-sudo apt install python3.11 python3.11-pip python3.11-venv
+# Install Python 3.13 (Ubuntu's own repositories do not ship it; use the deadsnakes PPA)
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.13 python3.13-venv
 
 # Clone repository
 git clone https://github.com/AndrewAltimit/template-repo.git
 cd template-repo
 
 # Create virtual environment
-python3.11 -m venv venv
+python3.13 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install -r config/python/requirements-sleeper-agents.txt
+pip install torch --index-url https://download.pytorch.org/whl/cu130
+pip install -e packages/sleeper_agents
 ```
 
 ### Option 3: Native Windows Python
@@ -111,9 +114,9 @@ For development without containers.
 #### Prerequisites
 
 ```powershell
-# Install Python 3.11
+# Install Python 3.13
 # Download from python.org or use Chocolatey
-choco install python311
+choco install python313
 
 # Install Git
 choco install git
@@ -136,8 +139,8 @@ python -m venv venv
 # Install PyTorch (CPU version for Windows)
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-# Install other dependencies
-pip install -r config/python/requirements-sleeper-agents.txt
+# Install the package
+pip install -e packages/sleeper_agents
 ```
 
 ## GPU Support on Windows

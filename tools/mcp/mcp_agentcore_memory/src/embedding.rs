@@ -149,15 +149,15 @@ pub use fast::FastEmbedder;
 mod fast {
     use super::Embedder;
     use async_trait::async_trait;
-    use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
+    use fastembed::{EmbeddingModel, TextEmbedding, TextInitOptions};
     use std::path::PathBuf;
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
     use tokio::sync::OnceCell;
 
     /// Local all-MiniLM-L6-v2 embedder, loaded lazily on first use.
     pub struct FastEmbedder {
         cache_dir: PathBuf,
-        model: OnceCell<Arc<TextEmbedding>>,
+        model: OnceCell<Arc<Mutex<TextEmbedding>>>,
     }
 
     impl FastEmbedder {
@@ -175,7 +175,7 @@ mod fast {
         /// Load (downloading if necessary) the model. Blocking work runs on
         /// the blocking thread pool. Concurrent callers share one load; a
         /// failed load is retried on the next call.
-        pub async fn load(&self) -> Result<Arc<TextEmbedding>, String> {
+        pub async fn load(&self) -> Result<Arc<Mutex<TextEmbedding>>, String> {
             self.model
                 .get_or_try_init(|| async {
                     let dir = self.cache_dir.clone();
@@ -193,11 +193,11 @@ mod fast {
                         // Progress bars must stay off: in stdio mode stdout is
                         // the JSON-RPC channel.
                         TextEmbedding::try_new(
-                            InitOptions::new(EmbeddingModel::AllMiniLML6V2)
+                            TextInitOptions::new(EmbeddingModel::AllMiniLML6V2)
                                 .with_cache_dir(dir)
                                 .with_show_download_progress(false),
                         )
-                        .map(Arc::new)
+                        .map(|m| Arc::new(Mutex::new(m)))
                         .map_err(|e| format!("failed to load embedding model: {e}"))
                     })
                     .await
@@ -227,8 +227,12 @@ mod fast {
                 return Ok(Vec::new());
             }
             let model = self.load().await?;
+            // fastembed >= 5 needs `&mut` to embed; the mutex serializes
+            // inference on the shared session.
             tokio::task::spawn_blocking(move || {
                 model
+                    .lock()
+                    .map_err(|_| "embedding model lock poisoned".to_string())?
                     .embed(texts, None)
                     .map_err(|e| format!("embedding failed: {e}"))
             })

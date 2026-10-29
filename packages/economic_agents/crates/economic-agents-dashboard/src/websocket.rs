@@ -53,7 +53,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<DashboardState>) {
                                     }
                                 };
 
-                                if sender.send(Message::Text(json)).await.is_err() {
+                                if sender.send(Message::Text(json.into())).await.is_err() {
                                     break;
                                 }
                             }

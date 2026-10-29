@@ -58,7 +58,7 @@ pub enum Error {
 
     /// YAML parsing error
     #[error("YAML error: {0}")]
-    Yaml(#[from] serde_yaml::Error),
+    Yaml(#[from] serde_norway::Error),
 
     /// Configuration error
     #[error("Configuration error: {0}")]

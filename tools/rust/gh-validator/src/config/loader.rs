@@ -101,7 +101,7 @@ pub fn load_config_from_path(path: &Path) -> Result<Config> {
     }
     let content =
         std::fs::read_to_string(path).map_err(|e| parse_err(format!("cannot read: {e}")))?;
-    serde_yaml::from_str(&content).map_err(|e| parse_err(e.to_string()))
+    serde_norway::from_str(&content).map_err(|e| parse_err(e.to_string()))
 }
 
 #[cfg(test)]

@@ -490,12 +490,12 @@ Optimize image size:
 
 ```dockerfile
 # Build stage
-FROM python:3.11 AS builder
+FROM python:3.13-bookworm AS builder
 COPY requirements.txt .
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 
 # Runtime stage
-FROM python:3.11-slim
+FROM python:3.13-slim-bookworm
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl
 ```

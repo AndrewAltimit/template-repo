@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rmcp::model::CallToolRequestParam;
+use rmcp::model::CallToolRequestParams;
 use rmcp::service::RunningService;
 use rmcp::RoleClient;
 use serde_json::Value;
@@ -73,24 +73,10 @@ impl Tool for McpToolAdapter {
     ) -> Result<ToolExecutionResult> {
         debug!("Executing MCP tool");
 
-        let arguments = if input.is_object() && !input.as_object().unwrap().is_empty() {
-            Some(
-                input
-                    .as_object()
-                    .unwrap()
-                    .iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
-                    .collect(),
-            )
-        } else {
-            None
-        };
-
-        let request = CallToolRequestParam {
-            name: self.name.clone().into(),
-            arguments,
-            task: None,
-        };
+        let mut request = CallToolRequestParams::new(self.name.clone());
+        if let Some(obj) = input.as_object().filter(|o| !o.is_empty()) {
+            request = request.with_arguments(obj.clone());
+        }
 
         let result = self
             .client
@@ -102,14 +88,10 @@ impl Tool for McpToolAdapter {
         let is_error = result.is_error.unwrap_or(false);
 
         // Collect text content from the result.
-        // Content is Annotated<RawContent> which derefs to RawContent.
         let text: String = result
             .content
             .iter()
-            .filter_map(|c| match &c.raw {
-                rmcp::model::RawContent::Text(t) => Some(t.text.clone()),
-                _ => None,
-            })
+            .filter_map(|c| c.as_text().map(|t| t.text.clone()))
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -150,7 +132,7 @@ pub async fn load_mcp_tools(
             name,
             description,
             input_schema,
-            client.clone(),
+            Arc::clone(&client),
         ));
     }
 

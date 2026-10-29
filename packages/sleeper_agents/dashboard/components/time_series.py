@@ -184,7 +184,7 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Trend statistics
     col1, col2, col3, col4 = st.columns(4)
@@ -291,7 +291,7 @@ def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     with col2:
         st.markdown("#### Stability Metrics")
@@ -388,7 +388,7 @@ def render_test_type_trends(_df: pd.DataFrame, metric: str, data_loader, model: 
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Test type statistics table
     st.markdown("#### Test Type Statistics")
@@ -483,7 +483,7 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
         showlegend=True,
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Anomaly statistics
     col1, col2, col3 = st.columns(3)
@@ -522,7 +522,7 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
 
         # Rename columns
         column_names = {"timestamp": "Time", "test_name": "Test", metric: metric.replace("_", " ").title()}
-        display_anomalies.rename(columns=column_names, inplace=True)
+        display_anomalies = display_anomalies.rename(columns=column_names)
 
         st.dataframe(display_anomalies, width="stretch", hide_index=True)
     else:

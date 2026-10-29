@@ -551,7 +551,7 @@ def render_known_unknowns(summary: Optional[Dict[str, Any]]):
     ]
 
     df_gaps = pd.DataFrame(gaps_data)
-    st.dataframe(df_gaps, use_container_width=True, hide_index=True)
+    st.dataframe(df_gaps, width="stretch", hide_index=True)
 
     # Uncertainty acknowledgment
     st.markdown("#### Fundamental Uncertainties")
@@ -629,7 +629,7 @@ def render_monitoring_status(data_loader):
     else:
         if "accuracy" in recent.columns:
             recent["accuracy"] = recent["accuracy"].apply(lambda v: f"{v:.1%}" if is_measured(v) else NOT_MEASURED)
-        st.dataframe(recent, use_container_width=True, hide_index=True)
+        st.dataframe(recent, width="stretch", hide_index=True)
 
     st.caption("No live monitoring feed (runtime anomaly alerts, active probes) is recorded by the pipeline.")
 

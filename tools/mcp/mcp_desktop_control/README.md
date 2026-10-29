@@ -275,7 +275,7 @@ To check the Linux build from Windows:
 
 ```bash
 docker run --rm -v "$PWD/..":/w -w /w/mcp_desktop_control -e CARGO_TARGET_DIR=/tmp/t \
-  rust:1.93 sh -c 'rustup component add clippy && cargo clippy --all-targets -- -D warnings && cargo test'
+  rust:1.99 sh -c 'rustup component add clippy && cargo clippy --all-targets -- -D warnings && cargo test'
 ```
 
 ## Project Structure

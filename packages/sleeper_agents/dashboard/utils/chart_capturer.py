@@ -1,6 +1,9 @@
 """
 Chart Capture Utility for PDF Export
 Converts Plotly figures to images for PDF embedding.
+
+Rendering goes through kaleido (plotly>=7 has no engine selector), which in
+kaleido 1.x drives a Chrome/Chromium binary; without one, charts are skipped.
 """
 
 import logging
@@ -89,7 +92,7 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
         )
 
         # Convert to image bytes
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -140,7 +143,7 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> Optional[bytes]:
             width=700,
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -187,7 +190,7 @@ def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
             width=700,
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -234,7 +237,7 @@ def create_red_team_success_chart(red_team_data: Dict[str, Any]) -> Optional[byt
             width=700,
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -287,7 +290,7 @@ def create_scaling_curves(scaling_data: Dict[str, Any]) -> Optional[bytes]:
             width=700,
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -335,7 +338,7 @@ def create_detection_metrics_chart(detection_data: Dict[str, Any]) -> Optional[b
             width=600,
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -384,7 +387,7 @@ def create_confusion_matrix(data: Dict[str, Any], title: str = "Confusion Matrix
             width=500,
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -446,7 +449,7 @@ def create_roc_curve(data: Dict[str, Any]) -> Optional[bytes]:
             legend={"x": 0.6, "y": 0.2},
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -514,7 +517,7 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
             xaxis={"side": "bottom"},
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
@@ -567,7 +570,7 @@ def create_confidence_distribution(data: Dict[str, Any]) -> Optional[bytes]:
             showlegend=False,
         )
 
-        img_bytes = fig.to_image(format="png", engine="kaleido")
+        img_bytes = fig.to_image(format="png")
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:

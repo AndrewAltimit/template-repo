@@ -61,7 +61,7 @@ class TestClientSpecificToolInjection(unittest.TestCase):
         self.messages = [{"role": "user", "content": "Help me write some code"}]
 
     def test_opencode_tool_syntax(self):
-        """Test that OpenCode gets camelCase parameter examples"""
+        """Test that OpenCode gets OpenCode 2.x tool syntax (path, camelCase, Shell)"""
         result = inject_tools_into_prompt(self.messages, self.tools, client_type="opencode")
 
         # Extract the system message
@@ -73,16 +73,19 @@ class TestClientSpecificToolInjection(unittest.TestCase):
 
         self.assertIsNotNone(system_msg)
 
-        # Check for OpenCode-specific syntax with camelCase
-        self.assertIn('filePath="', system_msg)
-        self.assertIn("Write(filePath=", system_msg)
-        self.assertIn("Edit(filePath=", system_msg)
+        # Check for OpenCode-specific syntax
+        self.assertIn("Write(path=", system_msg)
+        self.assertIn("Read(path=", system_msg)
+        self.assertIn("Edit(path=", system_msg)
         self.assertIn("oldString=", system_msg)
         self.assertIn("newString=", system_msg)
-        self.assertIn("Bash(command=", system_msg)
-        self.assertIn("description=", system_msg)  # Bash requires description
+        self.assertIn("Shell(command=", system_msg)
 
-        # Should NOT contain snake_case versions
+        # Should NOT contain 1.x or snake_case spellings
+        self.assertNotIn('filePath="', system_msg)
+        self.assertNotIn("Bash(command=", system_msg)
+        self.assertNotIn("Ls(path=", system_msg)
+        self.assertNotIn("MultiEdit(", system_msg)
         self.assertNotIn('file_path="', system_msg)
         self.assertNotIn("old_string=", system_msg)
         self.assertNotIn("new_string=", system_msg)
@@ -253,7 +256,7 @@ class TestClientSpecificToolInjection(unittest.TestCase):
         self.assertEqual(result, self.messages)
 
     def test_bash_and_search_tools(self):
-        """Test that Bash and search tools are correctly formatted"""
+        """Test that command (Bash, or Shell for OpenCode 2.x) and search tools are correctly formatted"""
         for client_type in ["opencode", "crush", "generic"]:
             with self.subTest(client_type=client_type):
                 result = inject_tools_into_prompt(self.messages, self.tools, client_type=client_type)
@@ -272,8 +275,10 @@ class TestClientSpecificToolInjection(unittest.TestCase):
                     self.assertIn("Grep(", system_msg)
                     self.assertIn("Glob(", system_msg)
                 else:
-                    # OpenCode and Crush use parameter names
-                    self.assertIn("Bash(command=", system_msg)
+                    # OpenCode and Crush use parameter names; OpenCode 2.x
+                    # runs commands through its shell tool
+                    command_tool = "Shell(command=" if client_type == "opencode" else "Bash(command="
+                    self.assertIn(command_tool, system_msg)
                     self.assertIn("Grep(pattern=", system_msg)
                     self.assertIn("Glob(pattern=", system_msg)
 

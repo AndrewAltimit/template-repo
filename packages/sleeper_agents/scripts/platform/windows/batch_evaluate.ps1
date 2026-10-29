@@ -18,7 +18,7 @@ param(
     [switch]$CompareResults,
 
     [Parameter(HelpMessage="Output directory for results")]
-    [string]$OutputDir = "batch_evaluation_results",
+    [string]$OutputDir = "evaluation_results\batch",
 
     [Parameter(HelpMessage="Open final report in browser")]
     [switch]$OpenReport,
@@ -31,7 +31,7 @@ param(
 )
 
 $ErrorActionPreference = if ($ContinueOnError) { "Continue" } else { "Stop" }
-$script:ProjectRoot = Join-Path $PSScriptRoot "..\..\..\"
+$script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..\..")).Path
 $script:StartTime = Get-Date
 
 # Color functions
@@ -147,7 +147,7 @@ foreach ($model in $Models) {
         $results.successful += $model
         $results.timings[$model] = $modelTime.TotalMinutes
 
-        Write-Success "✓ Completed $model in $([Math]::Round($modelTime.TotalMinutes, 2)) minutes"
+        Write-Success "[OK] Completed $model in $([Math]::Round($modelTime.TotalMinutes, 2)) minutes"
 
         # Generate individual model report
         $reportArgs = @{
@@ -155,12 +155,13 @@ foreach ($model in $Models) {
             Models = @($model)
             Format = "html"
             Output = Join-Path $modelOutput "report.html"
+            Docker = $Docker
         }
 
         & (Join-Path $PSScriptRoot "run_cli.ps1") @reportArgs
 
     } catch {
-        Write-Error "✗ Failed to evaluate $model: $_"
+        Write-Error "[FAIL] Failed to evaluate ${model}: $_"
         $results.failed += $model
 
         if (-not $ContinueOnError) {
@@ -181,11 +182,12 @@ if ($CompareResults -and $results.successful.Count -gt 1) {
             Command = "compare"
             Models = $results.successful
             Output = Join-Path $OutputPath "comparison_report.html"
+            Docker = $Docker
         }
 
         & (Join-Path $PSScriptRoot "run_cli.ps1") @compareArgs
 
-        Write-Success "✓ Generated comparison report"
+        Write-Success "[OK] Generated comparison report"
 
         if ($OpenReport) {
             Start-Process (Join-Path $OutputPath "comparison_report.html")

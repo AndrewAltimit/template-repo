@@ -5,7 +5,7 @@ use std::fmt;
 use crate::util::{env_bool, env_num, env_string, is_valid_model_id};
 
 /// Default OpenRouter model (kept in line with `.agents.yaml`).
-pub const DEFAULT_MODEL: &str = "qwen/qwen3.7-max";
+pub const DEFAULT_MODEL: &str = "particle-ai/particle-1";
 
 /// Default OpenRouter API base URL (OpenAI-compatible).
 pub const DEFAULT_BASE_URL: &str = "https://openrouter.ai/api/v1";

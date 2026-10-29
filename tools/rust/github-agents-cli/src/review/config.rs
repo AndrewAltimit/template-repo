@@ -152,7 +152,7 @@ impl FullConfig {
     }
 
     fn parse(content: &str) -> Result<Self> {
-        let yaml: AgentsYaml = serde_yaml::from_str(content)
+        let yaml: AgentsYaml = serde_norway::from_str(content)
             .map_err(|e| Error::Config(format!("Failed to parse .agents.yaml: {}", e)))?;
         Ok(Self {
             pr_review: yaml.pr_review.unwrap_or_default(),
@@ -217,7 +217,7 @@ impl ReviewProfile {
     }
 
     fn from_yaml(content: &str, profile_name: &str) -> Result<Self> {
-        let yaml: ReviewProfilesYaml = serde_yaml::from_str(content)
+        let yaml: ReviewProfilesYaml = serde_norway::from_str(content)
             .map_err(|e| Error::Config(format!("Failed to parse review-profiles.yaml: {}", e)))?;
 
         yaml.profiles.get(profile_name).cloned().ok_or_else(|| {
@@ -290,13 +290,13 @@ profiles:
   security:
     display_name: "Security"
     agent: claude
-    model: sonnet
+    model: claude-opus-5-5
     focus: "sec"
     instructions: "be careful"
 "#;
         let p = ReviewProfile::from_yaml(yaml, "security").unwrap();
         assert_eq!(p.agent, "claude");
-        assert_eq!(p.model.as_deref(), Some("sonnet"));
+        assert_eq!(p.model.as_deref(), Some("claude-opus-5-5"));
         let err = ReviewProfile::from_yaml(yaml, "missing").unwrap_err();
         assert!(err.to_string().contains("Available: security"));
     }

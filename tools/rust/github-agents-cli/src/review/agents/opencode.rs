@@ -9,10 +9,10 @@ use tokio::process::Command;
 
 use super::{ReviewAgent, run_review_cli};
 use crate::error::{Error, Result};
-use crate::utils::process::find_binary;
+use crate::utils::process::{find_binary, set_opencode_title_model};
 
 /// Default model for OpenCode reviews (OpenRouter provider prefix included).
-const DEFAULT_MODEL: &str = "openrouter/qwen/qwen3.7-max";
+const DEFAULT_MODEL: &str = "openrouter/particle-ai/particle-1";
 
 const OPENCODE_TIMEOUT: Duration = Duration::from_secs(600);
 
@@ -70,7 +70,10 @@ impl ReviewAgent for OpenCodeAgent {
             .as_ref()
             .ok_or_else(|| Error::EnvNotSet("OpenCode CLI not found in PATH".to_string()))?;
         let mut cmd = Command::new(path);
-        cmd.args(["run", "--model", &self.model]);
+        // Private per-run server (OpenCode 2.x) instead of the shared
+        // background service, so the review uses this process's environment.
+        cmd.args(["run", "--standalone", "--model", &self.model]);
+        set_opencode_title_model(&mut cmd, &self.model);
         run_review_cli("opencode", cmd, Some(prompt), OPENCODE_TIMEOUT).await
     }
 }

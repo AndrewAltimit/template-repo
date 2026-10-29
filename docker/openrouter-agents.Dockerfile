@@ -6,8 +6,8 @@ ARG OPENCODE_IMAGE=template-repo-mcp-opencode:latest
 ARG CRUSH_IMAGE=template-repo-mcp-crush:latest
 
 # Stage 1: Build gh-validator from source
-# Use bookworm-based rust image to match node:20-slim runtime glibc version
-FROM rust:1.93-slim-bookworm AS gh-validator-builder
+# Build on bookworm (older glibc) so the binary also runs on the trixie-based node runtime
+FROM rust:1.99-slim-bookworm AS gh-validator-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
@@ -27,15 +27,16 @@ FROM ${OPENCODE_IMAGE} AS opencode-source
 FROM ${CRUSH_IMAGE} AS crush-source
 
 # Use a base image that already has Node.js
-FROM node:20-slim
+# node:26-trixie-slim (Node 26 LTS) ships Python 3.13 from Debian trixie
+FROM node:26-trixie-slim
 
 # No need for version arguments - binaries come from the source images
 
-# Install Python 3.11 and all system dependencies in one layer
+# Install Python 3.13 and all system dependencies in one layer
 RUN apt-get update && apt-get install -y \
-    python3.11 \
+    python3.13 \
     python3-pip \
-    python3.11-venv \
+    python3.13-venv \
     git \
     curl \
     wget \
@@ -45,8 +46,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symbolic links for Python
-RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
+RUN ln -sf /usr/bin/python3.13 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
+
+# Upgrade npm within the 11.x line: the copy bundled with node 26 vendors
+# undici and brace-expansion releases with HIGH advisories
+RUN npm install -g npm@11.21.1 && npm --version
 
 # Use the existing node user (UID 1000) from the base image
 # This avoids UID conflicts and maintains consistency

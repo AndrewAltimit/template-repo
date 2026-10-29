@@ -240,7 +240,7 @@ def render_safety_training(api_client):
             st.caption("Future: gradient accumulation, max sequence length, custom output directory")
 
         # Submit button
-        submitted = st.form_submit_button("🛡️ Start Safety Training", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("🛡️ Start Safety Training", type="primary", width="stretch")
 
         if submitted:
             if not model_path:

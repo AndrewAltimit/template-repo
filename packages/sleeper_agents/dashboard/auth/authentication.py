@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 # Minimum password length for new accounts and password changes
 MIN_PASSWORD_LENGTH = 12
 
+# bcrypt only hashes the first 72 bytes of a password; bcrypt>=5.0 raises
+# ValueError for longer input instead of silently truncating it.
+MAX_PASSWORD_BYTES = 72
+
 _TRUTHY = {"1", "true", "yes", "on"}
 
 
@@ -49,6 +53,8 @@ def validate_new_password(password: str) -> Optional[str]:
     """
     if not password or len(password) < MIN_PASSWORD_LENGTH:
         return f"Password must be at least {MIN_PASSWORD_LENGTH} characters"
+    if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        return f"Password must be at most {MAX_PASSWORD_BYTES} bytes"
     return None
 
 
@@ -132,6 +138,9 @@ class AuthManager:
                 # Generate a secure random password
                 alphabet = string.ascii_letters + string.digits + "!@#$%"
                 default_password = "".join(secrets.choice(alphabet) for _ in range(16))
+            elif len(default_password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+                conn.close()
+                raise ValueError(f"DASHBOARD_ADMIN_PASSWORD must be at most {MAX_PASSWORD_BYTES} bytes")
 
             hashed = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt())
 
@@ -186,8 +195,13 @@ class AuthManager:
 
         password_hash = result[0]
 
-        # Verify password
-        is_valid = bcrypt.checkpw(password.encode("utf-8"), password_hash)
+        # Verify password. Input over bcrypt's 72-byte limit can never match (and
+        # bcrypt>=5.0 raises ValueError for it), so reject it up front.
+        password_bytes = password.encode("utf-8")
+        if len(password_bytes) > MAX_PASSWORD_BYTES:
+            conn.close()
+            return False
+        is_valid = bcrypt.checkpw(password_bytes, password_hash)
 
         if is_valid:
             # Update last login time

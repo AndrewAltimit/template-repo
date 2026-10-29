@@ -16,7 +16,7 @@ path = "src/main.rs"
 mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
 
 # Async runtime
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.54", features = ["full"] }
 async-trait = "0.1"
 
 # Serialization
@@ -24,10 +24,10 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # HTTP client
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json", "query"] }
 
 # CLI
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 
 # Logging
 tracing = "0.1"
@@ -38,17 +38,17 @@ thiserror = "2.0"
 anyhow = "1.0"
 
 # UUID generation (client ids, temp file names, multipart boundaries)
-uuid = { version = "1.0", features = ["v4"] }
+uuid = { version = "1.29", features = ["v4"] }
 
 # Base64 encoding/decoding (LoRA and image payloads)
-base64 = "0.22"
+base64 = "0.23"
 
 # Random number generation
-rand = "0.8"
+rand = "0.10"
 
 [dev-dependencies]
 # Mock ComfyUI HTTP server for offline tests (same version mcp-core uses).
-axum = "0.7"
+axum = "0.8"
 tempfile = "3"
 
 [profile.release]

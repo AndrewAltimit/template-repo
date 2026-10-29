@@ -149,11 +149,11 @@ class TestStreamingToolCalls(unittest.TestCase):
         streaming_calls = format_tool_calls_for_openai(tool_calls, streaming=True)
 
         # Check each tool call
-        # Note: The production function applies parameter mappings (snake_case to camelCase)
+        # Note: The production function applies the OpenCode 2.x mappings
         expected_tools = [
-            ("write", {"filePath": "hello.md", "content": "hello"}),  # file_path -> filePath
-            ("read", {"filePath": "hello.md"}),  # file_path -> filePath
-            ("bash", {"command": "/automation/ci-cd/run-ci.sh full", "description": "Execute bash command"}),  # Added default
+            ("write", {"path": "hello.md", "content": "hello"}),  # file_path -> path
+            ("read", {"path": "hello.md"}),  # file_path -> path
+            ("shell", {"command": "/automation/ci-cd/run-ci.sh full"}),  # bash -> shell
         ]
 
         for i, (expected_name, expected_params) in enumerate(expected_tools):

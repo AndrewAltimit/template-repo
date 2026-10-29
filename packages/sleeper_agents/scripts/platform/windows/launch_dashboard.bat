@@ -4,7 +4,7 @@ REM Launches the Sleeper Detection Dashboard with GPU support
 
 REM Change to dashboard directory
 SET SCRIPT_DIR=%~dp0
-SET DASHBOARD_DIR=%SCRIPT_DIR%..\..\..\packages\sleeper_agents\dashboard
+SET DASHBOARD_DIR=%SCRIPT_DIR%..\..\..\dashboard
 cd /d "%DASHBOARD_DIR%"
 
 REM Load environment variables from .env file (if exists)
@@ -29,16 +29,14 @@ echo 2) Initialize empty database
 echo 3) Load from specific file
 echo 4) Use existing database (if available)
 echo 5) Reset authentication (recreate admin user)
-echo 6) Load from imported experiments (models/backdoored/)
 echo.
-set /p DB_OPTION="Select option [1-6]: "
+set /p DB_OPTION="Select option [1-5]: "
 
 IF "%DB_OPTION%"=="1" GOTO option1_mock
 IF "%DB_OPTION%"=="2" GOTO option2_empty
 IF "%DB_OPTION%"=="3" GOTO option3_load
 IF "%DB_OPTION%"=="4" GOTO option4_existing
 IF "%DB_OPTION%"=="5" GOTO option5_reset
-IF "%DB_OPTION%"=="6" GOTO option6_experiments
 echo Invalid option. Exiting.
 exit /b 1
 
@@ -102,8 +100,8 @@ GOTO launch_menu
 :option5_reset
 echo.
 echo Resetting authentication...
-IF EXIST auth\users.db (
-    del auth\users.db
+IF EXIST data\users.db (
+    del data\users.db
     echo Removed existing auth database
 )
 IF EXIST evaluation_results.db (
@@ -111,45 +109,6 @@ IF EXIST evaluation_results.db (
 ) ELSE (
     python -c "import sqlite3; conn = sqlite3.connect('evaluation_results.db'); cursor = conn.cursor(); cursor.execute('CREATE TABLE IF NOT EXISTS evaluation_results (id INTEGER PRIMARY KEY AUTOINCREMENT, model_name TEXT NOT NULL, test_type TEXT NOT NULL, accuracy REAL, precision REAL, recall REAL, f1_score REAL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, config TEXT, notes TEXT)'); conn.commit(); conn.close()"
 )
-GOTO launch_menu
-
-:option6_experiments
-echo.
-echo Loading from imported experiments...
-
-SET EXPERIMENTS_DIR=..\models\backdoored
-IF NOT EXIST "%EXPERIMENTS_DIR%" (
-    echo Experiments directory not found: %EXPERIMENTS_DIR%
-    echo Import experiments first with: python ..\scripts\import_experiment.py
-    exit /b 1
-)
-
-REM Count experiments
-SET COUNT=0
-FOR /D %%D IN ("%EXPERIMENTS_DIR%\*") DO SET /A COUNT+=1
-echo Found %COUNT% experiments in %EXPERIMENTS_DIR%
-
-IF "%COUNT%"=="0" (
-    echo No experiments found
-    echo Import experiments first with: python ..\scripts\import_experiment.py
-    exit /b 1
-)
-
-REM Ask if overwrite existing
-SET OVERWRITE_FLAG=
-IF EXIST evaluation_results.db (
-    set /p OVERWRITE="Database exists. Overwrite existing entries? (y/N): "
-    IF /I "%OVERWRITE%"=="y" SET OVERWRITE_FLAG=--overwrite
-)
-
-REM Load experiments into database
-echo Loading experiments into database...
-python ..\scripts\load_experiments_to_dashboard.py --experiments-dir "%EXPERIMENTS_DIR%" --db-path evaluation_results.db %OVERWRITE_FLAG%
-IF ERRORLEVEL 1 (
-    echo Failed to load experiments
-    exit /b 1
-)
-echo Experiments loaded successfully!
 GOTO launch_menu
 
 :launch_menu
@@ -182,7 +141,7 @@ IF ERRORLEVEL 1 (
 )
 
 REM Check for nvidia-docker
-docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu24.04 nvidia-smi >nul 2>&1
+docker run --rm --gpus all nvidia/cuda:13.0.2-base-ubuntu24.04 nvidia-smi >nul 2>&1
 IF ERRORLEVEL 1 (
     echo WARNING: GPU access not available. Dashboard will run in CPU mode.
     echo.
@@ -194,12 +153,15 @@ IF ERRORLEVEL 1 (
     pause
 )
 
+IF NOT EXIST data mkdir data
+
 REM Stop existing container if running
 docker stop sleeper-dashboard >nul 2>&1
 docker rm sleeper-dashboard >nul 2>&1
 
-REM Build and run container with GPU support
-docker build -t sleeper-dashboard:latest .
+REM Build and run container with GPU support (the context is the package root:
+REM the image copies both dashboard\ and src\)
+docker build -t sleeper-dashboard:latest -f Dockerfile ..
 
 REM Pass environment variables to container (if set)
 SET DOCKER_ENV_FLAGS=
@@ -207,7 +169,7 @@ IF DEFINED DASHBOARD_ADMIN_PASSWORD (
     SET DOCKER_ENV_FLAGS=-e DASHBOARD_ADMIN_PASSWORD=%DASHBOARD_ADMIN_PASSWORD%
 )
 
-docker run -d --name sleeper-dashboard --gpus all -p 8501:8501 %DOCKER_ENV_FLAGS% -v "%CD%\evaluation_results.db:/app/evaluation_results.db" -v "%CD%\auth:/app/auth" sleeper-dashboard:latest
+docker run -d --name sleeper-dashboard --gpus all -p 8501:8501 %DOCKER_ENV_FLAGS% -e DATABASE_PATH=/home/dashboard/app/evaluation_results.db -v "%CD%\evaluation_results.db:/home/dashboard/app/evaluation_results.db" -v "%CD%\data:/home/dashboard/app/data" sleeper-dashboard:latest
 
 IF ERRORLEVEL 1 (
     echo.

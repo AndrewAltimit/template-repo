@@ -13,7 +13,7 @@ use economic_agents_dashboard::{
 async fn create_test_server() -> TestServer {
     let state = Arc::new(DashboardState::new());
     let app = dashboard_router(state);
-    TestServer::new(app).unwrap()
+    TestServer::new(app)
 }
 
 // ============================================================================

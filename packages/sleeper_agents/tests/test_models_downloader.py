@@ -13,15 +13,18 @@ from sleeper_agents.models.downloader import ModelDownloader
 REVISION = "0123456789abcdef0123456789abcdef01234567"
 
 
-def make_cached_repo(cache_dir: Path, repo_id: str, payload: bytes = b"{}" * 50) -> Path:
-    """Create a minimal HuggingFace hub cache entry (blobs + snapshot symlink + refs)."""
+def make_cached_repo(
+    cache_dir: Path, repo_id: str, payload: bytes = b"{}" * 50, files=("config.json", "model.safetensors")
+) -> Path:
+    """Create a minimal HuggingFace hub cache entry (blobs + snapshot symlinks + refs)."""
     repo_dir = cache_dir / ("models--" + repo_id.replace("/", "--"))
     blob = repo_dir / "blobs" / f"blob{abs(hash(repo_id))}"
     blob.parent.mkdir(parents=True)
     blob.write_bytes(payload)
     snapshot = repo_dir / "snapshots" / REVISION
     snapshot.mkdir(parents=True)
-    os.symlink(os.path.relpath(blob, snapshot), snapshot / "config.json")
+    for name in files:
+        os.symlink(os.path.relpath(blob, snapshot), snapshot / name)
     (repo_dir / "refs").mkdir()
     (repo_dir / "refs" / "main").write_text(REVISION)
     return repo_dir
@@ -46,6 +49,15 @@ class TestModelDownloader:
         assert not downloader.is_cached("org/missing")
         assert downloader.get_cache_size("org/alpha") >= 100
         assert downloader.get_cache_size() >= 110
+
+    def test_snapshot_without_weights_is_not_cached(self, tmp_path):
+        # An interrupted download leaves config.json without the weights
+        make_cached_repo(tmp_path, "org/partial", files=("config.json", "tokenizer.json"))
+        make_cached_repo(tmp_path, "org/sharded", files=("config.json", "model.safetensors.index.json"))
+        downloader = ModelDownloader(tmp_path)
+
+        assert not downloader.is_cached("org/partial")
+        assert downloader.is_cached("org/sharded")
 
     def test_clear_cache_removes_only_requested_model(self, tmp_path):
         make_cached_repo(tmp_path, "org/alpha")
@@ -74,6 +86,57 @@ class TestModelDownloader:
         assert calls["cache_dir"] == str(tmp_path)
         assert calls["repo_id"] == "org/name"
         assert path.is_relative_to(tmp_path)
+
+    @staticmethod
+    def _hub_error(url: str, status: int = 404):
+        from huggingface_hub.errors import HfHubHTTPError
+
+        return HfHubHTTPError(f"Client error for url '{url}'", response=MagicMock(status_code=status, url=url))
+
+    def test_xet_alias_404_falls_back_to_per_file_downloads(self, tmp_path, monkeypatch):
+        import huggingface_hub
+
+        def failing_snapshot_download(**kwargs):
+            raise self._hub_error(f"https://huggingface.co/api/models/gpt2/xet-read-token/{REVISION}")
+
+        fetched = []
+
+        def fake_hf_hub_download(repo_id, filename, cache_dir, force_download):
+            fetched.append(filename)
+            path = Path(cache_dir) / "models--gpt2" / "snapshots" / REVISION / filename
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("{}")
+            return str(path)
+
+        api = MagicMock()
+        api.return_value.list_repo_files.return_value = [
+            "config.json",
+            "README.md",
+            "onnx/model.onnx",
+            "64.tflite",
+            "tokenizer/vocab.json",
+            "model.safetensors",
+        ]
+        monkeypatch.setattr(huggingface_hub, "snapshot_download", failing_snapshot_download)
+        monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_hub_download)
+        monkeypatch.setattr(huggingface_hub, "HfApi", api)
+
+        path = ModelDownloader(tmp_path).download("gpt2", max_retries=1)
+
+        assert fetched == ["config.json", "tokenizer/vocab.json", "model.safetensors"]
+        assert path == tmp_path / "models--gpt2" / "snapshots" / REVISION
+
+    def test_other_hub_errors_are_not_swallowed(self, tmp_path, monkeypatch):
+        import huggingface_hub
+
+        def failing_snapshot_download(**kwargs):
+            raise self._hub_error("https://huggingface.co/api/models/org/missing/revision/main")
+
+        monkeypatch.setattr(huggingface_hub, "snapshot_download", failing_snapshot_download)
+        monkeypatch.setattr(huggingface_hub, "hf_hub_download", MagicMock(side_effect=AssertionError("no fallback")))
+
+        with pytest.raises(RuntimeError, match="after 1 attempts"):
+            ModelDownloader(tmp_path).download("org/missing", max_retries=1)
 
 
 class _Meta:

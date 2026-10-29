@@ -193,7 +193,7 @@ def render_coverage_map(data_loader):
             title=f"Stored Test Results - {selected_model}",
         )
         fig.update_layout(height=max(300, 30 * len(df) + 150), yaxis={"categoryorder": "total ascending"})
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.markdown("### Coverage Statistics")
     col1, col2, col3 = st.columns(3)
@@ -279,7 +279,7 @@ def render_scale_perspective():
         yaxis_range=[0, 110],
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     st.markdown("### Helpful Analogies")
 
@@ -344,7 +344,7 @@ def render_tested_scenarios(data_loader):
     else:
         for source, source_df in df.groupby("Source", sort=False):
             with st.expander(f"{source} ({int(source_df['Tests'].sum()):,} results)"):
-                st.dataframe(source_df[["Category", "Tests"]], use_container_width=True, hide_index=True)
+                st.dataframe(source_df[["Category", "Tests"]], width="stretch", hide_index=True)
 
     st.markdown("### Testing Summary")
 
@@ -476,7 +476,7 @@ def render_unknown_territories():
             showlegend=False,
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # Philosophical note
     st.markdown("---")
@@ -526,7 +526,7 @@ def render_coverage_evolution(data_loader):
             height=400,
             hovermode="x unified",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
         st.caption("Discovery of new unknown categories is not recorded, so it is not plotted.")
 
     st.markdown("---")

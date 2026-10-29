@@ -55,7 +55,7 @@ impl AgentFileConfig {
     /// Load from a YAML file.
     pub fn from_file(path: &PathBuf) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path)?;
-        let config: Self = serde_yaml::from_str(&content)?;
+        let config: Self = serde_norway::from_str(&content)?;
         Ok(config)
     }
 

@@ -60,30 +60,34 @@ docker compose up crush-corporate
 
 ## Configuration
 
-The configuration file (`config/crush-config.json`) uses OpenAI as the provider:
+The configuration file (`config/crush-config.json`) defines a custom `company`
+provider of type `openai-compat` that points at the translation wrapper:
 ```json
 {
   "providers": {
-    "openai": {
-      "id": "openai",
-      "name": "OpenAI (Company Proxy)",
+    "company": {
+      "name": "Company Proxy",
+      "type": "openai-compat",
       "base_url": "http://localhost:8052/v1",
-      "type": "openai",
-      "api_key": "test-secret-token-123"
+      "api_key": "test-secret-token-123",
+      "models": [
+        { "id": "gpt-4", "name": "GPT-4 (Company)", "context_window": 8192, "default_max_tokens": 4096 },
+        { "id": "gpt-3.5-turbo", "name": "GPT-3.5 Turbo (Company)", "context_window": 4096, "default_max_tokens": 4096 }
+      ]
     }
   },
   "models": {
-    "large": {
-      "model": "gpt-4",
-      "provider": "openai"
-    },
-    "small": {
-      "model": "gpt-3.5-turbo",
-      "provider": "openai"
-    }
+    "large": { "model": "gpt-4", "provider": "company" },
+    "small": { "model": "gpt-3.5-turbo", "provider": "company" }
   }
 }
 ```
+
+Keep the type `openai-compat`: Crush sends providers of type `openai` to the
+OpenAI Responses API (`POST /v1/responses`), which the translation wrapper does
+not implement, so every request fails with 404. `openai-compat` uses
+`/v1/chat/completions`, which the wrapper serves. The provider id is not
+`openai` so it is not merged with Crush's built-in OpenAI entry.
 
 ## The Catwalk Problem and Solution
 

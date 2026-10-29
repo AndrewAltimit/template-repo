@@ -22,7 +22,7 @@ use std::thread::sleep;
 use std::time::Duration;
 
 use image::RgbaImage;
-use windows::Win32::Foundation::{BOOL, CloseHandle, HWND, LPARAM, POINT, RECT, WPARAM};
+use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Dwm::{
     DWMWA_CLOAKED, DWMWA_EXTENDED_FRAME_BOUNDS, DwmGetWindowAttribute,
 };
@@ -57,7 +57,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SetCursorPos, SetForegroundWindow,
     SetWindowPos, ShowWindow, WM_CLOSE, WS_EX_TOOLWINDOW,
 };
-use windows::core::PWSTR;
+use windows::core::{BOOL, PWSTR};
 
 use super::{DesktopBackend, DesktopError, DesktopResult};
 use crate::imaging::{PixelLayout, framebuffer_to_rgba};
@@ -78,10 +78,6 @@ fn op_err(context: &str, e: impl std::fmt::Display) -> DesktopError {
     DesktopError::OperationFailed(format!("{context}: {e}"))
 }
 
-fn null_hwnd() -> HWND {
-    HWND(std::ptr::null_mut())
-}
-
 fn hwnd_id(hwnd: HWND) -> String {
     (hwnd.0 as usize).to_string()
 }
@@ -94,7 +90,7 @@ fn hwnd_from_id(id: &str) -> DesktopResult<HWND> {
     let hwnd = HWND(raw as *mut c_void);
     // SAFETY: IsWindow accepts any value and only reports whether it is a
     // valid window handle.
-    if unsafe { IsWindow(hwnd) }.as_bool() {
+    if unsafe { IsWindow(Some(hwnd)) }.as_bool() {
         Ok(hwnd)
     } else {
         Err(DesktopError::WindowNotFound(id.to_string()))
@@ -404,7 +400,7 @@ impl WindowsBackend {
                 0,
                 w,
                 h,
-                screen.0,
+                Some(screen.0),
                 rect.x,
                 rect.y,
                 SRCCOPY | CAPTUREBLT,
@@ -433,7 +429,7 @@ struct ScreenDc(HDC);
 impl ScreenDc {
     fn get() -> DesktopResult<Self> {
         // SAFETY: GetDC(NULL) returns the screen DC or null on failure.
-        let dc = unsafe { GetDC(null_hwnd()) };
+        let dc = unsafe { GetDC(None) };
         if dc.is_invalid() {
             return Err(DesktopError::ScreenshotFailed(
                 "GetDC failed (no interactive desktop?)".to_string(),
@@ -446,7 +442,7 @@ impl ScreenDc {
 impl Drop for ScreenDc {
     fn drop(&mut self) {
         // SAFETY: releases the DC obtained in `get`.
-        unsafe { ReleaseDC(null_hwnd(), self.0) };
+        unsafe { ReleaseDC(None, self.0) };
     }
 }
 
@@ -463,7 +459,7 @@ impl MemDc {
     fn new(screen: HDC, width: i32, height: i32) -> DesktopResult<Self> {
         // SAFETY: creates GDI objects owned by the returned guard.
         unsafe {
-            let dc = CreateCompatibleDC(screen);
+            let dc = CreateCompatibleDC(Some(screen));
             if dc.is_invalid() {
                 return Err(DesktopError::ScreenshotFailed(
                     "CreateCompatibleDC failed".to_string(),
@@ -476,7 +472,7 @@ impl MemDc {
                     "CreateCompatibleBitmap({width}x{height}) failed"
                 )));
             }
-            let previous = SelectObject(dc, bitmap);
+            let previous = SelectObject(dc, bitmap.into());
             Ok(Self {
                 dc,
                 bitmap,
@@ -534,7 +530,7 @@ impl Drop for MemDc {
         // SAFETY: restores the original object and frees what `new` created.
         unsafe {
             SelectObject(self.dc, self.previous);
-            let _ = DeleteObject(self.bitmap);
+            let _ = DeleteObject(self.bitmap.into());
             let _ = DeleteDC(self.dc);
         }
     }
@@ -609,7 +605,7 @@ impl DesktopBackend for WindowsBackend {
         unsafe {
             SetWindowPos(
                 hwnd,
-                null_hwnd(),
+                None,
                 nx,
                 ny,
                 0,
@@ -636,7 +632,7 @@ impl DesktopBackend for WindowsBackend {
         unsafe {
             SetWindowPos(
                 hwnd,
-                null_hwnd(),
+                None,
                 0,
                 0,
                 w,
@@ -672,7 +668,7 @@ impl DesktopBackend for WindowsBackend {
     fn close_window(&self, id: &str) -> DesktopResult<()> {
         let hwnd = hwnd_from_id(id)?;
         // SAFETY: posting WM_CLOSE is the same as clicking the close button.
-        unsafe { PostMessageW(hwnd, WM_CLOSE, WPARAM(0), LPARAM(0)) }
+        unsafe { PostMessageW(Some(hwnd), WM_CLOSE, WPARAM(0), LPARAM(0)) }
             .map_err(|e| op_err("PostMessageW(WM_CLOSE)", e))
     }
 
@@ -681,7 +677,7 @@ impl DesktopBackend for WindowsBackend {
         // SAFETY: the callback only touches `raw` during the call.
         let ok = unsafe {
             EnumDisplayMonitors(
-                HDC(std::ptr::null_mut()),
+                None,
                 None,
                 Some(collect_monitor),
                 LPARAM(&mut raw as *mut Vec<usize> as isize),

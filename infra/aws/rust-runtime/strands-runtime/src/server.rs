@@ -116,7 +116,8 @@ impl Server {
 
         // Create the Bedrock model with AgentCore-compatible credentials
         // This uses MMDS V1 which works in Firecracker microVMs
-        let model = BedrockModel::new_for_agentcore(&self.config.model_id, &self.config.region).await;
+        let model =
+            BedrockModel::new_for_agentcore(&self.config.model_id, &self.config.region).await;
 
         // Build the agent configuration
         let agent_config = AgentConfig {
@@ -177,7 +178,8 @@ impl Server {
     /// Build the router without running (for testing).
     pub async fn build_router(self) -> Result<Router> {
         // Create the Bedrock model with AgentCore-compatible credentials
-        let model = BedrockModel::new_for_agentcore(&self.config.model_id, &self.config.region).await;
+        let model =
+            BedrockModel::new_for_agentcore(&self.config.model_id, &self.config.region).await;
 
         // Build the agent configuration
         let agent_config = AgentConfig {

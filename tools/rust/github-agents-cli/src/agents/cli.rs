@@ -2,7 +2,7 @@
 //!
 //! Each supported agent has its own CLI interface:
 //! - Claude: `claude --print --dangerously-skip-permissions [--model M]`, prompt on stdin
-//! - OpenCode: `opencode run -m openrouter/<model>`, prompt on stdin
+//! - OpenCode (2.x): `opencode run --standalone -m openrouter/<model>`, prompt on stdin
 //! - Crush: `crush run -q <prompt>`
 //!
 //! Prompts go through stdin wherever the CLI supports it so large issue
@@ -21,7 +21,7 @@ use crate::utils::process::{find_binary, is_transient_error, run_with_timeout};
 use crate::utils::text::{strip_ansi_codes, truncate_str};
 
 /// Default OpenRouter model for OpenCode/Crush (matches `.agents.yaml`).
-pub const DEFAULT_OPENROUTER_MODEL: &str = "qwen/qwen3.7-max";
+pub const DEFAULT_OPENROUTER_MODEL: &str = "particle-ai/particle-1";
 
 /// Crush receives its prompt as an argument; refuse prompts that would exceed
 /// the Linux per-argument limit (128 KiB) rather than failing obscurely.
@@ -173,7 +173,12 @@ impl CliAgent {
                 } else {
                     format!("openrouter/{model}")
                 };
-                cmd.args(["run", "-m", &model]);
+                // `--standalone` runs a private server for this invocation
+                // instead of the shared background service, so each run sees
+                // this process's environment (API key, model) and nothing
+                // lingers after it exits.
+                cmd.args(["run", "--standalone", "-m", &model]);
+                crate::utils::process::set_opencode_title_model(&mut cmd, &model);
                 Some(prompt.to_string())
             },
             CliKind::Crush => {
@@ -351,6 +356,20 @@ mod tests {
     fn claude_prompt_goes_to_stdin() {
         let agent = CliAgent::claude(1);
         let (_cmd, stdin) = agent.build_command("claude", "hello").unwrap();
+        assert_eq!(stdin.as_deref(), Some("hello"));
+    }
+
+    #[test]
+    fn opencode_runs_standalone_with_openrouter_model() {
+        let agent = CliAgent::opencode(1);
+        let (cmd, stdin) = agent.build_command("opencode", "hello").unwrap();
+        let args: Vec<String> = cmd
+            .as_std()
+            .get_args()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect();
+        assert_eq!(&args[..3], ["run", "--standalone", "-m"]);
+        assert!(args[3].starts_with("openrouter/"));
         assert_eq!(stdin.as_deref(), Some("hello"));
     }
 

@@ -1,7 +1,7 @@
 # Multi-stage Rust build for mcp-video-editor
 # Stage 1: Build the Rust binary
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # Install build dependencies for OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -127,7 +127,7 @@ def render_train_backdoor(api_client):
             logging_steps = st.number_input("Logging Steps", min_value=1, max_value=100, value=10, step=1)
 
         # Submit button
-        submitted = st.form_submit_button("🚀 Start Training", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("🚀 Start Training", type="primary", width="stretch")
 
         if submitted:
             _submit_training_job(

@@ -141,7 +141,7 @@ impl ConversationManager {
                 // Ensure we maintain user/assistant alternation
                 self.messages.drain(0..remove_count);
                 true
-            }
+            },
             ContextReductionStrategy::TruncateContent => {
                 // Truncate long text content in older messages
                 let truncated = self.truncate_old_messages();
@@ -149,14 +149,14 @@ impl ConversationManager {
                     debug!("Truncated content in older messages");
                 }
                 truncated
-            }
+            },
             ContextReductionStrategy::Summarize => {
                 // Would require a model call - not implemented inline
                 // Fall back to removing oldest
                 warn!("Summarize strategy not implemented, falling back to remove oldest");
                 self.messages.drain(0..2);
                 true
-            }
+            },
         }
     }
 
