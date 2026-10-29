@@ -57,7 +57,14 @@ pub fn hash_crate(crate_dir: &Path, extra: &[&str]) -> String {
         hasher.update(b"extra:");
         hasher.update(value.as_bytes());
     }
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .fold(String::with_capacity(64), |mut hex, byte| {
+            use std::fmt::Write as _;
+            let _ = write!(hex, "{byte:02x}");
+            hex
+        })
 }
 
 /// Write `pub const {name}: &str = "{value}";` to `$OUT_DIR/{file_name}`.

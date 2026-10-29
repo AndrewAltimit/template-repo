@@ -206,16 +206,16 @@ impl SecurityManager {
     pub fn from_yaml_str(content: &str) -> Result<Self, Error> {
         // A top-level `security` key means the nested `.agents.yaml` format;
         // errors inside it propagate (no silent fallback to defaults).
-        let value: serde_yaml::Value = serde_yaml::from_str(content)?;
+        let value: serde_norway::Value = serde_norway::from_str(content)?;
         let config = match value.get("security") {
             Some(section) if !section.is_null() => {
                 info!("Loaded security config from agents YAML (nested format)");
-                serde_yaml::from_value::<SecurityConfig>(section.clone())?
+                serde_norway::from_value::<SecurityConfig>(section.clone())?
             },
             // `security:` present but empty
             Some(_) => SecurityConfig::default(),
             None if value.is_null() => SecurityConfig::default(),
-            None => serde_yaml::from_value::<SecurityConfig>(value)?,
+            None => serde_norway::from_value::<SecurityConfig>(value)?,
         };
 
         let allowed_users = Self::init_allowed_users(&config);

@@ -196,8 +196,8 @@ pub fn load_config_file(path: &Path) -> Result<BoardConfig> {
 }
 
 /// Parse configuration from YAML text.
-pub fn parse_config_str(content: &str) -> std::result::Result<BoardConfig, serde_yaml::Error> {
-    serde_yaml::from_str::<ConfigFile>(content).map(Into::into)
+pub fn parse_config_str(content: &str) -> std::result::Result<BoardConfig, serde_norway::Error> {
+    serde_norway::from_str::<ConfigFile>(content).map(Into::into)
 }
 
 /// Load configuration from environment variables.

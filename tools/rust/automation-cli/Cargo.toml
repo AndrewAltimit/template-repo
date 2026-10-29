@@ -16,23 +16,23 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI parsing
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.6", features = ["derive"] }
 
 # HTTP client for health checks (blocking API; wait/launch/service/proxy)
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "json", "rustls"] }
 
 # Serialization (PR comment JSON, Claude stream-json, .agents.yaml)
 serde_json = "1.0"
-serde_yaml = "0.9"
+serde_norway = "0.9"
 
 # Error handling
 anyhow = "1.0"
 
 # Terminal colors
-owo-colors = "4.0"
+owo-colors = "4.4"
 
 # Self-deleting temp files for prompts / commit messages / comment bodies
-tempfile = "3.10"
+tempfile = "3.27"
 
 # Secret masking shared with gh-validator wrapper. Used to redact stream-json
 # logs and unpushed-commit patches before they are uploaded as workflow
@@ -48,7 +48,7 @@ trust-common = { path = "../trust-common" }
 libc = "0.2"
 
 [dev-dependencies]
-assert_cmd = "2.0"
+assert_cmd = "2.2"
 predicates = "3.1"
 
 [profile.release]

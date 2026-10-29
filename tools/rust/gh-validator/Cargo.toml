@@ -17,9 +17,9 @@ path = "src/main.rs"
 [dependencies]
 wrapper-common = { path = "../wrapper-common" }
 serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.9"
+serde_norway = "0.9"
 regex = "1"
-ureq = { version = "2.12", default-features = false, features = ["tls"] }
+ureq = { version = "3.5", default-features = false, features = ["rustls"] }
 thiserror = "2"
 url = "2.5"
 

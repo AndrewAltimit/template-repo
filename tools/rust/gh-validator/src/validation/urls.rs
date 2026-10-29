@@ -142,11 +142,16 @@ impl UrlValidator {
     /// Fails closed: if the URL cannot be verified it is rejected.
     pub fn validate_exists(&self, url: &str) -> Result<()> {
         self.validate_ssrf(url)?;
-        let agent = ureq::AgentBuilder::new()
-            .redirects(0)
-            .timeout(self.timeout)
+        // Redirects are not followed by ureq (every hop is checked below),
+        // and proxy environment variables are ignored so requests go
+        // straight to the allow-listed host.
+        let agent: ureq::Agent = ureq::Agent::config_builder()
+            .max_redirects(0)
+            .timeout_global(Some(self.timeout))
             .user_agent("gh-validator/0.2")
-            .build();
+            .proxy(None)
+            .build()
+            .into();
 
         let mut current = url.to_string();
         for _ in 0..=MAX_REDIRECTS {
@@ -184,12 +189,16 @@ impl UrlValidator {
         for attempt in 0..attempts {
             match agent.head(url).call() {
                 Ok(response) => {
-                    let status = response.status();
+                    let status = response.status().as_u16();
                     if status == 200 {
                         return Ok(None);
                     }
                     if (300..400).contains(&status) {
-                        return match response.header("location") {
+                        let location = response
+                            .headers()
+                            .get("location")
+                            .and_then(|v| v.to_str().ok());
+                        return match location {
                             Some(loc) => Ok(Some(loc.to_string())),
                             None => Err(Error::InvalidUrl {
                                 url: url.to_string(),
@@ -202,13 +211,13 @@ impl UrlValidator {
                         reason: format!("HTTP status {status}"),
                     });
                 },
-                Err(ureq::Error::Status(404, _)) => {
+                Err(ureq::Error::StatusCode(404)) => {
                     return Err(Error::InvalidUrl {
                         url: url.to_string(),
                         reason: "Image not found (404)".to_string(),
                     });
                 },
-                Err(ureq::Error::Status(code, _)) if (400..500).contains(&code) => {
+                Err(ureq::Error::StatusCode(code)) if (400..500).contains(&code) => {
                     return Err(Error::InvalidUrl {
                         url: url.to_string(),
                         reason: format!("HTTP error {code}"),

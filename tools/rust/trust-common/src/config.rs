@@ -50,7 +50,7 @@ pub enum TrustError {
     },
     Parse {
         path: Option<PathBuf>,
-        source: serde_yaml::Error,
+        source: serde_norway::Error,
     },
     NoAdmins {
         path: Option<PathBuf>,
@@ -119,7 +119,7 @@ impl TrustConfig {
     /// Parse the `security` section from `.agents.yaml` text. A document
     /// without a `security` key yields empty lists.
     pub fn from_yaml_str(content: &str) -> Result<Self, TrustError> {
-        serde_yaml::from_str::<AgentsYaml>(content)
+        serde_norway::from_str::<AgentsYaml>(content)
             .map(|doc| doc.security)
             .map_err(|source| TrustError::Parse { path: None, source })
     }
@@ -249,7 +249,7 @@ mod tests {
             TrustConfig::from_yaml_str("security: {}\n").unwrap(),
             TrustConfig::default()
         );
-        // An explicit null list is empty (serde_yaml semantics).
+        // An explicit null list is empty (serde_yaml semantics, kept by serde_norway).
         assert_eq!(
             TrustConfig::from_yaml_str("security:\n  agent_admins:\n").unwrap(),
             TrustConfig::default()

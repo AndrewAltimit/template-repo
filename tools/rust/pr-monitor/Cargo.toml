@@ -16,14 +16,14 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI parsing
-clap = { version = "4.5", features = ["derive", "env"] }
+clap = { version = "4.6", features = ["derive", "env"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Regex for pattern matching
-regex = "1.11"
+regex = "1.13"
 
 # Error handling
 thiserror = "2.0"
@@ -32,10 +32,10 @@ thiserror = "2.0"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
 
 # Signal handling
-ctrlc = "3.4"
+ctrlc = "3.5"
 
 [dev-dependencies]
-tempfile = "3.10"
+tempfile = "3.27"
 
 [profile.release]
 opt-level = "z"
