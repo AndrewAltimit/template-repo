@@ -19,9 +19,8 @@ aes-gcm = { workspace = true }
 rand = { workspace = true }
 zeroize = { workspace = true }
 secrecy = { workspace = true }
-pqcrypto-mlkem = { workspace = true }
-pqcrypto-mldsa = { workspace = true }
-pqcrypto-traits = { workspace = true }
+ml-kem = { workspace = true }
+ml-dsa = { workspace = true }
 clap = { workspace = true }
 rpassword = { workspace = true }
 serde = { workspace = true }

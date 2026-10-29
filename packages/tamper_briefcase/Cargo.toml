@@ -19,7 +19,7 @@ authors = ["AndrewAltimit"]
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-toml = "0.8"
+toml = "1.1"
 
 # Logging
 log = "0.4"
@@ -33,31 +33,33 @@ anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 
 # Hardware (Raspberry Pi)
-rppal = "0.19"
+rppal = "0.22"
 
 # Cryptography
-scrypt = "0.11"
+scrypt = { version = "0.12", features = ["alloc", "getrandom", "phc"] }
 subtle = "2.6"
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-hkdf = "0.12"
-sha2 = "0.10"
-aes-gcm = "0.10"
-rand = "0.8"
-zeroize = { version = "1.8", features = ["derive"] }
-pqcrypto-mlkem = "0.1"
-pqcrypto-mldsa = "0.1"
-pqcrypto-traits = "0.3"
+x25519-dalek = { version = "3.0", features = ["static_secrets"] }
+hkdf = "0.13"
+sha2 = "0.11"
+aes-gcm = "0.11"
+rand = "0.10"
+zeroize = { version = "1.9", features = ["derive"] }
+# RustCrypto FIPS 203 / FIPS 204 implementations. These replaced the
+# PQClean-based pqcrypto-* crates (unmaintained, RUSTSEC-2026-0161..0166);
+# key, ciphertext, and signature encodings are byte-identical.
+ml-kem = { version = "0.3", features = ["zeroize"] }
+ml-dsa = { version = "0.1", features = ["zeroize"] }
 
 # CLI
-clap = { version = "4.5", features = ["derive"] }
-rpassword = "7.3"
+clap = { version = "4.6", features = ["derive"] }
+rpassword = "7.5"
 
 # Unix
-nix = { version = "0.29", features = ["fs", "signal", "process", "user", "poll", "reboot"] }
+nix = { version = "0.31", features = ["fs", "signal", "process", "user", "poll", "reboot"] }
 secrecy = { version = "0.10", features = ["serde"] }
 
 # Base64
-base64 = "0.22"
+base64 = "0.23"
 
 # Hex encoding
 hex = "0.4"
@@ -66,7 +68,7 @@ hex = "0.4"
 tamper-common = { path = "crates/tamper-common" }
 
 # Dev/test
-tempfile = "3.15"
+tempfile = "3.27"
 
 [workspace.lints.clippy]
 clone_on_ref_ptr = "warn"
