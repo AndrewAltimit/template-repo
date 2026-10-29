@@ -405,8 +405,8 @@ fn describe_reqwest_error(e: &reqwest::Error, timeout: Duration) -> String {
 /// Fails if the document is malformed or contains no usable reactions, so a
 /// bad upstream push can never overwrite a good cache.
 pub fn parse_config(raw: &str) -> Result<(Vec<Reaction>, Vec<String>), ConfigError> {
-    let config: ReactionConfig =
-        serde_norway::from_str(raw).map_err(|e| ConfigError::Parse(format!("invalid YAML: {e}")))?;
+    let config: ReactionConfig = serde_norway::from_str(raw)
+        .map_err(|e| ConfigError::Parse(format!("invalid YAML: {e}")))?;
     let (reactions, warnings) = sanitize_reactions(config.reaction_images);
     for w in &warnings {
         warn!("Reaction config: {w}");

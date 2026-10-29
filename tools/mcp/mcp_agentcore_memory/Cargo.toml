@@ -50,8 +50,13 @@ chrono = { version = "0.4", features = ["serde"] }
 regex = "1.13"
 sha2 = "0.11"
 
-# Sentence embeddings (ONNX-based), optional
-fastembed = { version = "7", optional = true }
+# Sentence embeddings (ONNX-based), optional. Text models only: the default
+# `image-models` feature pulls in image with every codec (rav1e -> paste,
+# RUSTSEC-2024-0436) and text embedding never uses it.
+fastembed = { version = "7", optional = true, default-features = false, features = [
+    "ort-download-binaries-native-tls",
+    "hf-hub-native-tls",
+] }
 
 [profile.release]
 lto = true

@@ -8,7 +8,7 @@
 //! 3. The DejaVu Sans Bold font embedded in the binary, so rendering always
 //!    works even on a bare system.
 
-use ab_glyph::FontArc;
+use crate::face::Face;
 use std::path::Path;
 use tracing::{info, warn};
 
@@ -23,15 +23,15 @@ pub const SYSTEM_FONT_CANDIDATES: &[&str] =
 #[derive(Clone)]
 pub struct LoadedFont {
     /// Parsed font (cheaply cloneable).
-    pub font: FontArc,
+    pub font: Face,
     /// Path or `"embedded:DejaVuSans-Bold"`.
     pub source: String,
 }
 
-fn load_file(path: &Path) -> Result<FontArc, String> {
+fn load_file(path: &Path) -> Result<Face, String> {
     let bytes =
         std::fs::read(path).map_err(|e| format!("cannot read font {}: {e}", path.display()))?;
-    FontArc::try_from_vec(bytes).map_err(|e| format!("cannot parse font {}: {e}", path.display()))
+    Face::from_vec(bytes).map_err(|e| format!("cannot parse font {}: {e}", path.display()))
 }
 
 /// Load the caption font. Only fails when an explicit font path is unusable.
@@ -71,7 +71,7 @@ pub fn embedded() -> LoadedFont {
     LoadedFont {
         // The embedded bytes are a known-good TTF (covered by tests); if they
         // ever failed to parse that would be a build defect, not user input.
-        font: FontArc::try_from_slice(EMBEDDED_FONT)
+        font: Face::from_static(EMBEDDED_FONT)
             .unwrap_or_else(|e| panic!("embedded font is corrupt: {e}")),
         source: "embedded:DejaVuSans-Bold".to_string(),
     }

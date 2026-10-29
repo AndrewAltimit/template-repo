@@ -45,8 +45,13 @@ chrono = { version = "0.4", features = ["serde"] }
 # Directories
 dirs = "7.0"
 
-# Sentence embeddings (ONNX-based)
-fastembed = "7"
+# Sentence embeddings (ONNX-based). Text models only: the default
+# `image-models` feature pulls in image with every codec (rav1e -> paste,
+# RUSTSEC-2024-0436) and text embedding never uses it.
+fastembed = { version = "7", default-features = false, features = [
+    "ort-download-binaries-native-tls",
+    "hf-hub-native-tls",
+] }
 
 # Linear algebra
 ndarray = "0.17"
