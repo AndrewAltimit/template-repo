@@ -12,7 +12,7 @@ print_header "Running OpenCode with Mock Services"
 check_docker
 
 # Build if needed
-build_if_needed "opencode-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CORPORATE_PROXY_ROOT"
+build_if_needed "opencode-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CORPORATE_PROXY_ROOT/../.."
 
 # Clean up any existing container
 cleanup_container "opencode-corporate"
@@ -77,6 +77,4 @@ container_run $TTY_FLAG --rm \
     -e COMPANY_API_TOKEN="test-secret-token-123" \
     -e WRAPPER_PORT="8052" \
     -e MOCK_API_PORT="8050" \
-    -e OPENROUTER_API_KEY="test-secret-token-123" \
-    -e OPENROUTER_BASE_URL="http://localhost:8052/v1" \
     opencode-corporate:latest "${OPENCODE_ARGS[@]}"

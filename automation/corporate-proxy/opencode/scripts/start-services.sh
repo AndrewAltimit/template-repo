@@ -14,54 +14,56 @@ cleanup() {
     exit
 }
 
-trap cleanup EXIT INT TERM
+trap cleanup INT TERM
 
 # Create log directory
 mkdir -p /tmp/logs
 
-# Start unified tool API (runs on port 8050)
-echo "Starting unified tool API on port 8050..."
-API_MODE=opencode API_VERSION=v3 PORT=8050 python3 /app/unified_tool_api.py > /tmp/logs/mock_api.log 2>&1 &
+# OpenCode keeps its state under $HOME. The run scripts and compose override
+# the container UID (and sometimes HOME), so fall back to a writable HOME
+# when the configured one is not.
+if [ -z "${HOME:-}" ] || ! { mkdir -p "$HOME" && [ -w "$HOME" ]; } 2>/dev/null; then
+    export HOME=/tmp/opencode-home
+    mkdir -p "$HOME"
+fi
 
-# Give the service a moment to start before checking
-sleep 1
+MOCK_API_PORT="${MOCK_API_PORT:-8050}"
+WRAPPER_PORT="${WRAPPER_PORT:-8052}"
+MOCK_API_BASE="http://localhost:$MOCK_API_PORT"
 
-# Wait for mock API to be ready
-echo "Waiting for mock API to be ready..."
-for i in {1..30}; do
-    if curl -fsS http://localhost:8050/health > /dev/null 2>&1; then
-        echo "✓ Mock API is ready"
-        break
-    fi
-    if [ "$i" -eq 30 ]; then
-        echo "✗ Mock API failed to start"
-        echo "Check logs at /tmp/logs/mock_api.log"
-        exit 1
-    fi
-    sleep 1
-done
+# wait_for <name> <url> <log>: poll a /health endpoint for up to 30 seconds
+wait_for() {
+    echo "Waiting for $1 to be ready..."
+    for i in {1..30}; do
+        if curl -fsS "$2" > /dev/null 2>&1; then
+            echo "✓ $1 is ready"
+            return 0
+        fi
+        if [ "$i" -eq 30 ]; then
+            echo "✗ $1 failed to start"
+            echo "Check logs at $3"
+            exit 1
+        fi
+        sleep 1
+    done
+}
 
-# Start translation wrapper (runs on port 8052)
-echo "Starting translation wrapper on port 8052..."
-python3 /app/translation_wrapper.py > /tmp/logs/translation_wrapper.log 2>&1 &
+# Mock Company API (unified tool API). Skipped when COMPANY_API_BASE points
+# at a real Company API (run-production.sh).
+if [ "${COMPANY_API_BASE:-$MOCK_API_BASE}" = "$MOCK_API_BASE" ]; then
+    echo "Starting mock Company API on port $MOCK_API_PORT..."
+    API_MODE=opencode API_VERSION=v3 PORT="$MOCK_API_PORT" \
+        python3 /app/unified_tool_api.py > /tmp/logs/mock_api.log 2>&1 &
+    wait_for "Mock API" "$MOCK_API_BASE/health" /tmp/logs/mock_api.log
+else
+    echo "Using Company API at $COMPANY_API_BASE (mock not started)"
+fi
 
-# Give the service a moment to start before checking
-sleep 1
-
-# Wait for wrapper to be ready
-echo "Waiting for translation wrapper to be ready..."
-for i in {1..30}; do
-    if curl -fsS http://localhost:8052/health > /dev/null 2>&1; then
-        echo "✓ Translation wrapper is ready"
-        break
-    fi
-    if [ "$i" -eq 30 ]; then
-        echo "✗ Translation wrapper failed to start"
-        echo "Check logs at /tmp/logs/translation_wrapper.log"
-        exit 1
-    fi
-    sleep 1
-done
+# Translation wrapper: the OpenAI-compatible endpoint OpenCode's "company"
+# provider talks to (COMPANY_PROXY_BASE_URL)
+echo "Starting translation wrapper on port $WRAPPER_PORT..."
+PORT="$WRAPPER_PORT" python3 /app/translation_wrapper.py > /tmp/logs/translation_wrapper.log 2>&1 &
+wait_for "Translation wrapper" "http://localhost:$WRAPPER_PORT/health" /tmp/logs/translation_wrapper.log
 
 echo ""
 echo "=========================================="
@@ -69,20 +71,24 @@ echo "All services started successfully!"
 echo "=========================================="
 echo ""
 echo "Services running:"
-echo "  - Mock Company API: http://localhost:8050"
-echo "  - Translation Wrapper: http://localhost:8052"
+echo "  - Company API: ${COMPANY_API_BASE:-$MOCK_API_BASE}"
+echo "  - Translation Wrapper: http://localhost:$WRAPPER_PORT (OpenCode provider: company)"
 echo ""
 echo "Service logs:"
 echo "  - /tmp/logs/mock_api.log"
 echo "  - /tmp/logs/translation_wrapper.log"
 echo ""
-echo "OpenCode environment ready"
+echo "$(opencode --version 2>/dev/null || echo 'opencode (version unknown)') ready"
 echo "=========================================="
 echo ""
 
-# Execute command if provided, otherwise start bash
+# Run the given command. Without one, start a shell when attached to a
+# terminal; otherwise (compose `up -d`, `docker run -d`) keep serving.
 if [ $# -gt 0 ]; then
     exec "$@"
-else
+elif [ -t 0 ]; then
     exec bash
+else
+    echo "No command and no terminal: serving until stopped"
+    wait
 fi

@@ -31,10 +31,11 @@ claude --print --dangerously-skip-permissions --output-format text "prompt"
 
 ### OpenCode
 ```bash
-opencode --non-interactive --model particle-ai/particle-1 --input prompt.md
+opencode run --standalone -m openrouter/particle-ai/particle-1 < prompt.md
 ```
-- `--non-interactive`: Disables all interactive features
-- `--input`: File-based input (no terminal interaction)
+- `run`: Non-interactive mode; the prompt comes from the arguments or stdin
+- `-m openrouter/<model>`: OpenRouter model (needs `OPENROUTER_API_KEY`)
+- `--standalone`: Private server for this run instead of OpenCode 2.x's shared background service, so the run uses this process's environment and nothing keeps running afterwards
 
 ### Crush (Charm Bracelet)
 ```bash

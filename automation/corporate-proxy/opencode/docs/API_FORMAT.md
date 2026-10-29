@@ -256,12 +256,14 @@ Expected response structure:
 }
 ```
 
-## OpenRouter-Specific Considerations
+## Provider Considerations
 
 ### Model Names
-OpenCode uses OpenRouter's model naming convention:
-- Format: `provider/model-name`
-- Example: `qwen/qwen-2.5-coder-32b-instruct`
+OpenCode selects models as `provider/model`. In the proxy image the provider is
+`company` (see `../config/opencode.jsonc`), and OpenCode sends only the model
+part in the request body:
+- OpenCode model: `company/claude-3.5-sonnet`
+- `model` field received by the wrapper: `claude-3.5-sonnet`
 
 ### API Endpoints
 - Chat Completions: `/v1/chat/completions`

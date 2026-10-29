@@ -3,9 +3,10 @@
 # Multi-stage build:
 #   1. Build the `mcp-opencode` Rust binary (talks to OpenRouter over HTTPS;
 #      it does not need the opencode CLI at runtime).
-#   2. Runtime image. It also ships the upstream `opencode` CLI (sst/opencode)
-#      at /usr/local/bin/opencode because the `openrouter-agents` image copies
-#      it from here (see openrouter-agents.Dockerfile), so that path must stay
+#   2. Runtime image. It also ships the upstream `opencode` CLI
+#      (github.com/anomalyco/opencode, formerly sst/opencode) at
+#      /usr/local/bin/opencode because the `openrouter-agents` image copies it
+#      from here (see openrouter-agents.Dockerfile), so that path must stay
 #      stable.
 
 # Stage 1: Build the Rust binary
@@ -31,10 +32,14 @@ RUN cargo build --release
 # Stage 2: Runtime image
 FROM debian:bookworm-slim
 
-# Pinned OpenCode CLI release (checksums verified below).
-ARG OPENCODE_VERSION=1.19.5
-ARG OPENCODE_CHECKSUM_AMD64=588310a336fa3b9df36b3f0225b26f679d453efaad0cf3d66c3651ef3ec1647a
-ARG OPENCODE_CHECKSUM_ARM64=fae5be262d693b7c5e562856cc473e59e741772936db0c0600ac0d5ed5bd088b
+# Pinned OpenCode CLI release (checksums verified below). The values come from
+# the release's SHA256SUMS asset. 2.x is the current major line; 1.19.x only
+# receives maintenance releases. The 2.x CLI is self-contained (models catalog
+# and provider runtimes are bundled), and `opencode run` talks to a background
+# service it starts on demand unless `--standalone` is given.
+ARG OPENCODE_VERSION=2.2.1
+ARG OPENCODE_CHECKSUM_AMD64=3179551ddf69877ca24a960b0175e94405cf3f52147f1eec705094374bef49f2
+ARG OPENCODE_CHECKSUM_ARM64=c354d8a2dc4152308bf286b5ec7f20b3b3cfc71f9476e64f6aa274142505b2f8
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

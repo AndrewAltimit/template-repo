@@ -70,7 +70,9 @@ impl ReviewAgent for OpenCodeAgent {
             .as_ref()
             .ok_or_else(|| Error::EnvNotSet("OpenCode CLI not found in PATH".to_string()))?;
         let mut cmd = Command::new(path);
-        cmd.args(["run", "--model", &self.model]);
+        // Private per-run server (OpenCode 2.x) instead of the shared
+        // background service, so the review uses this process's environment.
+        cmd.args(["run", "--standalone", "--model", &self.model]);
         run_review_cli("opencode", cmd, Some(prompt), OPENCODE_TIMEOUT).await
     }
 }

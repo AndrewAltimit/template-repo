@@ -879,6 +879,11 @@ runs:
             ;;
 
           opencode)
+            # OpenCode 2.x: pin the OpenRouter model (otherwise the CLI picks
+            # its own default, which may not be an OpenRouter model) and use a
+            # private per-run server instead of the shared background service.
+            OPENCODE_MODEL_REF="${OPENCODE_MODEL:-particle-ai/particle-1}"
+            case "$OPENCODE_MODEL_REF" in openrouter/*) ;; *) OPENCODE_MODEL_REF="openrouter/$OPENCODE_MODEL_REF" ;; esac
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running OpenCode in Docker..."
               if timeout "${AGENT_TIMEOUT}m" docker compose -f "$DOCKER_COMPOSE_FILE" run --rm \
@@ -886,14 +891,14 @@ runs:
                 -e PR_TITLE_FILE \
                 -e PR_BODY_FILE \
                 -v "$PR_TITLE_DIR:$PR_TITLE_DIR" \
-                openrouter-agents opencode run < "$CONTEXT_FILE"; then
+                openrouter-agents opencode run --standalone -m "$OPENCODE_MODEL_REF" < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="OpenCode Docker execution failed"
               fi
             elif command -v opencode &> /dev/null; then
               echo "Running OpenCode locally..."
-              if timeout "${AGENT_TIMEOUT}m" opencode run < "$CONTEXT_FILE"; then
+              if timeout "${AGENT_TIMEOUT}m" opencode run --standalone -m "$OPENCODE_MODEL_REF" < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="OpenCode local execution failed"

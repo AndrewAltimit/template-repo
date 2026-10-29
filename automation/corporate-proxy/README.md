@@ -133,8 +133,8 @@ docker compose run --rm crush-proxy bash -c "./scripts/test-patched.sh"
 # Expected: "Hatsune Miku"
 
 # Test OpenCode
-docker compose run --rm opencode-proxy bash -c "./scripts/test-api-only.sh"
-# Expected: "Response: Hatsune Miku"
+docker compose --profile proxy run --rm opencode-proxy opencode run "say hello"
+# Expected: "Hello! I'm running through a mock API. How can I help you today?"
 ```
 
 **5. Interactive Testing**
@@ -219,10 +219,10 @@ docker compose run --rm -it gemini-proxy
 
 ### OpenCode CLI
 - **Port**: 8052
-- **Status**: API translation working
-- **Features**: Comprehensive code generation
-- **Config**: Environment variables
-- **Test**: `docker compose run --rm opencode-proxy bash -c "./scripts/test-api-only.sh"`
+- **Status**: OpenCode 2.x, configured through its managed config (no source patches)
+- **Features**: Comprehensive code generation, text-based tool calling
+- **Config**: `opencode/config/opencode.jsonc` (installed as `/etc/opencode/opencode.jsonc`) plus environment variables
+- **Test**: `docker compose --profile proxy run --rm opencode-proxy opencode run "say hello"`
 
 ## Configuration Reference
 

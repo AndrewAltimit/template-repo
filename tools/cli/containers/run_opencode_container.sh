@@ -154,21 +154,23 @@ if [ "$MODE" = "single" ]; then
     echo "📝 Running single query in container..."
     echo ""
 
-    # Build command for container
-    CMD="opencode run"
-
-    if [ -n "$QUERY" ]; then
-        CMD="$CMD -q '$QUERY'"
-    fi
+    # Build the OpenCode 2.x command as an argument array (no shell string, so
+    # quotes in the query cannot break or inject into the command line).
+    # --standalone gives this run a private server instead of the shared
+    # background service.
+    CMD=(opencode run --standalone -m "openrouter/$OPENCODE_MODEL")
 
     if [ -n "$CONTEXT_PATH" ]; then
         echo "📄 Including context from: $CONTEXT"
-        CMD="$CMD -c '$CONTEXT_PATH'"
+        CMD+=(--file "$CONTEXT_PATH")
     fi
 
     if [ "$PLAN_MODE" = true ]; then
-        CMD="$CMD --plan"
+        # OpenCode's built-in read-only planning agent
+        CMD+=(--agent plan)
     fi
+
+    CMD+=("$QUERY")
 
     # Execute in container
     if [ -n "$VOLUME_MOUNT" ]; then
@@ -178,12 +180,12 @@ if [ "$MODE" = "single" ]; then
             -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
             -e OPENCODE_MODEL="$OPENCODE_MODEL" \
             $VOLUME_MOUNT \
-            openrouter-agents sh -c "$CMD"
+            openrouter-agents "${CMD[@]}"
     else
         docker compose run --rm \
             -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
             -e OPENCODE_MODEL="$OPENCODE_MODEL" \
-            openrouter-agents sh -c "$CMD"
+            openrouter-agents "${CMD[@]}"
     fi
 else
     echo "🔄 Starting interactive session in container..."

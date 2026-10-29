@@ -1,0 +1,70 @@
+// OpenCode 2.x managed configuration for the corporate proxy image.
+//
+// The image installs this file as /etc/opencode/opencode.jsonc, OpenCode's
+// system (managed) configuration directory on Linux. Managed settings load
+// last, so user and project opencode.json files cannot override them.
+//
+// It replaces the source overlays the 1.0.x build needed: instead of
+// patching the models.dev catalog in src/provider/models.ts, it declares a
+// "company" provider that points at the local translation wrapper
+// (shared/services/translation_wrapper.py) and uses policies to make it the
+// only provider OpenCode will use.
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Default model for `opencode`, `opencode run` and the TUI.
+  "model": "company/claude-3.5-sonnet",
+
+  // No self-updates or session sharing from inside the corporate network.
+  "update": "disable",
+  "share": "disabled",
+
+  "providers": {
+    "company": {
+      "name": "Company AI",
+      // The translation wrapper does not authenticate OpenCode (it adds
+      // COMPANY_API_TOKEN itself when it calls the Company API), but the
+      // provider needs a credential to count as connected.
+      "env": ["COMPANY_PROXY_API_KEY"],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        // Set by the image (default http://localhost:8052/v1).
+        "baseURL": "{env:COMPANY_PROXY_BASE_URL}"
+      },
+      // Model IDs must match shared/configs/models.json, which maps them to
+      // Company endpoints. `tools` stays true even though the Company API has
+      // no native tool support: the wrapper parses tool calls out of the
+      // text response and returns them in OpenAI format, and OpenCode only
+      // executes them for tool-capable models
+      // (see ../patches/fix-tool-execution.md).
+      "models": {
+        "claude-3.5-sonnet": {
+          "name": "Claude 3.5 Sonnet (Company)",
+          "releaseDate": "2024-06-20",
+          "capabilities": { "tools": true, "temperature": true },
+          "limit": { "context": 200000, "output": 8192 }
+        },
+        "claude-3-opus": {
+          "name": "Claude 3 Opus (Company)",
+          "releaseDate": "2024-02-29",
+          "capabilities": { "tools": true, "temperature": true },
+          "limit": { "context": 200000, "output": 4096 }
+        },
+        "gpt-4": {
+          "name": "GPT-4 (Company)",
+          "releaseDate": "2023-03-14",
+          "capabilities": { "tools": true, "temperature": true, "input": ["text"] },
+          "limit": { "context": 128000, "output": 4096 }
+        }
+      }
+    }
+  },
+
+  // Deny every provider (catalog, environment, saved accounts, OpenCode's
+  // own hosted models), then allow only the Company provider. The last
+  // matching statement wins.
+  "policies": [
+    { "action": "provider.use", "resource": "*", "effect": "deny" },
+    { "action": "provider.use", "resource": "company", "effect": "allow" }
+  ]
+}

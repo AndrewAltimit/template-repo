@@ -41,20 +41,26 @@ if [ -z "$OPENCODE_MODEL" ]; then
 fi
 echo "🤖 Using model: $OPENCODE_MODEL"
 
-# Build simple OpenCode image if it doesn't exist
-IMAGE_NAME="opencode-simple:latest"
+# Build simple OpenCode image if it doesn't exist. The tag carries the pinned
+# CLI version so bumping OPENCODE_VERSION rebuilds instead of reusing a stale
+# image. OpenCode 2.x is published to npm as @opencode/cli (the old
+# opencode-ai package only carries the 1.x line).
+OPENCODE_VERSION="2.2.1"
+IMAGE_NAME="opencode-simple:${OPENCODE_VERSION}"
 
-if ! docker images | grep -q "opencode-simple"; then
+if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
     echo ""
     echo "📦 Building OpenCode container image..."
     echo "This will take a few minutes on first run..."
 
     # Create temporary Dockerfile
     cat > /tmp/opencode-simple.dockerfile <<'EOF'
-FROM node:20-slim
+FROM node:26-slim
 
-# Install OpenCode CLI
-RUN npm install -g opencode-ai
+ARG OPENCODE_VERSION
+# Install OpenCode CLI (the npm package pulls the native binary for this
+# platform through its optional dependencies)
+RUN npm install -g "@opencode/cli@${OPENCODE_VERSION}" && opencode --version
 
 # Install additional tools for better experience
 RUN apt-get update && apt-get install -y \
@@ -69,7 +75,8 @@ ENTRYPOINT ["opencode"]
 EOF
 
     # Build the image
-    docker build -f /tmp/opencode-simple.dockerfile -t "$IMAGE_NAME" /tmp/
+    docker build --build-arg OPENCODE_VERSION="$OPENCODE_VERSION" \
+        -f /tmp/opencode-simple.dockerfile -t "$IMAGE_NAME" /tmp/
 
     # Clean up
     rm /tmp/opencode-simple.dockerfile
@@ -120,7 +127,7 @@ if [ "$MODE" = "single" ]; then
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
         -v "$(pwd):/workspace" \
         "$IMAGE_NAME" \
-        run -q "$QUERY"
+        run --standalone -m "openrouter/$OPENCODE_MODEL" "$QUERY"
 else
     echo ""
     echo "🔄 Starting interactive OpenCode session..."
@@ -134,5 +141,6 @@ else
         -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
         -v "$(pwd):/workspace" \
-        "$IMAGE_NAME"
+        "$IMAGE_NAME" \
+        --standalone
 fi

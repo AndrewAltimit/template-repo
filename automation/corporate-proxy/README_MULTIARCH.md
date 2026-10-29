@@ -94,9 +94,11 @@ docker buildx ls
 - Works on all supported architectures without modification
 
 ### OpenCode Container
-- **Go Binary**: Compiles TUI component for target architecture
-- Uses Go cross-compilation with `GOARCH` environment variable
-- Binary naming: `tui-linux-${TARGETARCH}`
+- **Pre-built Binaries**: Downloads the upstream musl release for the target architecture (checksum-verified)
+- Mapping:
+  - amd64 -> `opencode-linux-x64-musl.tar.gz`
+  - arm64 -> `opencode-linux-arm64-musl.tar.gz`
+- `--build-arg OPENCODE_BUILD=source` builds the same target from source with upstream's build script
 
 ### Crush Container
 - **Pre-built Binaries**: Downloads architecture-specific releases
@@ -154,7 +156,7 @@ For CI/CD pipelines, explicitly specify the target architecture:
 | Container | amd64 | arm64 | arm32 | Notes |
 |-----------|-------|-------|-------|-------|
 | Gemini CLI | Yes | Yes | Yes | Node.js based, fully portable |
-| OpenCode | Yes | Yes | Untested | Go compilation, arm32 untested |
+| OpenCode | Yes | Yes | No | Pre-built musl binaries, arm32 not available |
 | Crush | Yes | Yes | No | Pre-built binaries, arm32 not available |
 
 ## Development Tips
