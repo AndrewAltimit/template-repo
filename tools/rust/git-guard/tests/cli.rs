@@ -268,3 +268,80 @@ fn relative_path_entries_are_ignored() {
     assert_eq!(out.status.code(), Some(1));
     assert!(!stdout(&out).contains("FAKE-GIT"));
 }
+
+/// Replays actions/checkout's credential-persisting commands through the
+/// wrapper against the real git (skipped when no real git is installed).
+#[test]
+fn checkout_credentials_include_with_real_git() {
+    let real_git = ["/usr/bin/git", "/bin/git"]
+        .into_iter()
+        .find(|p| Path::new(p).is_file());
+    let Some(real_git) = real_git else {
+        eprintln!("skipping: no real git");
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let work = dir.path().join("_work");
+    let repo = work.join("repo").join("repo");
+    let temp = work.join("_temp");
+    std::fs::create_dir_all(&repo).unwrap();
+    std::fs::create_dir_all(&temp).unwrap();
+    let real_dir = Path::new(real_git).parent().unwrap().display().to_string();
+    let git = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_git"))
+            .args(args)
+            .current_dir(&repo)
+            .env_clear()
+            .env("PATH", format!("{real_dir}:/usr/bin:/bin"))
+            .env("HOME", dir.path())
+            .env("WRAPPER_GUARD_LOG_DIR", dir.path().join("logs"))
+            .output()
+            .unwrap()
+    };
+    assert!(git(&["init", "-q"]).status.success());
+
+    let cred = temp.join("git-credentials-017bdb8e-fe97-480e-8976-8c4513bde9b0.config");
+    let cred = cred.to_str().unwrap();
+    let out = git(&[
+        "config",
+        "--file",
+        cred,
+        "http.https://github.com/.extraheader",
+        "AUTHORIZATION: basic xyz",
+    ]);
+    assert!(out.status.success(), "stderr: {}", stderr(&out));
+
+    let gitdir = repo.join(".git");
+    let host_key = format!("includeIf.gitdir:{}.path", gitdir.display());
+    let out = git(&["config", "--local", &host_key, cred]);
+    assert_eq!(out.status.code(), Some(0), "stderr: {}", stderr(&out));
+    let wt_key = format!("includeIf.gitdir:{}/worktrees/*.path", gitdir.display());
+    let out = git(&["config", "--local", &wt_key, cred]);
+    assert_eq!(out.status.code(), Some(0), "stderr: {}", stderr(&out));
+    let ctr_cred =
+        "/github/runner_temp/git-credentials-017bdb8e-fe97-480e-8976-8c4513bde9b0.config";
+    let out = git(&[
+        "config",
+        "--local",
+        "includeIf.gitdir:/github/workspace/.git.path",
+        ctr_cred,
+    ]);
+    assert_eq!(out.status.code(), Some(0), "stderr: {}", stderr(&out));
+    // The include is live: the token header resolves through it.
+    let out = git(&["config", "--get", "http.https://github.com/.extraheader"]);
+    assert_eq!(stdout(&out).trim(), "AUTHORIZATION: basic xyz");
+
+    // Same shape, but the file also redirects hooks: blocked, not written.
+    let evil = temp.join("git-credentials-017bdb8e-fe97-480e-8976-8c4513bde9b1.config");
+    std::fs::write(
+        &evil,
+        "[http \"https://github.com/\"]\n\textraheader = x\n[core]\n\thooksPath = /dev/null\n",
+    )
+    .unwrap();
+    let evil_key = format!("includeIf.gitdir:{}/x.path", repo.display());
+    let out = git(&["config", "--local", &evil_key, evil.to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(stderr(&out).contains("GIT-GUARD: OPERATION BLOCKED"));
+    let out = git(&["config", "--get", "core.hooksPath"]);
+    assert!(stdout(&out).trim().is_empty());
+}

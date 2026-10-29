@@ -83,4 +83,22 @@ impl GitContext for RealGit<'_> {
     fn setgid_elevated(&self) -> bool {
         wrapper_common::platform::is_setgid_elevated()
     }
+
+    fn file_exists(&self, path: &str) -> bool {
+        std::path::Path::new(path).exists()
+    }
+
+    fn config_file_keys(&self, path: &str) -> Option<Vec<String>> {
+        // `--file` reads only that file; with includes off, an include inside
+        // it shows up as an `include.path` key (and fails the check).
+        self.git(&[
+            "config",
+            "--file",
+            path,
+            "--no-includes",
+            "--name-only",
+            "--list",
+        ])
+        .map(|out| out.lines().map(str::to_string).collect())
+    }
 }

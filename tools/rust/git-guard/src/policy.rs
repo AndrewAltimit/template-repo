@@ -67,6 +67,11 @@ pub trait GitContext {
     fn config_get_regexp(&self, pattern: &str) -> Vec<(String, String)>;
     /// Whether the wrapper runs setgid (hardened mode).
     fn setgid_elevated(&self) -> bool;
+    /// Whether `path` names an existing file.
+    fn file_exists(&self, path: &str) -> bool;
+    /// Key names defined in the config file at `path` (includes not
+    /// followed); `None` if it cannot be read or defines nothing.
+    fn config_file_keys(&self, path: &str) -> Option<Vec<String>>;
 }
 
 /// Check a parsed invocation. `env` holds the process environment (only
@@ -135,7 +140,7 @@ pub fn check(inv: &Invocation, env: &[(String, String)], ctx: &dyn GitContext) -
         )),
         "subtree" => check_subtree(&args, ctx, &mut out),
         "config" => {
-            check_config_write(&args, &mut out);
+            check_config_write(&args, ctx, &mut out);
             check_generic_no_verify(&args, &mut out);
         },
         _ => check_generic_no_verify(&args, &mut out),
@@ -493,7 +498,7 @@ fn check_subtree(args: &[String], ctx: &dyn GitContext, out: &mut Vec<Violation>
 }
 
 /// `git config` writes of hook-redirecting keys.
-fn check_config_write(args: &[String], out: &mut Vec<Violation>) {
+fn check_config_write(args: &[String], ctx: &dyn GitContext, out: &mut Vec<Violation>) {
     const WITH_VALUE: &[&str] = &[
         "-f",
         "--file",
@@ -537,20 +542,129 @@ fn check_config_write(args: &[String], out: &mut Vec<Violation>) {
         positionals.push(arg.as_str());
     }
 
-    let (key, has_value) = match positionals.first() {
-        Some(&"set") => (positionals.get(1), positionals.len() >= 3),
+    let (key, value) = match positionals.first() {
+        Some(&"set") => (positionals.get(1), positionals.get(2)),
         Some(&("get" | "list" | "unset" | "rename-section" | "remove-section" | "edit")) => {
-            (None, false)
+            (None, None)
         },
-        Some(_) if !read_or_remove => (positionals.first(), positionals.len() >= 2),
-        _ => (None, false),
+        Some(_) if !read_or_remove => (positionals.first(), positionals.get(1)),
+        _ => (None, None),
     };
     if let Some(key) = key
-        && has_value
+        && let Some(value) = value
         && let Some(why) = dangerous_config_key(key)
+        && !is_checkout_credentials_include(key, value, ctx)
     {
         out.push(Violation::new(format!("git config {key}"), why));
     }
+}
+
+/// Container-side paths `actions/checkout` pairs with its host-side include.
+const CONTAINER_RUNNER_TEMP: &str = "/github/runner_temp/";
+const CONTAINER_WORKSPACE: &str = "/github/workspace/";
+
+/// The one config include git-guard lets through: the credentials include
+/// that `actions/checkout` (v6+) writes so later steps can fetch/push:
+///
+/// ```text
+/// git config --local includeIf.gitdir:<work>/<repo>/<repo>/.git.path \
+///     <work>/_temp/git-credentials-<uuid>.config
+/// ```
+///
+/// plus the `.git/worktrees/*`, submodule (`.git/modules/<name>`), global
+/// `include.path` (submodule auth) and container (`/github/workspace` ->
+/// `/github/runner_temp`) variants of the same entry. Environment variables
+/// such as `CI` or `RUNNER_TEMP` are deliberately not consulted (any process
+/// can set them). Instead the entry must have checkout's exact shape:
+///
+/// - the value and the condition path are absolute Unix paths with no `.`
+///   / `..` segments and no backslashes (Linux runners; the file that is
+///   checked must be byte-for-byte the file git will include), and the
+///   value's file name is `git-credentials-<uuid>.config`;
+/// - host form: the file sits in a `_temp` directory whose parent (the
+///   runner's `_work` root) contains the `gitdir:` condition path, and the
+///   file **exists and defines only `http.<url>.extraheader`** (checkout
+///   writes the token before adding the include);
+/// - container form: `gitdir:/github/workspace/...` paired with
+///   `/github/runner_temp/...`; if that file exists it must pass the same
+///   content check.
+///
+/// An include of such a file cannot redirect hooks at the time it is
+/// written. Rewriting the file afterwards is an ordinary file write, which
+/// git-guard does not prevent anyway (see "Known limitations").
+fn is_checkout_credentials_include(key: &str, value: &str, ctx: &dyn GitContext) -> bool {
+    let (section, sub, _) = normalize_config_key(key);
+    if !is_plain_absolute(value) {
+        return false;
+    }
+    let Some((dir, file)) = value.rsplit_once('/') else {
+        return false;
+    };
+    if !is_credentials_file_name(file) {
+        return false;
+    }
+    let condition = match (section.as_str(), sub.as_deref()) {
+        ("include", None) => None,
+        ("includeif", Some(cond)) => {
+            let Some(path) = cond.strip_prefix("gitdir:") else {
+                return false;
+            };
+            if !is_plain_absolute(path) {
+                return false;
+            }
+            Some(path)
+        },
+        _ => return false,
+    };
+
+    let content_ok = || {
+        ctx.config_file_keys(value).is_some_and(|keys| {
+            keys.iter().all(|k| {
+                let (section, sub, name) = normalize_config_key(k);
+                section == "http" && sub.is_some() && name == "extraheader"
+            })
+        })
+    };
+
+    if value.starts_with(CONTAINER_RUNNER_TEMP) {
+        let paired = condition.is_some_and(|c| c.starts_with(CONTAINER_WORKSPACE));
+        return paired && (!ctx.file_exists(value) || content_ok());
+    }
+
+    let Some(work_root) = dir.strip_suffix("/_temp") else {
+        return false;
+    };
+    if let Some(cond) = condition
+        && !cond.starts_with(&format!("{work_root}/"))
+    {
+        return false;
+    }
+    content_ok()
+}
+
+/// `git-credentials-<uuid>.config` (canonical 8-4-4-4-12 hex UUID).
+fn is_credentials_file_name(name: &str) -> bool {
+    let Some(uuid) = name
+        .strip_prefix("git-credentials-")
+        .and_then(|rest| rest.strip_suffix(".config"))
+    else {
+        return false;
+    };
+    let groups: Vec<&str> = uuid.split('-').collect();
+    groups.len() == 5
+        && groups
+            .iter()
+            .zip([8, 4, 4, 4, 12])
+            .all(|(g, len)| g.len() == len && g.chars().all(|c| c.is_ascii_hexdigit()))
+}
+
+/// Absolute Unix path without `.`/`..` segments, backslashes, or glob
+/// characters other than checkout's trailing `/*` (worktrees condition).
+fn is_plain_absolute(path: &str) -> bool {
+    let body = path.strip_suffix("/*").unwrap_or(path);
+    path.starts_with('/')
+        && !body.contains(['\\', '*', '?', '['])
+        && !path.split('/').any(|seg| seg == ".." || seg == ".")
 }
 
 fn is_protected(branch: &str) -> bool {
@@ -743,6 +857,8 @@ mod tests {
         config: HashMap<String, String>,
         regexp: Vec<(String, String)>,
         setgid: bool,
+        /// Existing config files: path -> key names.
+        files: HashMap<String, Vec<String>>,
     }
 
     impl GitContext for Fake {
@@ -763,6 +879,12 @@ mod tests {
         }
         fn setgid_elevated(&self) -> bool {
             self.setgid
+        }
+        fn file_exists(&self, path: &str) -> bool {
+            self.files.contains_key(path)
+        }
+        fn config_file_keys(&self, path: &str) -> Option<Vec<String>> {
+            self.files.get(path).filter(|k| !k.is_empty()).cloned()
         }
     }
 
@@ -994,6 +1116,185 @@ mod tests {
             &["config", "user.name", "Bot"],
             &["config", "--list"],
         ]);
+    }
+
+    // ---- actions/checkout credentials include -----------------------------
+
+    const WORK: &str = "/home/r/actions-runner/_work";
+    const UUID: &str = "017bdb8e-fe97-480e-8976-8c4513bde9b0";
+
+    fn cred() -> String {
+        format!("{WORK}/_temp/git-credentials-{UUID}.config")
+    }
+
+    fn ctr_cred() -> String {
+        format!("/github/runner_temp/git-credentials-{UUID}.config")
+    }
+
+    fn runner(files: &[(String, &[&str])]) -> Fake {
+        let mut ctx = feature();
+        for (path, keys) in files {
+            ctx.files
+                .insert(path.clone(), keys.iter().map(|k| k.to_string()).collect());
+        }
+        ctx
+    }
+
+    const TOKEN_KEYS: &[&str] = &["http.https://github.com/.extraheader"];
+
+    fn check_strs(ctx: &Fake, args: &[String]) -> Vec<Violation> {
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        run_with(ctx, &[], &args)
+    }
+
+    fn sv(args: &[&str]) -> Vec<String> {
+        args.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// The exact commands actions/checkout v6/v7 issues (src/git-auth-helper.ts).
+    #[test]
+    fn checkout_credentials_include_allowed() {
+        let ctx = runner(&[(cred(), TOKEN_KEYS)]);
+        let (cred, ctr) = (cred(), ctr_cred());
+        let host = format!("includeIf.gitdir:{WORK}/repo/repo/.git.path");
+        let host_wt = format!("includeIf.gitdir:{WORK}/repo/repo/.git/worktrees/*.path");
+        let sub = format!("includeIf.gitdir:{WORK}/repo/repo/.git/modules/lib.path");
+        let sub_cfg = format!("{WORK}/repo/repo/.git/modules/lib/config");
+        let cases = [
+            sv(&["config", "--local", &host, &cred]),
+            sv(&["config", "--local", &host_wt, &cred]),
+            sv(&[
+                "config",
+                "--local",
+                "includeIf.gitdir:/github/workspace/.git.path",
+                &ctr,
+            ]),
+            sv(&[
+                "config",
+                "--local",
+                "includeIf.gitdir:/github/workspace/.git/worktrees/*.path",
+                &ctr,
+            ]),
+            sv(&["config", "--file", &sub_cfg, &sub, &cred]),
+            sv(&["config", "--global", "include.path", &cred]),
+        ];
+        for args in &cases {
+            let v = check_strs(&ctx, args);
+            assert!(
+                v.is_empty(),
+                "expected allow: git {} -> {v:?}",
+                args.join(" ")
+            );
+        }
+    }
+
+    #[test]
+    fn credentials_include_lookalikes_blocked() {
+        let cred = cred();
+        let host = format!("includeIf.gitdir:{WORK}/repo/repo/.git.path");
+        let evil =
+            format!("{WORK}/_temp/git-credentials-017bdb8e-fe97-480e-8976-8c4513bde9b1.config");
+        let nested =
+            format!("{WORK}/_temp/git-credentials-017bdb8e-fe97-480e-8976-8c4513bde9b2.config");
+        let missing =
+            format!("{WORK}/_temp/git-credentials-00000000-0000-0000-0000-000000000000.config");
+        let outside = format!("/tmp/_temp/git-credentials-{UUID}.config");
+        let ctx = runner(&[
+            (cred.clone(), TOKEN_KEYS),
+            (
+                evil.clone(),
+                &["http.https://github.com/.extraheader", "core.hookspath"],
+            ),
+            (nested.clone(), &["include.path"]),
+            (outside.clone(), TOKEN_KEYS),
+        ]);
+        let cases = [
+            // file redirects hooks or nests another include
+            sv(&["config", &host, &evil]),
+            sv(&["config", &host, &nested]),
+            // file does not exist yet (could be planted later)
+            sv(&["config", &host, &missing]),
+            // wrong file names
+            sv(&["config", &host, &format!("{WORK}/_temp/hooks.config")]),
+            sv(&[
+                "config",
+                &host,
+                &format!("{WORK}/_temp/git-credentials-xyz.config"),
+            ]),
+            // relative, traversal, home-relative values
+            sv(&[
+                "config",
+                &host,
+                &format!("_temp/git-credentials-{UUID}.config"),
+            ]),
+            sv(&[
+                "config",
+                &host,
+                &format!("{WORK}/_temp/../_temp/git-credentials-{UUID}.config"),
+            ]),
+            sv(&[
+                "config",
+                &host,
+                &format!("~/_temp/git-credentials-{UUID}.config"),
+            ]),
+            // backslash: the checked path must be the included path
+            sv(&[
+                "config",
+                &host,
+                &format!("{WORK}\\x/_temp/git-credentials-{UUID}.config"),
+            ]),
+            sv(&[
+                "config",
+                &format!("includeIf.gitdir:{WORK}/**/.git.path"),
+                &cred,
+            ]),
+            // credentials file outside the runner root that holds the repo
+            sv(&["config", &host, &outside]),
+            // other include conditions and keys
+            sv(&["config", "includeIf.onbranch:main.path", &cred]),
+            sv(&["config", "includeIf.gitdir/i:/x/.git.path", &cred]),
+            sv(&["config", "includeIf.gitdir:repo/.git.path", &cred]),
+            sv(&[
+                "config",
+                &format!("includeIf.gitdir:{WORK}/../x/.git.path"),
+                &cred,
+            ]),
+            sv(&["config", "core.hooksPath", &cred]),
+            // container value paired with a host gitdir, and vice versa
+            sv(&["config", &host, &ctr_cred()]),
+            sv(&[
+                "config",
+                "includeIf.gitdir:/github/workspace/.git.path",
+                &outside,
+            ]),
+        ];
+        for args in &cases {
+            assert!(
+                !check_strs(&ctx, args).is_empty(),
+                "expected block: git {}",
+                args.join(" ")
+            );
+        }
+        // -c injection of the same include stays blocked.
+        let inject = format!("{host}={cred}");
+        assert!(!run_with(&ctx, &[], &["-c", &inject, "fetch"]).is_empty());
+    }
+
+    #[test]
+    fn credentials_include_file_content_is_checked() {
+        let ctr = ctr_cred();
+        let ctx = runner(&[(ctr.clone(), &["core.hookspath"])]);
+        let args = sv(&[
+            "config",
+            "includeIf.gitdir:/github/workspace/.git.path",
+            &ctr,
+        ]);
+        assert!(!check_strs(&ctx, &args).is_empty());
+
+        let cred = cred();
+        let empty = runner(&[(cred.clone(), &[])]);
+        let host = format!("includeIf.gitdir:{WORK}/repo/repo/.git.path");
+        assert!(!check_strs(&empty, &sv(&["config", &host, &cred])).is_empty());
     }
 
     // ---- protected branches -----------------------------------------------
