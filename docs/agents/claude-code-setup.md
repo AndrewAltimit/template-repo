@@ -10,7 +10,7 @@ Claude Code is Anthropic's official CLI tool for AI-assisted development. It ser
 
 ### Prerequisites
 
-- **Node.js 22.16.0** (specifically required by Claude CLI)
+- **Node.js 26.13.0** (current LTS; the version the runner and workflows use)
 - **nvm** (Node Version Manager) - recommended for managing Node.js versions
 
 ### Step 1: Install nvm and Node.js
@@ -22,16 +22,16 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
 # Reload shell configuration
 source ~/.bashrc  # or ~/.zshrc
 
-# Install and use Node.js 22.16.0
-nvm install 22.16.0
-nvm use 22.16.0
+# Install and use Node.js 26.13.0
+nvm install 26.13.0
+nvm use 26.13.0
 ```
 
 ### Step 2: Install Claude CLI
 
 ```bash
 # Ensure correct Node.js version
-nvm use 22.16.0
+nvm use 26.13.0
 
 # Install Claude Code globally
 npm install -g @anthropic-ai/claude-code
@@ -144,16 +144,16 @@ Claude Code works alongside OpenRouter (general PR review), OpenCode and Crush (
 
 | Issue | Solution |
 |-------|----------|
-| `claude: command not found` | Run `nvm use 22.16.0` then reinstall |
+| `claude: command not found` | Run `nvm use 26.13.0` then reinstall |
 | `Invalid API key` | Run `claude login` or set `ANTHROPIC_API_KEY` |
-| Wrong Node.js version | Use `nvm use 22.16.0` before running claude |
+| Wrong Node.js version | Use `nvm use 26.13.0` before running claude |
 | Auth not persisting | Check `~/.claude.json` exists and has correct permissions |
 
 ### Verify Installation
 
 ```bash
 # Check Node.js version
-node --version  # Should be v22.16.0
+node --version  # Should be v26.13.0
 
 # Check Claude CLI
 claude --version
@@ -171,7 +171,7 @@ If authentication issues persist:
 rm ~/.claude.json
 
 # Re-login
-nvm use 22.16.0
+nvm use 26.13.0
 claude login
 ```
 

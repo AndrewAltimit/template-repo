@@ -1,9 +1,9 @@
 @echo off
-REM run_claude.bat - Start Claude Code with Node.js 22.16.0
+REM run_claude.bat - Start Claude Code with Node.js 26.13.0
 
 setlocal enabledelayedexpansion
 
-echo Starting Claude Code with Node.js 22.16.0
+echo Starting Claude Code with Node.js 26.13.0
 
 REM Check if nvm-windows is installed
 where nvm >nul 2>&1
@@ -13,13 +13,13 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-REM Switch to Node.js 22.16.0
-echo Switching to Node.js 22.16.0...
-call nvm use 22.16.0
+REM Switch to Node.js 26.13.0
+echo Switching to Node.js 26.13.0...
+call nvm use 26.13.0
 if %ERRORLEVEL% neq 0 (
-    echo Node.js 22.16.0 not installed. Installing...
-    call nvm install 22.16.0
-    call nvm use 22.16.0
+    echo Node.js 26.13.0 not installed. Installing...
+    call nvm install 26.13.0
+    call nvm use 26.13.0
 )
 
 REM Verify Node version

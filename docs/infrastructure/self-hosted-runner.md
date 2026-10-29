@@ -48,7 +48,7 @@ This project uses **self-hosted runners exclusively** to:
    sudo apt-get install git
    ```
 
-4. **Node.js** (v22.16.0) via nvm
+4. **Node.js** (v26.13.0, the current LTS) via nvm
 
    ```bash
    # Install nvm
@@ -56,8 +56,8 @@ This project uses **self-hosted runners exclusively** to:
    source ~/.bashrc
 
    # Install Node.js
-   nvm install 22.16.0
-   nvm use 22.16.0
+   nvm install 26.13.0
+   nvm use 26.13.0
    ```
 
 5. **Python** (v3.11+)

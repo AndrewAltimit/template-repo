@@ -1,9 +1,9 @@
 #!/bin/bash
-# run_claude.sh - Start Claude Code with Node.js 22.16.0
+# run_claude.sh - Start Claude Code with Node.js 26.13.0
 
 set -e
 
-echo "🚀 Starting Claude Code with Node.js 22.16.0"
+echo "🚀 Starting Claude Code with Node.js 26.13.0"
 
 # Load NVM if it exists
 if [ -s "$HOME/.nvm/nvm.sh" ]; then
@@ -20,9 +20,9 @@ else
     exit 1
 fi
 
-# Use Node.js 22.16.0
-echo "🔧 Switching to Node.js 22.16.0..."
-nvm use 22.16.0
+# Use Node.js 26.13.0
+echo "🔧 Switching to Node.js 26.13.0..."
+nvm use 26.13.0
 
 # Verify Node version
 NODE_VERSION=$(node --version)
