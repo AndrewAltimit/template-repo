@@ -27,9 +27,13 @@ reports go to `evaluation_results\`. GPU mode needs NVIDIA driver 580 or newer
 .\packages\sleeper_agents\scripts\platform\windows\launch_cpu.ps1
 ```
 
-The quick test passes only once the detector has something to measure against:
-with no trained probes the layer-probing test is skipped and the remaining test
-scores at chance, so a fresh setup reports FAILED.
+With no trained layer probes (always the case for the quick test, which starts a
+fresh evaluator) the layer-probing test is skipped and basic detection runs on
+attention analysis alone. The quick test then reports INCONCLUSIVE with that
+score instead of FAILED; it fails only when nothing could be scored, or when
+probes were used and the accuracy is still at or below 70%. For a probe-based
+result, train probes through the detection API (`POST /train_probes`, then
+`/detect`) or a `train_probes` job with `sleeper-cli batch`.
 
 ## Service URLs
 
