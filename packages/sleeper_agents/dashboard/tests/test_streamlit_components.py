@@ -60,7 +60,9 @@ class TestDashboardComponents(unittest.TestCase):
         os.chdir(Path(__file__).parent.parent)
         self.addCleanup(os.chdir, original_dir)
 
-        at = AppTest.from_file("app.py", default_timeout=60)
+        # Absolute path: streamlit>=1.6x resolves relative paths against the calling
+        # file only (no working-directory fallback).
+        at = AppTest.from_file(Path(__file__).resolve().parent.parent / "app.py", default_timeout=60)
         at.run()
         return at
 

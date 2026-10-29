@@ -1,71 +1,74 @@
 # MCP Server Requirements
-mcp>=1.10.0
-pydantic>=2.0.0
-typing-extensions>=4.0.0
+mcp>=2.3.0
+pydantic>=2.14.1
+typing-extensions>=4.16.0
 
 # Web Framework
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-httpx>=0.25.0
-aiohttp>=3.9.0
-flask>=3.0.0
-flask-cors>=4.0.0
+fastapi>=0.162.0
+uvicorn[standard]>=0.54.0
+httpx>=0.28.1
+aiohttp>=3.14.5
+flask>=3.1.3
+flask-cors>=6.0.5
 
 # AI and ML
-google-generativeai>=0.3.0
-anthropic>=0.8.0
-openai>=1.0.0
+# (google-generativeai removed: Gemini is a legacy agent that must not be used,
+# nothing imports the SDK, and the package is deprecated upstream.)
+anthropic>=2.3.0
+openai>=3.41.0
 
 # GitHub Integration
-PyGithub>=2.1.0
-GitPython>=3.1.0
+PyGithub>=2.10.0
+GitPython>=3.2.1
 
 # Utilities
-python-dotenv>=1.0.0
-pyyaml>=6.0
-requests>=2.31.0
-aiofiles>=23.0.0
-asyncio>=3.4.3
+# (asyncio removed: it is part of the standard library; the PyPI "asyncio"
+# package is an obsolete backport.)
+python-dotenv>=1.2.4
+pyyaml>=6.0.3
+requests>=2.34.2
+aiofiles>=25.1.0
 
 # Image and numerical processing (for video editor testing)
-numpy>=1.24.0
-Pillow>=10.0.0
+numpy>=2.5.4
+Pillow>=13.0.0
 
 # Development
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.1.0
-pytest-timeout>=2.2.0
+pytest>=9.2.0
+pytest-asyncio>=1.4.1
+pytest-cov>=7.1.0
+pytest-timeout>=2.4.0
 pytest-json-report>=1.5.0
-pytest-randomly>=3.15.0  # Randomize test order to find isolation issues
-pytest-xdist>=3.5.0  # Parallel test execution (2-4x faster)
-hypothesis>=6.100.0  # Property-based testing for state machine invariants
+pytest-randomly>=5.0.0  # Randomize test order to find isolation issues
+pytest-xdist>=3.8.0  # Parallel test execution (2-4x faster)
+hypothesis>=6.170.13  # Property-based testing for state machine invariants
 
 # Code Quality - Ruff replaces black, flake8, isort, pylint (10-100x faster)
-ruff==0.16.8  # Fast linter and formatter - replaces black/flake8/isort/pylint
-ty>=0.0.1a6  # Fast type checker from Astral (ruff team) - replaces mypy
+ruff==0.17.3  # Fast linter and formatter - replaces black/flake8/isort/pylint
+ty>=0.0.94  # Fast type checker from Astral (ruff team) - replaces mypy
 
 # Type stubs
-types-aiofiles>=24.1.0
-types-requests>=2.31.0
-types-PyYAML>=6.0.0
+types-aiofiles>=25.1.0
+types-requests>=2.33.0
+types-PyYAML>=6.0.12
 
 # Security
-bandit==1.8.6
-safety==3.6.0
-pip-audit>=2.6.0
+bandit==1.9.4
+# (safety removed: safety 3.8.1 caps filelock<4.0, which pins the image to a
+# filelock with open CVEs; the CI dependency audit uses pip-audit.)
+pip-audit>=2.10.1
 
 # Other
-yamllint==1.37.1
-pre-commit>=3.5.0
+yamllint==1.38.0
+pre-commit>=4.7.0
 
 # Documentation
 mkdocs==1.6.1
-mkdocs-material==9.6.15
-pymdown-extensions==10.16
+mkdocs-material==9.8.0
+pymdown-extensions==12.3
 pyyaml-env-tag==1.1
-mistune>=3.0.0
+mistune>=3.4.0
 
 # Monitoring
-prometheus-client>=0.19.0
-structlog>=23.0.0
+prometheus-client>=0.26.0
+structlog>=26.1.0

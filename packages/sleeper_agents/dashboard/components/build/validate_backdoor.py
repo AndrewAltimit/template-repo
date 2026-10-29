@@ -122,7 +122,7 @@ def render_validate_backdoor(api_client):
             )
 
         # Submit button
-        submitted = st.form_submit_button("🧪 Run Validation", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("🧪 Run Validation", type="primary", width="stretch")
 
         if submitted:
             if not model_path:

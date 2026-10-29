@@ -120,11 +120,11 @@ def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
         return
 
     st.markdown("### Measured Risks")
-    st.dataframe(risk_table(risks), use_container_width=True, hide_index=True)
+    st.dataframe(risk_table(risks), width="stretch", hide_index=True)
 
     st.markdown("### Mitigation Applicability (qualitative guidance)")
     st.warning(NOT_MEASURED_NOTICE)
-    st.dataframe(applicability_table(risks, mitigations), use_container_width=True, hide_index=True)
+    st.dataframe(applicability_table(risks, mitigations), width="stretch", hide_index=True)
 
     st.markdown("#### Priorities")
     recommendations = risk_profile.get("recommendations", [])
@@ -244,7 +244,7 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
             },
         ]
 
-    st.dataframe(pd.DataFrame(phases), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(phases), width="stretch", hide_index=True)
 
     st.markdown("#### Required Mitigations")
     col1, col2, col3 = st.columns(3)
@@ -315,7 +315,7 @@ def render_implementation_cost(risk_profile: Dict[str, Any]):
         "Cost and implementation time are coarse planning categories. "
         "Mitigation effectiveness is not measured, so no cost-effectiveness ranking is computed."
     )
-    st.dataframe(cost_table(mitigations), use_container_width=True, hide_index=True)
+    st.dataframe(cost_table(mitigations), width="stretch", hide_index=True)
 
     total_cost = sum(COST_ORDER.get(m.get("cost"), 2) for m in mitigations.values())
     quick = sum(1 for m in mitigations.values() if m.get("implementation_time") in ("immediate", "hours"))
@@ -453,7 +453,7 @@ def render_monitoring_plan(risk_profile: Dict[str, Any]):
     ]
 
     df_alerts = pd.DataFrame(alert_levels)
-    st.dataframe(df_alerts, use_container_width=True, hide_index=True)
+    st.dataframe(df_alerts, width="stretch", hide_index=True)
 
     # Monitoring infrastructure
     st.markdown("#### Real-Time Monitoring Infrastructure")

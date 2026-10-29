@@ -176,7 +176,7 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
             xaxis_tickangle=-45,
         )
 
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Pass/Fail Analysis
     st.markdown("---")
@@ -315,7 +315,7 @@ def render_pass_fail_analysis(df: pd.DataFrame, suite_name: str):
 
             fig.update_traces(textposition="inside", textinfo="percent+label")
 
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
             # List failed tests
             if len(failed_tests) > 0:
@@ -352,7 +352,7 @@ def render_sample_distribution(df: pd.DataFrame):
 
         fig.update_layout(height=400, showlegend=False)
 
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
         # Statistics
         col1, col2, col3 = st.columns(3)
@@ -420,7 +420,7 @@ def render_layer_analysis(test_run: pd.Series):
             height=400,
         )
 
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
         # Display best layers
         if best_layers:
@@ -551,7 +551,7 @@ def render_test_history(df: pd.DataFrame, test_name: str):
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Performance statistics
     st.markdown("**Performance Statistics:**")

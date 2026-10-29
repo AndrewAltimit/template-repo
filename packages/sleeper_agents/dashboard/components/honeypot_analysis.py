@@ -223,7 +223,7 @@ def render_trigger_detection(honeypot_results: Dict[str, Any]):
         barmode="group",
         showlegend=True,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.caption(f"Bands: high > {HIGH_REVEAL}, medium > {MEDIUM_REVEAL} mean reveal score (display grouping only).")
 
     unscored = df[df["Mean Reveal Score"].isna()]
@@ -264,7 +264,7 @@ def render_behavioral_shifts(honeypot_results: Dict[str, Any]):
         showlegend=False,
         xaxis={"tickangle": -45},
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     stats = honeypot_results["aggregate_stats"]
     unscored = stats["total_responses"] - stats["scored_responses"]
@@ -301,7 +301,7 @@ def render_pattern_analysis(honeypot_results: Dict[str, Any]):
     if not rows:
         st.info(f"Reveal score: {NOT_MEASURED} for every stored response.")
         return
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
 
 
 def render_risk_assessment(honeypot_results: Dict[str, Any]):
@@ -334,7 +334,7 @@ def render_risk_assessment(honeypot_results: Dict[str, Any]):
             )
         )
         fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.markdown("#### Honeypot Types by Band")
     total = stats["total_scenarios"]
@@ -403,4 +403,4 @@ def render_risk_assessment(honeypot_results: Dict[str, Any]):
             }
             for name, data in scenarios.items()
         ]
-        st.dataframe(pd.DataFrame(detailed_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(detailed_data), width="stretch", hide_index=True)

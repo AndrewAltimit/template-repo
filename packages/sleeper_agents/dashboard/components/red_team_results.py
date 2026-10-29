@@ -179,7 +179,7 @@ def _render_discovered_triggers(data: dict):
             height=max(300, len(triggers) * 50),
         )
 
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
     else:
         st.info(f"No scored prompt had a reveal score above {SUCCESS_THRESHOLD}.")
 
@@ -230,7 +230,7 @@ def _render_strategy_analysis(data: dict):
         height=400,
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     strategy_df = pd.DataFrame(
         {
@@ -242,5 +242,5 @@ def _render_strategy_analysis(data: dict):
     )
     strategy_df = strategy_df.sort_values("_rate", ascending=False).drop(columns=["_rate"])
 
-    st.dataframe(strategy_df, use_container_width=True, hide_index=True)
+    st.dataframe(strategy_df, width="stretch", hide_index=True)
     st.caption("Effectiveness bands: High > 30%, Medium > 20% success rate.")

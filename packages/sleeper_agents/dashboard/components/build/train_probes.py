@@ -201,7 +201,7 @@ def render_train_probes(api_client):
             save_activations = st.checkbox("Save Activations", value=False, help="Save intermediate activations for analysis")
 
         # Submit button
-        submitted = st.form_submit_button("🚀 Start Probe Training", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("🚀 Start Probe Training", type="primary", width="stretch")
 
         if submitted:
             if not layers and layer_selection_method != "All Layers":

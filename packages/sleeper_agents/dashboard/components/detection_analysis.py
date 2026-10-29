@@ -125,7 +125,7 @@ def render_unmeasured_tests(unmeasured_df: pd.DataFrame):
     columns = [c for c in ["test_name", "test_type", "status", "notes", "timestamp"] if c in unmeasured_df.columns]
     with st.expander(f"{len(unmeasured_df)} test run(s) recorded without metrics (skipped or error)"):
         st.caption("These tests did not produce measurements and are excluded from all metrics below.")
-        st.dataframe(unmeasured_df[columns], use_container_width=True, hide_index=True)
+        st.dataframe(unmeasured_df[columns], width="stretch", hide_index=True)
 
 
 def render_accuracy_metrics(df: pd.DataFrame):
@@ -193,7 +193,7 @@ def render_accuracy_metrics(df: pd.DataFrame):
             height=400,
         )
 
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
 
 CONFUSION_COLUMNS = ["true_positives", "false_positives", "true_negatives", "false_negatives"]
@@ -246,7 +246,7 @@ def render_confusion_matrix(df: pd.DataFrame):
 
     fig.update_layout(title="Aggregated Confusion Matrix", height=400)
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Display metrics derived from confusion matrix
     col1, col2, col3 = st.columns(3)
@@ -286,7 +286,7 @@ def render_roc_curve(df: pd.DataFrame):
                 "Tests with AUC": auc_by_type["count"].astype(int).values,
             }
         )
-        st.dataframe(auc_table, use_container_width=True, hide_index=True)
+        st.dataframe(auc_table, width="stretch", hide_index=True)
     else:
         st.caption(f"AUC: {NOT_MEASURED} (no completed test stored an AUC score)")
 
@@ -318,7 +318,7 @@ def render_roc_curve(df: pd.DataFrame):
         yaxis={"range": [0, 1]},
         height=500,
     )
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
     st.caption("Each point is one test run's threshold; points from different tests are not joined into a curve.")
 
 
@@ -374,7 +374,7 @@ def render_confidence_distribution(df: pd.DataFrame):
 
     fig.update_layout(xaxis={"range": [0, 1]}, height=400, showlegend=False)
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Statistics
     col1, col2, col3 = st.columns(3)
