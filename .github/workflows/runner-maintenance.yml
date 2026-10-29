@@ -564,7 +564,7 @@ jobs:
 
             # Common base images
             echo "Updating common base images..."
-            for image in ubuntu:22.04 python:3.11-slim alpine:latest; do
+            for image in ubuntu:22.04 python:3.13-slim-bookworm alpine:latest; do
               echo "Pulling $image..."
               docker pull $image || echo "Failed to pull $image"
             done

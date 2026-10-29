@@ -34,7 +34,7 @@ As the PR reviewer, focus on security, containers, and project standards.
 ### 3. Architecture
 
 - **MCP Server** (FastAPI) runs on port 8005 in Docker container
-- **Python CI Container** includes all development tools (Python 3.11)
+- **Python CI Container** includes all development tools (Python 3.13)
 - **Docker Compose** orchestrates all services
 - **No aggressive cleanup** - Python cache prevention via environment variables
 - **Multi-stage CI/CD** - format, lint-basic, lint-full, security, test stages
@@ -72,7 +72,7 @@ As the PR reviewer, focus on security, containers, and project standards.
 
 ## Technical Standards
 
-- Python 3.11 in all containers
+- Python 3.13 in all containers
 - Python code is auto-formatted with Black and isort
 - All Python tools run in containers with user permissions (no root)
 - Environment variables: `PYTHONDONTWRITEBYTECODE=1`, `USER_ID/GROUP_ID`
