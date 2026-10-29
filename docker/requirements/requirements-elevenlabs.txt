@@ -1,8 +1,8 @@
 # ElevenLabs Speech MCP Server Dependencies
-mcp>=1.0.0
+mcp>=2.3.0
 fastapi
 uvicorn
-httpx>=0.24.0
-websockets>=11.0
-aiofiles>=23.0
-pydantic>=2.0
+httpx>=0.28.1
+websockets>=17.3
+aiofiles>=25.1
+pydantic>=2.14.1

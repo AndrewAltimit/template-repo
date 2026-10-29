@@ -2,22 +2,22 @@
 # Pinned versions for reproducible builds
 
 # Core MCP dependencies
-fastapi==0.116.1
-uvicorn[standard]==0.35.0
-pydantic==2.11.7
-python-multipart==0.0.20
-mcp==1.12.4
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+python-multipart==0.0.32
+mcp==2.3.0
 
 # Image processing
-Pillow==11.3.0
+Pillow==13.0.0
 
 # HTTP client for upload functionality
 httpx==0.28.1
 
 # Async support
-asyncio==4.0.0
-aiofiles==24.1.0
-aiohttp==3.12.15
+# (asyncio is part of the standard library; the PyPI "asyncio" backport is not needed)
+aiofiles==25.1.0
+aiohttp==3.14.5
 
 # JSON handling
-jsonschema==4.25.0
+jsonschema==4.26.0

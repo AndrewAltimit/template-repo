@@ -11,7 +11,7 @@
 
 # Target Python version for type analysis
 [tool.ty.environment]
-python-version = "3.11"
+python-version = "3.13"
 
 # Source file configuration
 [tool.ty.src]
@@ -67,6 +67,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["."]
@@ -94,7 +95,7 @@ exclude_lines = [
 # Replaces black, flake8, and isort in our CI pipeline
 [tool.ruff]
 line-length = 127
-target-version = "py311"
+target-version = "py313"
 # Python sources only. Ruff 0.16 also formats code blocks in Markdown, which
 # rewrote illustrative snippets in our docs (e.g. `mcp__reaction-search__x(`
 # became `mcp__reaction - search__x(`) and failed the format check on 48 docs.

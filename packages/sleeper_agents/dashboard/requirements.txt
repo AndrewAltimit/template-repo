@@ -1,12 +1,14 @@
 # Dashboard Dependencies
-streamlit==1.49.1
+streamlit==1.66.1
 streamlit-option-menu==0.4.0
-plotly==6.3.0
-pandas==2.3.2
+plotly==7.1.0
+pandas==3.1.0
 numpy
-bcrypt==4.3.0
-xlsxwriter==3.2.9
-reportlab==4.2.5
-Pillow==11.1.0
-kaleido==0.2.1
-httpx==0.27.0
+bcrypt==5.0.0
+xlsxwriter==3.3.1
+reportlab==5.1.0
+Pillow==13.0.0
+# kaleido 1.x renders through a Chrome/Chromium binary (via choreographer); the
+# image must provide one for PDF chart export.
+kaleido==1.5.0
+httpx==0.28.1
