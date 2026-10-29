@@ -2,7 +2,7 @@
 #
 # ARM64 container image implementing the AgentCore HTTP protocol contract.
 
-FROM --platform=linux/arm64 ghcr.io/astral-sh/uv:python3.11-bookworm-slim
+FROM --platform=linux/arm64 ghcr.io/astral-sh/uv:0.13.6-python3.13-trixie-slim
 
 WORKDIR /app
 

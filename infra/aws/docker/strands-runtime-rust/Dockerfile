@@ -4,7 +4,7 @@
 # =============================================================================
 # Stage 1: Build the Rust binary
 # =============================================================================
-FROM --platform=$BUILDPLATFORM rust:1.93-alpine AS builder
+FROM --platform=$BUILDPLATFORM rust:1.99-alpine3.24 AS builder
 
 # Install build dependencies for cross-compilation and static linking
 RUN apk add --no-cache \
@@ -85,7 +85,7 @@ RUN . /rust_target.env && \
 # =============================================================================
 # Stage 2: Create minimal runtime image
 # =============================================================================
-FROM --platform=$TARGETPLATFORM alpine:3.20 AS runtime
+FROM --platform=$TARGETPLATFORM alpine:3.24 AS runtime
 
 # Install CA certificates for HTTPS
 RUN apk add --no-cache ca-certificates tzdata && \

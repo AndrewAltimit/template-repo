@@ -6,7 +6,7 @@ Terraform/Terragrunt infrastructure for AWS Bedrock AgentCore with BYORT (Bring 
 
 ```
 infra/aws/
-├── terragrunt.hcl              # Root config (remote state, providers)
+├── root.hcl                    # Root config (remote state, providers)
 ├── iam/                        # IAM roles module
 │   ├── main.tf
 │   ├── variables.tf
