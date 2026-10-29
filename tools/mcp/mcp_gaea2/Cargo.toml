@@ -16,7 +16,7 @@ path = "src/main.rs"
 mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
 
 # Async runtime
-tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "sync", "time", "process", "fs", "io-util"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "sync", "time", "process", "fs", "io-util"] }
 async-trait = "0.1"
 
 # Serialization. `preserve_order` keeps object keys in insertion order so the
@@ -26,7 +26,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
 
 # CLI
-clap = { version = "4.5", features = ["derive", "env"] }
+clap = { version = "4.6", features = ["derive", "env"] }
 
 # Logging
 tracing = "0.1"
@@ -38,16 +38,16 @@ anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 
 # Base64 encoding (download tool)
-base64 = "0.22"
+base64 = "0.23"
 
 # UUID generation (project / terrain ids, unique file names)
-uuid = { version = "1.8", features = ["v4"] }
+uuid = { version = "1.29", features = ["v4"] }
 
 # Random seeds for generator nodes
-rand = "0.8"
+rand = "0.10"
 
 [dev-dependencies]
-tempfile = "3.10"
+tempfile = "3.27"
 
 [profile.release]
 lto = true

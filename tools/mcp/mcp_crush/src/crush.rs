@@ -640,7 +640,9 @@ impl ConsultBackend for CrushIntegration {
         let mut m = Map::new();
         m.insert(
             "model".into(),
-            string_prop("OpenRouter model id override for this call (e.g. 'particle-ai/particle-1')"),
+            string_prop(
+                "OpenRouter model id override for this call (e.g. 'particle-ai/particle-1')",
+            ),
         );
         m
     }

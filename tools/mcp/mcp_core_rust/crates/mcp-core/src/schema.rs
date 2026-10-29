@@ -28,7 +28,7 @@
 //! at the re-export with `#[schemars(crate = "mcp_core::schemars")]`.
 
 use schemars::JsonSchema;
-use schemars::r#gen::SchemaSettings;
+use schemars::generate::SchemaSettings;
 use serde_json::Value;
 
 /// Generate an MCP-friendly JSON Schema for `T`.
@@ -40,14 +40,13 @@ pub fn schema_for<T: JsonSchema>() -> Value {
     let generator = SchemaSettings::draft07()
         .with(|s| {
             s.inline_subschemas = true;
-            s.option_add_null_type = false;
-            s.option_nullable = false;
             s.meta_schema = None;
         })
         .into_generator();
-    let root = generator.into_root_schema_for::<T>();
-    let mut value =
-        serde_json::to_value(root).unwrap_or_else(|_| Value::Object(Default::default()));
+    let mut value = generator.into_root_schema_for::<T>().to_value();
+    // schemars 1.x always marks `Option<T>` as nullable; MCP tool arguments
+    // express optionality by omission instead.
+    strip_null(&mut value);
     if let Some(obj) = value.as_object_mut() {
         obj.remove("title");
         obj.remove("$schema");
@@ -58,6 +57,49 @@ pub fn schema_for<T: JsonSchema>() -> Value {
         }
     }
     value
+}
+
+/// Recursively remove the `null` alternatives schemars adds for `Option<T>`:
+/// `"type": ["T", "null"]` becomes `"type": "T"`, `null` is dropped from
+/// `enum` lists, and an `anyOf` wrapper with a `{"type": "null"}` branch is
+/// collapsed into its remaining branch.
+fn strip_null(value: &mut Value) {
+    match value {
+        Value::Array(items) => items.iter_mut().for_each(strip_null),
+        Value::Object(obj) => {
+            obj.values_mut().for_each(strip_null);
+            if let Some(Value::Array(types)) = obj.get_mut("type") {
+                if types.len() > 1 {
+                    types.retain(|t| t != "null");
+                }
+                if types.len() == 1 {
+                    let only = types.remove(0);
+                    obj.insert("type".into(), only);
+                }
+            }
+            if let Some(Value::Array(variants)) = obj.get_mut("enum")
+                && variants.len() > 1
+            {
+                variants.retain(|v| !v.is_null());
+            }
+            let is_null_branch = |v: &Value| v.get("type").is_some_and(|t| t == "null");
+            if let Some(Value::Array(branches)) = obj.get_mut("anyOf")
+                && branches.len() > 1
+                && branches.iter().any(is_null_branch)
+            {
+                branches.retain(|b| !is_null_branch(b));
+                if branches.len() == 1
+                    && let Some(Value::Object(inner)) = branches.pop()
+                {
+                    obj.remove("anyOf");
+                    for (k, v) in inner {
+                        obj.entry(k).or_insert(v);
+                    }
+                }
+            }
+        },
+        _ => {},
+    }
 }
 
 #[cfg(test)]
@@ -87,6 +129,8 @@ mod tests {
         name: String,
         mode: Option<Mode>,
         inner: Inner,
+        inner_opt: Option<Inner>,
+        limit: Option<u32>,
         tags: Vec<String>,
     }
 
@@ -99,6 +143,13 @@ mod tests {
             "integer"
         );
         assert_eq!(s["properties"]["mode"]["enum"], json!(["fast", "thorough"]));
+        assert_eq!(s["properties"]["mode"]["type"], "string");
+        assert_eq!(
+            s["properties"]["limit"],
+            json!({"type": "integer", "format": "uint32", "minimum": 0})
+        );
+        assert!(s["properties"]["inner_opt"].get("anyOf").is_none(), "{s}");
+        assert_eq!(s["properties"]["inner_opt"]["type"], "object");
         assert_eq!(s["properties"]["tags"]["items"]["type"], "string");
         let mut required: Vec<_> = s["required"]
             .as_array()

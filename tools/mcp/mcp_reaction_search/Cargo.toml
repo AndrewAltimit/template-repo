@@ -16,19 +16,20 @@ path = "src/main.rs"
 mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
 
 # Async runtime
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.54", features = ["full"] }
 async-trait = "0.1"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_yaml = "0.9"
+# Maintained continuation of serde_yaml (unsafe-libyaml is unmaintained).
+yaml_serde = "0.10"
 
 # HTTP client
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 
 # CLI
-clap = { version = "4.5", features = ["derive", "env"] }
+clap = { version = "4.6", features = ["derive", "env"] }
 
 # Logging
 tracing = "0.1"
@@ -42,13 +43,13 @@ anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 
 # Directories
-dirs = "6.0"
+dirs = "7.0"
 
 # Sentence embeddings (ONNX-based)
-fastembed = "4"
+fastembed = "7"
 
 # Linear algebra
-ndarray = "0.16"
+ndarray = "0.17"
 
 [profile.release]
 lto = true

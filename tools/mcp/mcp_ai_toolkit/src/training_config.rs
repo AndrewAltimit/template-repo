@@ -411,7 +411,7 @@ pub struct ConfigSummary {
 }
 
 /// Extract [`ConfigSummary`] from parsed YAML.
-pub fn summarize_config(paths: &AIToolkitPaths, cfg: &serde_yaml::Value) -> ConfigSummary {
+pub fn summarize_config(paths: &AIToolkitPaths, cfg: &yaml_serde::Value) -> ConfigSummary {
     let process = cfg
         .get("config")
         .and_then(|c| c.get("process"))
@@ -452,7 +452,7 @@ fn resolve_against(base: &Path, p: &str) -> PathBuf {
 /// Checks structure, architecture flag conflicts, hyper-parameter sanity, and
 /// that every dataset folder exists and contains images. Performs blocking
 /// filesystem reads; call from `spawn_blocking` in async contexts.
-pub fn validate_config_yaml(paths: &AIToolkitPaths, cfg: &serde_yaml::Value) -> Validation {
+pub fn validate_config_yaml(paths: &AIToolkitPaths, cfg: &yaml_serde::Value) -> Validation {
     let mut errors = Vec::new();
     let mut warnings = Vec::new();
 
@@ -661,7 +661,7 @@ mod tests {
         assert_eq!(p.train.dtype, "bf16");
         assert_eq!(p.sample.width, 1024);
         assert!(p.sample.prompts[0].starts_with("ohwx, "));
-        let yaml = serde_yaml::to_string(&built.config).unwrap();
+        let yaml = yaml_serde::to_string(&built.config).unwrap();
         assert!(yaml.contains("job: extension"));
         assert!(yaml.contains("type: sd_trainer"));
     }
@@ -717,8 +717,8 @@ mod tests {
 
         // Valid config but empty dataset -> error
         let built = build_config(&paths, &args("lora", "cats")).unwrap();
-        let yaml: serde_yaml::Value =
-            serde_yaml::from_str(&serde_yaml::to_string(&built.config).unwrap()).unwrap();
+        let yaml: yaml_serde::Value =
+            yaml_serde::from_str(&yaml_serde::to_string(&built.config).unwrap()).unwrap();
         let v = validate_config_yaml(&paths, &yaml);
         assert!(!v.valid);
         assert!(v.errors.iter().any(|e| e.contains("no images")));
@@ -738,16 +738,16 @@ mod tests {
     #[test]
     fn validate_structural_errors() {
         let paths = AIToolkitPaths::from_base("/nonexistent");
-        let v = validate_config_yaml(&paths, &serde_yaml::from_str("foo: 1").unwrap());
+        let v = validate_config_yaml(&paths, &yaml_serde::from_str("foo: 1").unwrap());
         assert!(!v.valid);
         assert_eq!(v.errors.len(), 2);
 
         let y = "job: extension\nconfig:\n  name: x\n  process: []\n";
-        let v = validate_config_yaml(&paths, &serde_yaml::from_str(y).unwrap());
+        let v = validate_config_yaml(&paths, &yaml_serde::from_str(y).unwrap());
         assert!(v.errors.iter().any(|e| e.contains("empty")));
 
         let y = "job: extension\nconfig:\n  name: x\n  process:\n    - model: {name_or_path: m, is_flux: true, is_xl: true}\n      datasets: []\n      train: {steps: 0}\n";
-        let v = validate_config_yaml(&paths, &serde_yaml::from_str(y).unwrap());
+        let v = validate_config_yaml(&paths, &yaml_serde::from_str(y).unwrap());
         assert!(v.errors.iter().any(|e| e.contains("more than one")));
         assert!(v.errors.iter().any(|e| e.contains("steps")));
         assert!(v.errors.iter().any(|e| e.contains("datasets")));

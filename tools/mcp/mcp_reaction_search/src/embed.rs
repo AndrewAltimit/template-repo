@@ -5,8 +5,9 @@
 //! working (lexically) when the model cannot be downloaded.
 
 use std::path::PathBuf;
+use std::sync::Mutex;
 
-use fastembed::{EmbeddingModel, InitOptions, TextEmbedding};
+use fastembed::{EmbeddingModel, TextEmbedding, TextInitOptions};
 use tracing::info;
 
 /// Embedding model used for semantic search: all-MiniLM-L6-v2 (384 dims,
@@ -29,7 +30,8 @@ pub trait Embedder: Send + Sync {
 
 /// [`Embedder`] backed by fastembed / ONNX Runtime.
 pub struct FastEmbedder {
-    model: TextEmbedding,
+    // fastembed >= 5 needs `&mut` to embed; the mutex serializes inference.
+    model: Mutex<TextEmbedding>,
 }
 
 impl FastEmbedder {
@@ -45,7 +47,7 @@ impl FastEmbedder {
         );
         let started = std::time::Instant::now();
         let model = TextEmbedding::try_new(
-            InitOptions::new(MODEL)
+            TextInitOptions::new(MODEL)
                 .with_cache_dir(cache_dir)
                 // The progress bar is terminal noise in docker logs and
                 // useless over MCP; download progress is logged instead.
@@ -56,7 +58,9 @@ impl FastEmbedder {
             "Embedding model loaded in {:.2}s",
             started.elapsed().as_secs_f64()
         );
-        Ok(Self { model })
+        Ok(Self {
+            model: Mutex::new(model),
+        })
     }
 }
 
@@ -67,7 +71,9 @@ impl Embedder for FastEmbedder {
 
     fn embed(&self, texts: &[String]) -> Result<Vec<Vec<f32>>, String> {
         self.model
-            .embed(texts.to_vec(), None)
+            .lock()
+            .map_err(|_| "embedding model lock poisoned".to_string())?
+            .embed(texts, None)
             .map_err(|e| format!("embedding failed: {e:#}"))
     }
 }
