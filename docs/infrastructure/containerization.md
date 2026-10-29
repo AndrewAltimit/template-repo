@@ -25,7 +25,7 @@ This project embraces a **container-first approach** as a core design principle:
 
 The Python CI container (`docker/python-ci.Dockerfile`) includes all necessary tools:
 
-- **Base Image**: Python 3.11-slim for optimal performance
+- **Base Image**: Python 3.13-slim (Debian bookworm)
 - **Linter/Formatter**: Ruff (replaces black, flake8, isort, pylint)
 - **Type Checker**: mypy
 - **Testing**: pytest, pytest-cov, pytest-asyncio, pytest-mock
@@ -181,7 +181,7 @@ This ensures:
 - Consistent behavior between local and CI environments
 - No need to install Python dependencies on runners
 - Faster execution with cached Docker images
-- Python 3.11 environment matches production
+- Python 3.13 environment matches production
 
 ## Adding New Tools
 
@@ -268,7 +268,7 @@ docker image prune -f
 
 1. Always use helper scripts for common operations
 2. Keep containers lightweight - only install necessary tools
-3. Use specific versions in Dockerfile for reproducibility (e.g., Python 3.11)
+3. Use specific versions in Dockerfile for reproducibility (e.g., Python 3.13)
 4. Leverage Docker layer caching on self-hosted runners
 5. Design for single-maintainer efficiency
 6. Run containers with user permissions to avoid file ownership issues

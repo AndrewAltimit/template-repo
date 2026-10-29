@@ -16,9 +16,9 @@ docker compose up sleeper-eval-gpu
 
 #### Prerequisites
 
-- Python 3.11+
+- Python 3.13+
 - pip or conda
-- (Optional) CUDA 11.8+ for GPU support
+- (Optional) CUDA 13.0 for GPU support (NVIDIA driver 580 or newer)
 
 #### Basic Installation
 
@@ -28,11 +28,12 @@ git clone https://github.com/AndrewAltimit/template-repo.git
 cd template-repo
 
 # Install CPU-only version
-pip install -r config/python/requirements-sleeper-agents.txt
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -e packages/sleeper_agents
 
-# For GPU support
-pip install torch --index-url https://download.pytorch.org/whl/cu118
-pip install -r config/python/requirements-sleeper-agents-gpu.txt
+# For GPU support (CUDA 13.0, matches the Docker GPU images)
+pip install torch --index-url https://download.pytorch.org/whl/cu130
+pip install -e packages/sleeper_agents
 ```
 
 ## Dependencies

@@ -243,7 +243,7 @@ To check the Linux build from Windows (mount the repo root so the
 
 ```bash
 docker run --rm -v "$PWD/../../..:/w" -w /w/tools/mcp/mcp_memory_explorer \
-  -e CARGO_TARGET_DIR=/tmp/target rust:1.93 \
+  -e CARGO_TARGET_DIR=/tmp/target rust:1.99 \
   sh -c "rustup component add clippy && cargo clippy --all-targets -- -D warnings && cargo test"
 ```
 

@@ -114,7 +114,7 @@ def validate_request(request):
 
 ```dockerfile
 # Use specific versions
-FROM python:3.11-alpine@sha256:specific-hash
+FROM python:3.13-alpine3.24@sha256:specific-hash
 
 # Non-root user
 RUN adduser -D -u 1000 appuser

@@ -113,7 +113,7 @@ FROM [base] AS builder
 # Build or download tool binary
 
 # Stage 2: Runtime Environment
-FROM python:3.11-alpine
+FROM python:3.13-alpine3.24
 # Copy binary
 # Install Python services
 # Configure environment

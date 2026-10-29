@@ -64,7 +64,7 @@ packages/economic_agents/
 
 ### Prerequisites
 
-- Rust 1.93+ (2024 edition)
+- Rust 1.99 (2024 edition; the toolchain CI builds with)
 - Cargo
 
 ### Build

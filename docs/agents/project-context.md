@@ -34,7 +34,7 @@ As a PR reviewer, focus on security, containers, and project standards.
 ### 3. Architecture
 
 - **21 MCP servers** (19 active, 2 legacy) under `tools/mcp/`, plus the shared `mcp_core` and `mcp_core_rust` libraries
-- **Python CI Container** includes all development tools (Python 3.11)
+- **Python CI Container** includes all development tools (Python 3.13)
 - **Docker Compose** orchestrates all services
 - **No aggressive cleanup** - Python cache prevention via environment variables
 - **Multi-stage CI/CD** - format, lint-basic, lint-full, security, test stages
@@ -71,7 +71,7 @@ As a PR reviewer, focus on security, containers, and project standards.
 
 ## Technical Standards
 
-- Python 3.11 in all containers
+- Python 3.13 in all containers
 - Python code is formatted and linted with Ruff (`ruff format`, `ruff check`)
 - All Python tools run in containers with user permissions (no root)
 - Environment variables: `PYTHONDONTWRITEBYTECODE=1`, `USER_ID/GROUP_ID`

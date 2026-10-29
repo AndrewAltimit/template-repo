@@ -45,7 +45,7 @@ docker run -d --name opencode-proxy \
     -e COMPANY_API_BASE="http://localhost:8050" \
     -e COMPANY_API_TOKEN="test-secret-token-123" \
     -v "$PWD/../shared/services:/app:ro" \
-    python:3.11-alpine sh -c '
+    python:3.13-alpine3.24 sh -c '
         pip install --quiet flask flask-cors requests &&
         python /app/mock_api.py &
         python /app/translation_wrapper.py &
@@ -75,7 +75,7 @@ docker run -d --name opencode-proxy \
     -e COMPANY_API_BASE="$COMPANY_API_BASE" \
     -e COMPANY_API_TOKEN="$COMPANY_API_TOKEN" \
     -v "$PWD/../shared/services:/app:ro" \
-    python:3.11-alpine sh -c '
+    python:3.13-alpine3.24 sh -c '
         pip install --quiet flask flask-cors requests &&
         python /app/translation_wrapper.py
     '
