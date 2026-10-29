@@ -54,7 +54,7 @@ Commands:
 Options:
   -s, --suites SUITES     Test suites to run (default: basic code_vulnerability)
                           Options: basic, code_vulnerability, chain_of_thought,
-                                   robustness, attention, intervention, advanced, all
+                                   robustness, attention, intervention, all
   -g, --gpu               Use GPU acceleration
   -f, --format FORMAT     Report format: html, pdf, json (default: html)
   -o, --output PATH       Output directory/file
@@ -226,13 +226,6 @@ build_python_command() {
             [ ${#MODELS[@]} -gt 0 ] && args+=("--model" "${MODELS[0]}")
             ;;
 
-        dashboard)
-            # Special case - launch dashboard
-            "$SCRIPT_DIR/../dashboard/launch.sh"
-            [ "$OPEN_RESULT" = true ] && sleep 3 && xdg-open "http://localhost:8501" &
-            exit 0
-            ;;
-
         *)
             print_error "Unknown command: $COMMAND"
             usage
@@ -244,6 +237,18 @@ build_python_command() {
 }
 
 # Main execution
+if [ "$COMMAND" = "dashboard" ]; then
+    # Handled here, not in build_python_command: that runs in a $(...) subshell,
+    # whose output becomes the Python arguments and whose exit does not stop us.
+    # start.sh expects to run from the dashboard directory (its .env and compose file).
+    (cd "$PACKAGE_ROOT/dashboard" && ./start.sh)
+    if [ "$OPEN_RESULT" = true ]; then
+        sleep 3
+        xdg-open "http://localhost:8501" 2>/dev/null || open "http://localhost:8501" 2>/dev/null || true
+    fi
+    exit 0
+fi
+
 cd "$PROJECT_ROOT"
 
 # Build Python command
@@ -252,33 +257,47 @@ PYTHON_ARGS=$(build_python_command)
 if [ "$USE_DOCKER" = true ]; then
     print_info "Running in Docker container..."
 
-    # Determine Docker image
+    # Run through the compose service, which supplies the image, the GPU, the
+    # results/model-cache/database mounts and EVAL_* settings. The repo is
+    # mounted read-only at /app and evaluation_results at /results.
     if [ "$USE_GPU" = true ]; then
-        IMAGE_NAME="sleeper-eval-gpu"
-        DOCKER_GPU_FLAGS="--gpus all"
+        SERVICE="sleeper-eval-gpu"
+        PROFILE="eval-gpu"
     else
-        IMAGE_NAME="sleeper-eval-cpu"
-        DOCKER_GPU_FLAGS=""
+        SERVICE="sleeper-eval-cpu"
+        PROFILE="eval-cpu"
     fi
 
-    # Build Docker command using array
     RESULTS_PATH="$PROJECT_ROOT/evaluation_results"
     mkdir -p "$RESULTS_PATH"
 
-    # Build Docker command array
-    DOCKER_CMD=("docker" "run" "--rm")
-    if [ -n "$DOCKER_GPU_FLAGS" ]; then
-        # Split GPU flags into array elements safely
-        read -r -a GPU_FLAGS_ARRAY <<< "$DOCKER_GPU_FLAGS"
-        DOCKER_CMD+=("${GPU_FLAGS_ARRAY[@]}")
-    fi
-    DOCKER_CMD+=("-v" "$PROJECT_ROOT:/workspace" "-v" "$RESULTS_PATH:/results" "-w" "/workspace")
-    DOCKER_CMD+=("-e" "EVAL_RESULTS_DIR=/results" "-e" "EVAL_DB_PATH=/results/evaluation_results.db")
-    DOCKER_CMD+=("$IMAGE_NAME" "python")
-
     # Parse PYTHON_ARGS string into array elements
     read -r -a PYTHON_ARGS_ARRAY <<< "$PYTHON_ARGS"
-    DOCKER_CMD+=("${PYTHON_ARGS_ARRAY[@]}")
+
+    # Host paths mean nothing inside the container: map an --output under
+    # evaluation_results to /results, and reject anything else.
+    CONTAINER_ARGS=()
+    PREV=""
+    for arg in "${PYTHON_ARGS_ARRAY[@]}"; do
+        if [ "$PREV" = "--output" ]; then
+            case "$arg" in
+                /*) FULL="$arg" ;;
+                *) FULL="$PROJECT_ROOT/$arg" ;;
+            esac
+            FULL="$(realpath -m "$FULL")"
+            case "$FULL" in
+                "$RESULTS_PATH"|"$RESULTS_PATH"/*) arg="/results${FULL#"$RESULTS_PATH"}" ;;
+                *)
+                    print_error "With --docker, --output must be inside $RESULTS_PATH (got $FULL)"
+                    exit 1
+                    ;;
+            esac
+        fi
+        CONTAINER_ARGS+=("$arg")
+        PREV="$arg"
+    done
+
+    DOCKER_CMD=("docker" "compose" "--profile" "$PROFILE" "run" "--rm" "$SERVICE" "python" "${CONTAINER_ARGS[@]}")
 
     if [ "$VERBOSE" = true ]; then
         print_info "Docker command: ${DOCKER_CMD[*]}"
