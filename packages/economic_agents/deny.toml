@@ -4,9 +4,8 @@
 [advisories]
 unmaintained = "workspace"
 # RUSTSEC-2026-0007 (bytes) and RUSTSEC-2026-0009 (time) were fixed by
-# upgrading; no advisories are ignored. unsafe-libyaml (RUSTSEC-2024-0449,
-# unmaintained) is a transitive dependency of serde_yaml_ng and is not
-# reported under `unmaintained = "workspace"`.
+# upgrading; no advisories are ignored. YAML parsing uses serde_norway, whose
+# unsafe-libyaml-norway fork is not covered by RUSTSEC-2024-0449.
 ignore = []
 
 [licenses]

@@ -94,20 +94,11 @@ fn ensure_cache_dirs() {
     }
 }
 
-/// Run the pip dependency audit (Safety with an API key, pip-audit otherwise).
+/// Run the pip dependency audit (pip-audit).
 /// Returns Ok(false) if vulnerabilities were reported.
 pub(crate) fn dependency_audit(compose: &Path) -> Result<bool> {
-    if let Ok(key) = std::env::var("SAFETY_API_KEY") {
-        output::step("Using Safety with API key...");
-        docker::run_python_ci_check(
-            compose,
-            &["safety", "scan", "--disable-optional-telemetry"],
-            &[("SAFETY_API_KEY", &key)],
-        )
-    } else {
-        output::step("No SAFETY_API_KEY found, using pip-audit...");
-        docker::run_python_ci_check(compose, &["python", "-m", "pip_audit"], &[])
-    }
+    output::step("Running pip-audit...");
+    docker::run_python_ci_check(compose, &["python", "-m", "pip_audit"], &[])
 }
 
 impl Ctx<'_> {
