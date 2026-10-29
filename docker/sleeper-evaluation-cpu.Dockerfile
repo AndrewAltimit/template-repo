@@ -30,12 +30,14 @@ RUN pip install --upgrade pip setuptools wheel
 # Copy application code first for pyproject.toml access
 COPY --chown=evaluator:evaluator . /app
 
-# Install PyTorch CPU version first
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+# Install PyTorch CPU version first. --no-deps keeps torch's dependencies (setuptools
+# among them) from resolving against the CPU index, which carries stale copies; they
+# come from PyPI in the next step.
+RUN pip install --no-cache-dir --no-deps "torch==2.14.1" --index-url https://download.pytorch.org/whl/cpu
 
 # Install dependencies from pyproject.toml - single source of truth
 # Install in editable mode with 'all' extras for complete environment
-RUN pip install --no-cache-dir /app/packages/sleeper_agents[all]
+RUN pip install --no-cache-dir "torch==2.14.1" /app/packages/sleeper_agents[all]
 
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH

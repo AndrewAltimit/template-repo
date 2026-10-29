@@ -23,7 +23,7 @@ RUN cargo build --release
 
 # Stage 2: Runtime image
 # Stays on jammy (Python 3.10): the pinned ai-toolkit commit expects its own torch/torchao set
-FROM nvidia/cuda:12.9.2-base-ubuntu22.04
+FROM nvidia/cuda:13.0.2-base-ubuntu22.04
 
 # Install system dependencies including Node.js
 RUN apt-get update && apt-get install -y \

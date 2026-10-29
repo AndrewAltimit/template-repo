@@ -1,7 +1,7 @@
 # GPU-enabled Docker image for sleeper agent detection
-# Based on NVIDIA CUDA 13.2 to match the cu132 PyTorch wheels (host driver >= 580)
+# Based on NVIDIA CUDA 13.0 to match the cu130 PyTorch wheels (host driver >= 580)
 
-FROM nvidia/cuda:13.2.1-runtime-ubuntu22.04
+FROM nvidia/cuda:13.0.2-runtime-ubuntu22.04
 
 # Prevent interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive
@@ -45,9 +45,9 @@ RUN python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" "setuptools>=70.
 # Build context is now packages/sleeper_agents/ (src/ layout)
 COPY pyproject.toml README.md /app/
 
-# Install PyTorch with CUDA 13.2 support. torchvision/torchaudio are not used by
+# Install PyTorch with CUDA 13.0 support. torchvision/torchaudio are not used by
 # the package (and torchaudio is no longer published for current torch).
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu132
+RUN pip install --no-cache-dir "torch==2.14.1" --index-url https://download.pytorch.org/whl/cu130
 
 # Pre-install problematic heavy packages separately to avoid dependency resolution hangs
 # These packages have complex dependencies and may require compilation

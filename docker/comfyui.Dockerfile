@@ -24,9 +24,9 @@ WORKDIR /build/tools/mcp/mcp_comfyui
 RUN cargo build --release
 
 # Stage 2: Runtime image with ComfyUI and CUDA
-# CUDA 13.2 matches the cu132 PyTorch wheels below (host driver >= 580 required).
+# CUDA 13.0 matches the cu130 PyTorch wheels below (host driver >= 580 required).
 # Ubuntu 24.04 provides Python 3.12; jammy's 3.10 is no longer covered by current torch.
-FROM nvidia/cuda:13.2.1-base-ubuntu24.04
+FROM nvidia/cuda:13.0.2-base-ubuntu24.04
 
 # Container-only interpreter: allow pip to install into the system Python (PEP 668)
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
@@ -57,13 +57,13 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /comfyui
 
 # Install ComfyUI requirements
 WORKDIR /comfyui
-# Install PyTorch with CUDA 13.2 support (x86_64 only). 2.14.1 is the newest torch
-# with a matching torchvision on the cu132 index; torchaudio is no longer
-# published for current torch and ComfyUI does not require it.
+# Install PyTorch with CUDA 13.0 support (x86_64 only; driver >= 580). torchaudio is
+# left out: the newest on the cu130 index is 2.11.0, built against torch 2.11, and
+# ComfyUI does not require it.
 RUN pip3 install --no-cache-dir \
     torch==2.14.1 \
     torchvision==0.29.1 \
-    --index-url https://download.pytorch.org/whl/cu132 && \
+    --index-url https://download.pytorch.org/whl/cu130 && \
     python3 -c "import torch; print(f'PyTorch {torch.__version__} with CUDA {torch.version.cuda}')"
 RUN pip3 install --no-cache-dir -r requirements.txt
 
