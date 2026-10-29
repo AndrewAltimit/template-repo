@@ -9,7 +9,7 @@
 
 # Stage 1: Build the Rust binary
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # pkg-config/libssl-dev: reqwest native-tls; g++: libstdc++ for ONNX Runtime;
 # ca-certificates: model and ONNX Runtime downloads during the build

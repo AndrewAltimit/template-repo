@@ -7,7 +7,7 @@ ARG MODE=agent
 
 # Stage 1: Build gh-validator from source
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS gh-validator-builder
+FROM rust:1.99-slim-bookworm AS gh-validator-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
@@ -24,7 +24,7 @@ RUN touch src/main.rs && cargo build --release
 
 # Stage 2: Build mcp-codex Rust server
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS mcp-codex-builder
+FROM rust:1.99-slim-bookworm AS mcp-codex-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
@@ -48,7 +48,7 @@ RUN touch src/main.rs && cargo build --release
 
 # Stage 3: Main Codex image
 # Use Python as base since both modes need it
-FROM python:3.11-slim
+FROM python:3.13-slim-bookworm
 
 # Install Node.js 20 and system dependencies in a single layer
 RUN apt-get update && apt-get install -y \

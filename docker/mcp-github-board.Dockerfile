@@ -5,7 +5,7 @@
 # so we build both binaries in this image.
 
 # Stage 1: Build the Rust binaries
-FROM rust:1.93-slim AS builder
+FROM rust:1.99-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -34,7 +34,7 @@ WORKDIR /build/tools/mcp/mcp_github_board
 RUN cargo build --release
 
 # Stage 2: Runtime image
-# Use trixie-slim to match glibc version from rust:1.93-slim builder
+# Use trixie-slim to match glibc version from rust:1.99-slim builder
 FROM debian:trixie-slim
 
 # Install runtime dependencies

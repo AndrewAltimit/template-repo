@@ -15,7 +15,7 @@
 # ──────────────────────────────────────────────────────────
 # Stage 1: Build the wrapper binaries
 # ──────────────────────────────────────────────────────────
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \

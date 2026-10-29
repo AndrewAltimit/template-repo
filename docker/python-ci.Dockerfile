@@ -3,11 +3,11 @@
 # Performance optimizations:
 # - uv package manager (10-100x faster than pip)
 # - BuildKit cache mounts for apt and uv
-# - Python 3.11 (10-60% faster than 3.10)
+# - Python 3.13
 
 # Stage 1: Build gh-validator from source
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS gh-validator-builder
+FROM rust:1.99-slim-bookworm AS gh-validator-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
@@ -23,11 +23,11 @@ COPY tools/rust/gh-validator/src ./src
 RUN touch src/main.rs && cargo build --release
 
 # Stage 2: Main Python CI image
-FROM python:3.11-slim
+FROM python:3.13-slim-bookworm
 
 # Install uv - Rust-based package manager (10-100x faster than pip)
 # Pin version to avoid :latest non-determinism and GHCR auth issues on tag pushes
-COPY --from=ghcr.io/astral-sh/uv:0.10.4 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.13.6 /uv /usr/local/bin/uv
 
 # Configure uv to use system Python (avoids --system flag on every command)
 ENV UV_SYSTEM_PYTHON=1

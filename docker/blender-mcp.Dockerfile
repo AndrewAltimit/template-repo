@@ -1,7 +1,7 @@
 # Multi-stage Rust build for mcp-blender with GPU support
 # Stage 1: Build the Rust binary
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # Install build dependencies for OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,11 +22,13 @@ WORKDIR /build/tools/mcp/mcp_blender
 RUN cargo build --release
 
 # Stage 2: Runtime image with Blender and CUDA
-FROM nvidia/cuda:12.1.1-base-ubuntu22.04
+FROM nvidia/cuda:12.9.2-base-ubuntu22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-ENV BLENDER_VERSION=4.5.1
+# 4.5 LTS; the community arm64 build is only published for 4.5.1
+ENV BLENDER_VERSION=4.5.9
+ENV BLENDER_ARM64_VERSION=4.5.1
 
 # Install system dependencies.
 # libegl1 + Mesa (libegl-mesa0, libgl1-mesa-dri, libgbm1) give headless Blender an
@@ -61,10 +63,10 @@ RUN ARCH=$(uname -m) && \
         && mv blender-${BLENDER_VERSION}-linux-x64 /opt/blender \
         && rm blender-${BLENDER_VERSION}-linux-x64.tar.xz; \
     elif [ "$ARCH" = "aarch64" ]; then \
-        wget -q https://github.com/lfdevs/blender-linux-arm64/releases/download/v${BLENDER_VERSION}/blender-${BLENDER_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz \
-        && tar -xf blender-${BLENDER_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz \
-        && mv blender-${BLENDER_VERSION}-git20250730.28c0962c45ac-aarch64 /opt/blender \
-        && rm blender-${BLENDER_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz; \
+        wget -q https://github.com/lfdevs/blender-linux-arm64/releases/download/v${BLENDER_ARM64_VERSION}/blender-${BLENDER_ARM64_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz \
+        && tar -xf blender-${BLENDER_ARM64_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz \
+        && mv blender-${BLENDER_ARM64_VERSION}-git20250730.28c0962c45ac-aarch64 /opt/blender \
+        && rm blender-${BLENDER_ARM64_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz; \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi \

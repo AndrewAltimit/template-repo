@@ -1,6 +1,7 @@
 # Multi-arch TeXLive image for PDF builds
 # Works on both amd64 and arm64
-FROM debian:bookworm-slim
+# trixie: TeX Live 2024 (bookworm ships 2022)
+FROM debian:trixie-slim
 
 LABEL maintainer="AndrewAltimit"
 LABEL description="TeXLive for building LaTeX documents (multi-arch)"

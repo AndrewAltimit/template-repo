@@ -1,7 +1,7 @@
 # Sleeper Agent Detection - Evaluation System Dockerfile
 # Optimized for batch evaluation and report generation
 
-FROM pytorch/pytorch:2.2.0-cuda11.8-cudnn8-runtime AS base
+FROM pytorch/pytorch:2.15.0-cuda13.2-cudnn9-runtime AS base
 
 # Set working directory
 WORKDIR /app

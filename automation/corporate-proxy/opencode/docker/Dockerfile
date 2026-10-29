@@ -8,6 +8,8 @@ FROM alpine/git AS source
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
 RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
+# Held at v1.0.223: the shared/patches overlays replace source files of this
+# exact release and must be reworked before moving to a newer OpenCode.
 ARG OPENCODE_VERSION=v1.0.223
 WORKDIR /source
 RUN git clone https://github.com/sst/opencode.git && \
@@ -17,7 +19,7 @@ RUN git clone https://github.com/sst/opencode.git && \
     fi
 
 # Stage 2: Build TUI with Go
-FROM golang:1.23 AS tui-builder
+FROM golang:1.27 AS tui-builder
 
 # Copy and run corporate certificate installation script (as root)
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
@@ -77,7 +79,7 @@ RUN bun build ./src/index.ts --compile --outfile opencode
 
 # Stage 4: Runtime container
 # Use debian-based image for glibc compatibility with bun-compiled binary
-FROM node:20-slim
+FROM node:26-slim
 
 # Copy and run corporate certificate installation script (as root)
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh

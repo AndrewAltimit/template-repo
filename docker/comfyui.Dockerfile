@@ -3,7 +3,7 @@
 
 # Stage 1: Build the Rust MCP binary
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # Install build dependencies for OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -24,7 +24,12 @@ WORKDIR /build/tools/mcp/mcp_comfyui
 RUN cargo build --release
 
 # Stage 2: Runtime image with ComfyUI and CUDA
-FROM nvidia/cuda:12.4.0-base-ubuntu22.04
+# CUDA 13.2 matches the cu132 PyTorch wheels below (host driver >= 580 required).
+# Ubuntu 24.04 provides Python 3.12; jammy's 3.10 is no longer covered by current torch.
+FROM nvidia/cuda:13.2.1-base-ubuntu24.04
+
+# Container-only interpreter: allow pip to install into the system Python (PEP 668)
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -33,13 +38,13 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     wget \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
     libgomp1 \
-    libgoogle-perftools4 \
+    libgoogle-perftools4t64 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -52,12 +57,13 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /comfyui
 
 # Install ComfyUI requirements
 WORKDIR /comfyui
-# Install PyTorch with CUDA 12.4 support (x86_64 only)
+# Install PyTorch with CUDA 13.2 support (x86_64 only). 2.14.1 is the newest torch
+# with a matching torchvision on the cu132 index; torchaudio is no longer
+# published for current torch and ComfyUI does not require it.
 RUN pip3 install --no-cache-dir \
-    torch==2.5.1 \
-    torchvision==0.20.1 \
-    torchaudio==2.5.1 \
-    --index-url https://download.pytorch.org/whl/cu124 && \
+    torch==2.14.1 \
+    torchvision==0.29.1 \
+    --index-url https://download.pytorch.org/whl/cu132 && \
     python3 -c "import torch; print(f'PyTorch {torch.__version__} with CUDA {torch.version.cuda}')"
 RUN pip3 install --no-cache-dir -r requirements.txt
 
@@ -96,8 +102,9 @@ ENV COMFYUI_DISABLE_XFORMERS=0
 ENV RUST_LOG=info
 ENV COMFYUI_URL=http://localhost:8188
 
-# Create non-root user
-RUN groupadd --gid 1000 appuser && \
+# Create non-root user (drop the stock ubuntu user that owns UID/GID 1000 on 24.04)
+RUN (userdel -r ubuntu 2>/dev/null || true) && \
+    groupadd --gid 1000 appuser && \
     useradd --uid 1000 --gid 1000 -m appuser && \
     chown -R appuser:appuser /comfyui /workspace
 

@@ -1,7 +1,7 @@
 # Sleeper Agent Detection - CPU-only Evaluation Dockerfile
 # Lightweight version for quick testing without GPU
 
-FROM python:3.11-slim AS base
+FROM python:3.13-slim-bookworm AS base
 
 # Set working directory
 WORKDIR /app

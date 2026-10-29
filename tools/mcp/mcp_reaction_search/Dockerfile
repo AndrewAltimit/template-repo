@@ -18,7 +18,7 @@
 # =============================================================================
 # Stage 1: Builder
 # =============================================================================
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # Install build dependencies
 # Note: g++ provides libstdc++ needed for linking ONNX runtime

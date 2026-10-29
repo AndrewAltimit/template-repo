@@ -1,7 +1,7 @@
 # AI Toolkit with Web UI and MCP Server (Rust)
 # Stage 1: Build Rust MCP server
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS mcp-builder
+FROM rust:1.99-slim-bookworm AS mcp-builder
 
 # Install OpenSSL for reqwest
 RUN apt-get update && apt-get install -y \
@@ -22,7 +22,8 @@ WORKDIR /build/tools/mcp/mcp_ai_toolkit
 RUN cargo build --release
 
 # Stage 2: Runtime image
-FROM nvidia/cuda:12.1.0-base-ubuntu22.04
+# Stays on jammy (Python 3.10): the pinned ai-toolkit commit expects its own torch/torchao set
+FROM nvidia/cuda:12.9.2-base-ubuntu22.04
 
 # Install system dependencies including Node.js
 RUN apt-get update && apt-get install -y \
@@ -35,7 +36,7 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     ca-certificates \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
