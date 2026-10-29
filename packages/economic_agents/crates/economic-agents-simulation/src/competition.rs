@@ -1,6 +1,6 @@
 //! Competitor agent simulation.
 
-use rand::Rng;
+use rand::RngExt;
 
 /// Simulates competing agents in the marketplace.
 pub struct CompetitorSimulator {
@@ -25,15 +25,15 @@ impl CompetitorSimulator {
             return false;
         }
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let total_prob = 1.0 - (1.0 - self.claim_probability).powi(self.num_competitors as i32);
-        rng.r#gen::<f64>() < total_prob
+        rng.random::<f64>() < total_prob
     }
 
     /// Get a random competitor name.
     pub fn random_competitor(&self) -> String {
-        let mut rng = rand::thread_rng();
-        let id = rng.r#gen_range(1..=self.num_competitors);
+        let mut rng = rand::rng();
+        let id = rng.random_range(1..=self.num_competitors);
         format!("competitor-agent-{}", id)
     }
 

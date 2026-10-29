@@ -1,6 +1,6 @@
 //! Market dynamics simulation.
 
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 
 /// Market phase.
@@ -65,37 +65,37 @@ impl MarketDynamics {
     pub fn tick(&mut self) {
         self.cycles_in_phase += 1;
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // Check for phase transition
         let transition_prob = (self.cycles_in_phase as f64) / (self.phase_duration as f64) * 0.1;
 
-        if rng.r#gen::<f64>() < transition_prob {
+        if rng.random::<f64>() < transition_prob {
             self.transition();
         }
     }
 
     /// Force a phase transition.
     fn transition(&mut self) {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         self.current_phase = match self.current_phase {
             MarketPhase::Bull => {
-                if rng.r#gen::<f64>() < 0.3 {
+                if rng.random::<f64>() < 0.3 {
                     MarketPhase::Crash
                 } else {
                     MarketPhase::Stable
                 }
             },
             MarketPhase::Stable => {
-                if rng.r#gen::<f64>() < 0.5 {
+                if rng.random::<f64>() < 0.5 {
                     MarketPhase::Bull
                 } else {
                     MarketPhase::Bear
                 }
             },
             MarketPhase::Bear => {
-                if rng.r#gen::<f64>() < 0.2 {
+                if rng.random::<f64>() < 0.2 {
                     MarketPhase::Crash
                 } else {
                     MarketPhase::Stable
