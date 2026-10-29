@@ -226,10 +226,13 @@ fn snapshot_processes() -> Vec<(u32, String, Option<String>)> {
     use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
     // Only refresh what we need: enumerating CPU/memory/disks for every process
     // (System::new_all) is far slower and was done twice before.
-    let sys = System::new_with_specifics(
+    let Ok(sys) = System::new_with_specifics(
         RefreshKind::nothing()
             .with_processes(ProcessRefreshKind::nothing().with_exe(UpdateKind::OnlyIfNotSet)),
-    );
+    ) else {
+        // sysinfo could not initialise on this platform: nothing is visible.
+        return Vec::new();
+    };
     sys.processes()
         .iter()
         .map(|(pid, p)| {

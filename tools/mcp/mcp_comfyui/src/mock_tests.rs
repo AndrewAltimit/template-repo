@@ -170,11 +170,11 @@ async fn setup(pending_polls: usize) -> (ComfyUIServer, Shared, tempfile::TempDi
     }));
     let app = Router::new()
         .route("/prompt", post(post_prompt))
-        .route("/history/:id", get(history))
+        .route("/history/{id}", get(history))
         .route("/queue", get(queue_get).post(queue_post))
         .route("/interrupt", post(interrupt))
         .route("/object_info", get(object_info_all))
-        .route("/object_info/:class", get(object_info_one))
+        .route("/object_info/{class}", get(object_info_one))
         .route("/system_stats", get(system_stats))
         .route("/view", get(view))
         .route("/upload/image", post(upload))
