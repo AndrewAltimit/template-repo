@@ -33,8 +33,9 @@ if ! docker run -d \
     echo "Failed to start with existing image, building new one..."
 
     # Build the image
-    cd "$SCRIPT_DIR" || exit
-    docker build -t sleeper-dashboard:latest .
+    # Context is the package root: the image copies both dashboard/ and src/
+    cd "$SCRIPT_DIR/.." || exit
+    docker build -t sleeper-dashboard:latest -f dashboard/Dockerfile .
 
     # Try running again
     docker run -d \

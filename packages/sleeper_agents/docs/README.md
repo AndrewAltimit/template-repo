@@ -143,7 +143,7 @@ python -m sleeper_agents.cli evaluate gpt2 --suites basic
 
 ```bash
 # Build and run dashboard
-docker build -t sleeper-dashboard:latest packages/sleeper_agents/dashboard/
+docker build -t sleeper-dashboard:latest -f packages/sleeper_agents/dashboard/Dockerfile packages/sleeper_agents/
 docker run -d -p 8501:8501 sleeper-dashboard:latest
 
 # Access at http://localhost:8501
