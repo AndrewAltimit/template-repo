@@ -18,6 +18,37 @@ from typing import Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# Files not needed for PyTorch inference. config.json, tokenizer.json, etc. are
+# REQUIRED for model loading and must NOT be ignored.
+IGNORE_PATTERNS = [
+    "*.msgpack",  # Flax format (not needed for PyTorch)
+    "*.h5",  # TensorFlow format (not needed for PyTorch)
+    "*.ot",  # Old PyTorch format
+    "*.tflite",  # TensorFlow Lite exports
+    "*.onnx",  # ONNX exports
+    "onnx/*",  # ONNX export folders (with their data files)
+    "*.md",  # Documentation files
+    "README*",  # README files
+    "LICENSE*",  # License files
+    ".gitattributes",  # Git metadata
+]
+
+# Any one of these in the cache means the weights were downloaded (single file or sharded)
+WEIGHT_FILES = (
+    "model.safetensors",
+    "model.safetensors.index.json",
+    "pytorch_model.bin",
+    "pytorch_model.bin.index.json",
+)
+
+
+def _is_xet_token_not_found(error: Exception) -> bool:
+    """Whether a hub error is the 404 on the Xet read-token endpoint."""
+    response = getattr(error, "response", None)
+    if response is None or getattr(response, "status_code", None) != 404:
+        return False
+    return "/xet-read-token/" in str(getattr(response, "url", "")) or "/xet-read-token/" in str(error)
+
 
 def default_hub_cache_dir() -> Path:
     """Return the HuggingFace hub cache directory (honors HF_HOME / HF_HUB_CACHE)."""
@@ -124,29 +155,59 @@ class ModelDownloader:
             Path to the snapshot directory inside the hub cache
         """
         from huggingface_hub import snapshot_download
+        from huggingface_hub.errors import HfHubHTTPError
 
         logger.info("Starting download from HuggingFace Hub: %s", model_id)
 
-        # NOTE: We only ignore documentation/metadata files that aren't needed for inference.
-        # config.json, tokenizer.json, etc. are REQUIRED for model loading and must NOT be ignored.
-        model_path = snapshot_download(
-            repo_id=model_id,
-            cache_dir=str(self.cache_dir),
-            force_download=force_download,
-            local_files_only=False,
-            ignore_patterns=[
-                "*.msgpack",  # Flax format (not needed for PyTorch)
-                "*.h5",  # TensorFlow format (not needed for PyTorch)
-                "*.ot",  # Old PyTorch format
-                "*.md",  # Documentation files
-                "README*",  # README files
-                "LICENSE*",  # License files
-                ".gitattributes",  # Git metadata
-            ],
-        )
+        try:
+            model_path = snapshot_download(
+                repo_id=model_id,
+                cache_dir=str(self.cache_dir),
+                force_download=force_download,
+                local_files_only=False,
+                ignore_patterns=IGNORE_PATTERNS,
+            )
+        except HfHubHTTPError as e:
+            if not _is_xet_token_not_found(e):
+                raise
+            # huggingface_hub 2.x requests the Xet read token for the whole snapshot
+            # under the repo id as given, and the Hub answers 404 for legacy aliases
+            # such as "gpt2" (now "openai-community/gpt2"). Per-file downloads follow
+            # the alias redirect, so fetch the same files one at a time; they land in
+            # the same models--<alias> cache folder that from_pretrained reads.
+            logger.info("Snapshot download of %s hit the Xet alias issue; downloading files individually", model_id)
+            model_path = self._download_files_individually(model_id, force_download)
 
         logger.info("Model downloaded to: %s", model_path)
         return Path(model_path)
+
+    def _download_files_individually(self, model_id: str, force_download: bool) -> Path:
+        """Download a repo's files one by one into the hub cache.
+
+        Args:
+            model_id: HuggingFace model ID
+            force_download: Re-download files even if cached
+
+        Returns:
+            Path to the snapshot directory inside the hub cache
+        """
+        from huggingface_hub import HfApi, hf_hub_download
+        from huggingface_hub.utils import filter_repo_objects
+
+        files = list(filter_repo_objects(HfApi().list_repo_files(model_id), ignore_patterns=IGNORE_PATTERNS))
+        if not files:
+            raise RuntimeError(f"No downloadable files found in {model_id}")
+
+        local_path = ""
+        for filename in files:
+            local_path = hf_hub_download(
+                repo_id=model_id,
+                filename=filename,
+                cache_dir=str(self.cache_dir),
+                force_download=force_download,
+            )
+        # The last file sits at snapshots/<revision>/<filename>; strip the filename's parts
+        return Path(local_path).parents[len(Path(files[-1]).parts) - 1]
 
     def _get_cache_path(self, model_id: str) -> Path:
         """Get the hub cache directory for a model (``models--org--name``).
@@ -160,7 +221,11 @@ class ModelDownloader:
         return self.cache_dir / ("models--" + model_id.replace("/", "--"))
 
     def is_cached(self, model_id: str) -> bool:
-        """Check if a model's config.json is present in the hub cache.
+        """Check if a model's config.json and weights are present in the hub cache.
+
+        A download interrupted after config.json leaves a partial snapshot; requiring
+        the weights too means the next run resumes the download instead of handing
+        an incomplete cache to ``from_pretrained``.
 
         Args:
             model_id: HuggingFace model ID
@@ -173,9 +238,12 @@ class ModelDownloader:
         except ImportError:
             return self._get_cache_path(model_id).exists()
 
-        result = try_to_load_from_cache(repo_id=model_id, filename="config.json", cache_dir=str(self.cache_dir))
-        # Returns a path string when cached; None or a sentinel object otherwise
-        return isinstance(result, str)
+        def cached(filename: str) -> bool:
+            result = try_to_load_from_cache(repo_id=model_id, filename=filename, cache_dir=str(self.cache_dir))
+            # Returns a path string when cached; None or a sentinel object otherwise
+            return isinstance(result, str)
+
+        return cached("config.json") and any(cached(name) for name in WEIGHT_FILES)
 
     def _cached_model_repos(self) -> List[Any]:
         """Return ``CachedRepoInfo`` entries for model repos in the hub cache."""
