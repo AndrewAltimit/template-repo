@@ -229,9 +229,14 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(func=cmd_probe)
 
     s = sub.add_parser("simulate", help="run the default plan against a simulated endpoint")
-    s.add_argument("--kind", choices=["fixed", "recurrent"], required=True)
+    s.add_argument(
+        "--kind",
+        choices=["fixed", "recurrent"],
+        required=True,
+        help="simulated architecture: fixed depth or adaptive recurrent",
+    )
     s.add_argument("--reps", type=int, default=6, help="repetitions per task and depth (default 6)")
-    s.add_argument("--seed", type=int, default=0)
+    s.add_argument("--seed", type=int, default=0, help="random seed (default 0)")
     s.add_argument("--knob", action="store_true", help="include a three-level compute knob (low, medium, high)")
     s.add_argument("--out", required=True, help="output JSONL of simulated records")
     s.set_defaults(func=cmd_simulate)
@@ -239,7 +244,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("simulate-fleet", help="labeled signal rows for simulated reference models")
     s.add_argument("--n-each", type=int, default=5, help="simulated references per class (default 5)")
     s.add_argument("--reps", type=int, default=4, help="repetitions per task and depth (default 4)")
-    s.add_argument("--seed", type=int, default=0)
+    s.add_argument("--seed", type=int, default=0, help="random seed (default 0)")
     s.add_argument("--out", required=True, help="output references JSON")
     s.set_defaults(func=cmd_simulate_fleet)
 

@@ -130,6 +130,7 @@ docker compose down                      # Stop services
 | `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
+| `packages/recurrent_depth/` | Python | Measurement toolkit for detecting looped (recurrent-depth) language models from configs, weights, or API access |
 
 **External packages** (separate repositories):
 
@@ -206,6 +207,7 @@ This renders as:
 - `docs/hardware/agent-swarm-honeypot-guide.md` - Deception program guide for detecting and reporting autonomous agent swarms
 - `docs/hardware/secure-terminal-briefcase.md` - Tamper-responsive briefcase system
 - `docs/hardware/bioforge-crispr-automation.md` - Agent-driven biological automation platform
+- `docs/hardware/recurrent-depth-signatures.md` - Detecting looped and recurrent-depth language models from the outside
 
 ### Infrastructure
 - `docs/infrastructure/containerization.md` - Container philosophy
