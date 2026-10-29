@@ -4,11 +4,8 @@
 
 ### Local Testing (CPU Mode)
 ```bash
-# Test without Docker
-python packages/sleeper_agents/scripts/test_cpu_mode.py
-
 # Run with Docker (CPU mode)
-docker compose --profile detection up mcp-sleeper-agents
+docker compose --profile eval-cpu run --rm sleeper-eval-cpu
 ```
 
 ### Windows Deployment (GPU Mode)
@@ -111,46 +108,35 @@ pytest packages/sleeper_agents/tests/test_detection.py
 pytest packages/sleeper_agents/tests/ --cov=sleeper_agents
 ```
 
-### Validate Structure
-```bash
-# Validate MCP server structure
-python packages/sleeper_agents/scripts/validate_mcp_server_structure.py
-
-```
-
 ## Docker Commands
 
 ### Build
 ```bash
-docker compose build mcp-sleeper-agents
-docker compose build mcp-sleeper-agents-gpu
+docker compose build sleeper-eval-cpu
+docker compose build sleeper-eval-gpu
+docker compose build sleeper-dashboard
 ```
 
 ### Run Services
 ```bash
-# CPU mode
-docker compose --profile detection up
+# CPU evaluation (runs `sleeper_agents.cli test --cpu`)
+docker compose --profile eval-cpu run --rm sleeper-eval-cpu
 
-# GPU mode
-docker compose --profile detection-gpu up
+# GPU evaluation (runs `sleeper_agents.cli evaluate --gpu`)
+docker compose --profile eval-gpu run --rm sleeper-eval-gpu
 
-# With vector database
-docker compose --profile detection up mcp-sleeper-agents sleeper-vectordb
-
-# Detached mode
-docker compose --profile detection up -d
+# Dashboard on http://localhost:8501 (detached)
+docker compose --profile dashboard up -d sleeper-dashboard
 ```
 
 ### View Logs
 ```bash
-docker compose logs -f mcp-sleeper-agents
-docker compose logs -f sleeper-vectordb
+docker compose logs -f sleeper-dashboard
 ```
 
 ### Stop Services
 ```bash
-docker compose --profile detection down
-docker compose --profile detection-gpu down
+docker compose --profile dashboard down
 ```
 
 ## Environment Variables

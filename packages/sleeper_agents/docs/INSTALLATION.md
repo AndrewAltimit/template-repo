@@ -192,12 +192,6 @@ sleeper-cli status
 ```bash
 # Test basic import
 python -c "from sleeper_agents.app.detector import SleeperDetector; print('Installation successful')"
-
-# Run quick test
-python packages/sleeper_agents/scripts/test_cpu_mode.py
-
-# Run comprehensive test
-python packages/sleeper_agents/scripts/comprehensive_cpu_test.py --model pythia-70m --quick
 ```
 
 ### Run Tests
