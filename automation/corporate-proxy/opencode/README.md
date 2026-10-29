@@ -2,140 +2,134 @@
 
 ## Overview
 
-This integration allows OpenCode CLI to work with corporate AI services by translating between OpenRouter/OpenAI API format and Company's Bedrock-based format.
+This integration runs the OpenCode CLI (2.x, pinned in `docker/Dockerfile`) against corporate AI services. OpenCode
+talks to the shared translation wrapper, which converts OpenAI chat-completions requests into the Company's
+Bedrock-based API format and back, including text-based tool calling for endpoints without native tool support.
 
 ## Architecture
 
 ```
-OpenCode CLI → OpenRouter API → Translation Wrapper → Company Bedrock API
-                            ↓
-                        Mock API (for testing outside corporate network)
+OpenCode CLI ("company" provider) -> Translation Wrapper (:8052) -> Company Bedrock API
+                                                                -> Mock Company API (:8050, for testing)
 ```
+
+OpenCode is configured entirely through its managed configuration, `config/opencode.jsonc`, which the image installs
+as `/etc/opencode/opencode.jsonc`:
+
+- a custom OpenAI-compatible provider `company` whose `baseURL` is the translation wrapper
+  (`COMPANY_PROXY_BASE_URL`, default `http://localhost:8052/v1`)
+- the Company models (`company/claude-3.5-sonnet`, `company/claude-3-opus`, `company/gpt-4`)
+- policies that deny every other provider, so OpenCode cannot reach public APIs or OpenCode's hosted models
+- no self-updates (`update: disable`, `OPENCODE_DISABLE_AUTOUPDATE=1`), no session sharing, no models.dev fetches
+
+No OpenCode source files are patched; see
+[opencode-maintenance.md](../../../docs/integrations/ai-services/opencode-maintenance.md) for what the former source
+overlays did and how upgrades work.
 
 ## Quick Start
 
-### Testing the API Translation Layer
-
-The simplest test to verify the proxy is working:
-
 ```bash
-cd automation/corporate-proxy/opencode
-./scripts/test-api-only.sh
+# Build (from anywhere; uses the repository root as build context)
+./scripts/build.sh
+
+# One-off prompt against the mock Company API
+./scripts/run.sh "say hello"
+# Expected: Hello! I'm running through a mock API. How can I help you today?
+
+# TUI
+./scripts/run.sh
+
+# Shell with the services running (then `opencode`, `opencode run "..."`)
+./scripts/run-interactive.sh
 ```
 
-This will:
-1. Start the mock Company API service
-2. Start the translation wrapper
-3. Send a test request and verify the response
-
-Expected output: `Response: Hatsune Miku`
-
-### Using with OpenCode CLI
-
-If you have OpenCode installed locally, you can use it with the proxy:
+With Docker Compose:
 
 ```bash
-# Set environment variables to point to the proxy
-export OPENROUTER_API_KEY="your-key-or-test-token"
-export OPENROUTER_BASE_URL="http://localhost:8052/v1"
-
-# Start the proxy services
-docker run -d --name opencode-proxy \
-    -p 8050:8050 -p 8052:8052 \
-    -e COMPANY_API_BASE="http://localhost:8050" \
-    -e COMPANY_API_TOKEN="test-secret-token-123" \
-    -v "$PWD/../shared/services:/app:ro" \
-    python:3.13-alpine3.24 sh -c '
-        pip install --quiet flask flask-cors requests &&
-        python /app/mock_api.py &
-        python /app/translation_wrapper.py &
-        sleep infinity
-    '
-
-# Now use OpenCode normally
-opencode ask "Write a Python function to calculate fibonacci"
-
-# Stop the proxy when done
-docker stop opencode-proxy && docker rm opencode-proxy
+docker compose --profile proxy build opencode-proxy
+docker compose --profile proxy run --rm opencode-proxy opencode run "say hello"
+docker compose --profile proxy up -d opencode-proxy    # services only; health on :8052/health
 ```
+
+The image entrypoint (`scripts/start-services.sh`) starts the mock Company API and the translation wrapper, then runs
+the given command, a shell when attached to a terminal, or keeps serving when detached.
 
 ## Production Deployment
-
-For production use with real Company API:
 
 ```bash
 export COMPANY_API_BASE="https://bedrock.internal.company.com"
 export COMPANY_API_TOKEN="your-actual-company-token"
-export OPENROUTER_API_KEY="your-openrouter-key"
-export OPENROUTER_BASE_URL="http://localhost:8052/v1"
-
-# Start the translation wrapper (no mock API needed)
-docker run -d --name opencode-proxy \
-    -p 8052:8052 \
-    -e COMPANY_API_BASE="$COMPANY_API_BASE" \
-    -e COMPANY_API_TOKEN="$COMPANY_API_TOKEN" \
-    -v "$PWD/../shared/services:/app:ro" \
-    python:3.13-alpine3.24 sh -c '
-        pip install --quiet flask flask-cors requests &&
-        python /app/translation_wrapper.py
-    '
+./scripts/run-production.sh
 ```
+
+When `COMPANY_API_BASE` points anywhere other than the local mock, the mock is not started and the wrapper sends
+requests to the Company API with `COMPANY_API_TOKEN`. OpenCode itself never sees the Company token.
 
 ## Model Mapping
 
-The translation wrapper automatically maps OpenRouter model names to Company endpoints:
+| OpenCode model | Wrapper model ID | Company endpoint |
+|----------------|------------------|------------------|
+| `company/claude-3.5-sonnet` | `claude-3.5-sonnet` | `ai-coe-bedrock-claude35-sonnet-200k:analyze=null` |
+| `company/claude-3-opus` | `claude-3-opus` | `ai-coe-bedrock-claude3-opus:analyze=null` |
+| `company/gpt-4` | `gpt-4` | `ai-coe-bedrock-gpt4:analyze=null` |
 
-| OpenRouter Model | Company Endpoint |
-|------------------|------------------|
-| openrouter/anthropic/claude-3.5-sonnet | ai-coe-bedrock-claude35-sonnet-200k:analyze=null |
-| openrouter/anthropic/claude-3-opus | ai-coe-bedrock-claude3-opus:analyze=null |
-| openrouter/openai/gpt-4 | ai-coe-bedrock-gpt4:analyze=null |
-| gpt-4 | ai-coe-bedrock-claude35-sonnet-200k:analyze=null |
-| gpt-3.5-turbo | ai-coe-bedrock-claude3-opus:analyze=null |
+To add a model, add it to `shared/configs/models.json` (endpoint) and to the `company` provider in
+`config/opencode.jsonc` (same model ID).
+
+## Building
+
+`docker/Dockerfile` defaults to the checksum-verified upstream release tarball (musl build, Alpine runtime). To build
+OpenCode from the release tag with upstream's own build script instead:
+
+```bash
+docker build --build-arg OPENCODE_BUILD=source \
+  -f automation/corporate-proxy/opencode/docker/Dockerfile -t opencode-corporate:source .
+```
+
+Corporate CA certificates go in `shared/scripts/install-corporate-certs.sh`, which runs in every build stage. The
+OpenCode binary uses the system CA store.
 
 ## Directory Structure
 
 ```
 opencode/
 ├── config/
-│   └── opencode-config.json    # OpenCode configuration (if needed)
+│   └── opencode.jsonc          # Managed OpenCode configuration (company provider + policies)
 ├── docker/
-│   ├── Dockerfile              # Full OpenCode build (complex)
-│   └── Dockerfile-simple       # Simple container (recommended)
+│   └── Dockerfile              # Release tarball or source build, Alpine runtime with the services
+├── docs/
+│   └── API_FORMAT.md           # Response formats OpenCode expects from the wrapper
+├── patches/
+│   └── fix-tool-execution.md   # How tool calls work without native tool support
 ├── scripts/
-│   ├── test-api-only.sh       # Test translation layer only
-│   ├── test-direct.sh          # Test direct API calls
-│   ├── test-opencode.sh       # Test with OpenCode CLI
-│   └── run-interactive.sh      # Interactive session
-└── README.md                   # This file
+│   ├── build.sh                # Build opencode-corporate:latest
+│   ├── run.sh                  # TUI or one-off prompt with mock services
+│   ├── run-interactive.sh      # Shell with services running
+│   ├── run-production.sh       # Against the real Company API
+│   └── start-services.sh       # Image entrypoint
+└── README.md
 ```
 
 ## Shared Services
 
-This integration uses shared services from `automation/corporate-proxy/shared/`:
-- `translation_wrapper.py` - Converts between API formats
-- `mock_api.py` - Mock Company API for testing
-- `common-functions.sh` - Bash utilities
+From `automation/corporate-proxy/shared/`:
+- `services/translation_wrapper.py` - OpenAI format to Company format, tool injection and text tool parsing
+- `services/unified_tool_api.py` - Mock Company API for testing
+- `configs/models.json` - Model to endpoint mapping
+- `configs/opencode_param_mappings.json` - OpenCode 2.x tool names and parameters for parsed tool calls
 
 ## Troubleshooting
 
-### API Translation Issues
-- Verify services are running: `docker ps`
-- Check ports 8050 (mock) and 8052 (wrapper) are accessible
-- Test API directly: `./scripts/test-api-only.sh`
-
-### Model Not Found
-- Ensure model name is in the mapping table
-- Check `shared/services/translation_wrapper.py` for supported models
-
-### Connection Refused
-- Make sure Docker is running
-- Verify no other services are using ports 8050/8052
-- Check firewall settings
+- **Model unavailable**: only `company/*` models are allowed; check the model is in `config/opencode.jsonc`.
+- **Wrapper returns 404 "Model not found"**: the model ID is missing from `shared/configs/models.json`.
+- **Tool calls not executed**: look for `Found N tool calls in text` or `Rejected unauthorized tool call` in
+  `/tmp/logs/translation_wrapper.log`.
+- **Connection refused**: check `curl http://localhost:8052/health` inside the container and that nothing else uses
+  ports 8050/8052.
 
 ## Security Notes
 
-- API tokens are passed via environment variables
-- Never commit real tokens to the repository
-- Mock API only returns test responses
-- All prompts stay within corporate network in production
+- The Company token is passed to the wrapper via environment variables; never commit real tokens.
+- `COMPANY_PROXY_API_KEY` is a placeholder; the wrapper does not authenticate OpenCode.
+- The mock API only returns canned responses.
+- Managed policies keep OpenCode on the Company provider even if a user or project config adds others.

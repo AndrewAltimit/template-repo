@@ -1,174 +1,164 @@
-# Simple OpenCode Corporate Proxy Container
-# Builds OpenCode from source and includes translation services
+# OpenCode Corporate Proxy Container
+#
+# OpenCode 2.x plus the shared translation services. OpenCode is routed to
+# the Company API purely through its managed configuration
+# (config/opencode.jsonc -> /etc/opencode/opencode.jsonc): a custom
+# OpenAI-compatible "company" provider pointing at the local translation
+# wrapper, and policies that deny every other provider. No OpenCode source
+# files are patched, so the image can follow upstream releases by bumping
+# OPENCODE_VERSION and its checksums.
+#
+# OpenCode binary source (build arg OPENCODE_BUILD):
+#   release (default) - the upstream release tarball, checksum-verified.
+#   source            - built from the release tag with upstream's own build
+#                       script (packages/cli/script/build.ts), the same way
+#                       upstream's release workflow builds it. Slow (installs
+#                       the whole monorepo); use it when policy requires
+#                       building from source.
+# Both produce the musl build that upstream also ships in its own Docker
+# image, so the runtime can stay on Alpine like the Crush proxy.
 
-# Stage 1: Clone OpenCode source
-FROM alpine/git AS source
+ARG OPENCODE_BUILD=release
 
-# Copy and run corporate certificate installation script (as root)
+# Pinned OpenCode release. Checksums come from the release's SHA256SUMS
+# asset (opencode-linux-<arch>-musl.tar.gz).
+ARG OPENCODE_VERSION=2.2.1
+
+# ---------------------------------------------------------------------------
+# Option 1: upstream release tarball
+# ---------------------------------------------------------------------------
+FROM alpine:3.24 AS opencode-release
+
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
 RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
-# Held at v1.0.223: the shared/patches overlays replace source files of this
-# exact release and must be reworked before moving to a newer OpenCode.
-ARG OPENCODE_VERSION=v1.0.223
-WORKDIR /source
-RUN git clone https://github.com/sst/opencode.git && \
-    cd opencode && \
-    if [ "$OPENCODE_VERSION" != "HEAD" ]; then \
-        git checkout "$OPENCODE_VERSION"; \
-    fi
+RUN apk add --no-cache curl
 
-# Stage 2: Build TUI with Go
-FROM golang:1.27 AS tui-builder
-
-# Copy and run corporate certificate installation script (as root)
-COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
-RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
-
-WORKDIR /build
-COPY --from=source /source/opencode ./opencode
-WORKDIR /build/opencode/packages/tui
-
-# Enable Go toolchain to auto-download if needed
-ENV GOTOOLCHAIN=auto
-
-# Download dependencies
-RUN go mod download || true
-
-# Build TUI for the target architecture
-# Docker buildx automatically provides TARGETARCH
+ARG OPENCODE_VERSION
+ARG OPENCODE_CHECKSUM_AMD64=74ec74c74d8d8f65c354722a71396348d45e3b2323ff5051764e5a14f0d5a9e1
+ARG OPENCODE_CHECKSUM_ARM64=bfe0052ed42e3d694523ed3522922bff5eff8ead8e0f9e9b9cd68f477a440bbd
+# Docker buildx provides TARGETARCH
 ARG TARGETARCH
-RUN echo "Building for architecture: ${TARGETARCH}" && \
-    if [ -f "./cmd/opencode/main.go" ]; then \
-        CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
-        -ldflags="-s -w" \
-        -o tui-linux-${TARGETARCH} \
-        ./cmd/opencode/main.go; \
-    elif [ -f "main.go" ]; then \
-        CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
-        -ldflags="-s -w" \
-        -o tui-linux-${TARGETARCH} \
-        main.go; \
-    else \
-        echo "Warning: TUI source not found, creating placeholder"; \
-        echo '#!/bin/sh' > tui-linux-${TARGETARCH}; \
-        echo 'echo "TUI not available in this build"' >> tui-linux-${TARGETARCH}; \
-        chmod +x tui-linux-${TARGETARCH}; \
-    fi
 
-# Stage 3: Build OpenCode
-FROM oven/bun:1 AS builder
+RUN set -eu; \
+    case "${TARGETARCH:-amd64}" in \
+        amd64) OC_ARCH="x64"; CHECKSUM="${OPENCODE_CHECKSUM_AMD64}" ;; \
+        arm64) OC_ARCH="arm64"; CHECKSUM="${OPENCODE_CHECKSUM_ARM64}" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-${OC_ARCH}-musl.tar.gz" -o /tmp/opencode.tar.gz; \
+    echo "${CHECKSUM}  /tmp/opencode.tar.gz" | sha256sum -c -; \
+    mkdir -p /out; \
+    tar --no-same-owner -xzf /tmp/opencode.tar.gz -C /out opencode; \
+    chmod 0755 /out/opencode; \
+    rm /tmp/opencode.tar.gz
 
-# Copy and run corporate certificate installation script (as root)
+# ---------------------------------------------------------------------------
+# Option 2: build from source with upstream's build script
+# ---------------------------------------------------------------------------
+# Mirrors the build-cli job of upstream's .github/workflows/release.yml:
+# Bun 1.4.4 (root package.json packageManager), `bun install
+# --frozen-lockfile`, a models.dev snapshot fetched once, then `bun run
+# build` in packages/cli. OPENCODE_TARGET limits the build to the one musl
+# target this image needs instead of all twelve release targets. Node and a
+# C toolchain are needed by native install scripts (node-gyp), hence the
+# full node image.
+FROM node:24-bookworm AS opencode-source
+
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
 RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
-WORKDIR /build
-COPY --from=source /source/opencode ./opencode
+ARG BUN_VERSION=1.4.4
+RUN npm install -g "bun@${BUN_VERSION}" && bun --version
 
-# Apply patches to customize OpenCode for corporate proxy
-# These patches configure models and API endpoints at build time
-COPY automation/corporate-proxy/shared/patches/company-override.json /build/opencode/packages/opencode/src/company-models.json
-COPY automation/corporate-proxy/shared/patches/models-company-simple.ts /build/opencode/packages/opencode/src/provider/models.ts
-COPY automation/corporate-proxy/shared/patches/tui-company-fix.ts /build/opencode/packages/opencode/src/cli/cmd/tui.ts
+ARG OPENCODE_VERSION
+RUN git clone --depth 1 --branch "v${OPENCODE_VERSION}" https://github.com/anomalyco/opencode.git /src
 
-WORKDIR /build/opencode
-RUN bun install
-WORKDIR /build/opencode/packages/opencode
-RUN bun build ./src/index.ts --compile --outfile opencode
+WORKDIR /src
+RUN bun install --frozen-lockfile
+RUN bun packages/core/script/update-models-snapshot.ts .cache/models-catalog/api.json
 
-# Stage 4: Runtime container
-# Use debian-based image for glibc compatibility with bun-compiled binary
-FROM node:26-slim
-
-# Copy and run corporate certificate installation script (as root)
-COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
-RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
-
-# Add a non-root user
-RUN useradd -m -u 1001 appuser
-
-# Install Python for proxy services and runtime dependencies
-RUN apt-get update && apt-get install -y \
-    python3 python3-pip python3-venv \
-    bash curl git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy the compiled OpenCode binary
-COPY --from=builder /build/opencode/packages/opencode/opencode /usr/local/bin/opencode.bin
-RUN chmod +x /usr/local/bin/opencode.bin
-
-# Create TUI directory structure
-RUN mkdir -p /home/appuser/.cache/opencode/tui
-
-# Copy TUI binary for the target architecture
-# Docker buildx automatically provides TARGETARCH
 ARG TARGETARCH
-# Always copy to the path expected by the patched application ('tui-linux-x64')
-# This ensures compatibility across all architectures
-RUN echo "Copying TUI for architecture: ${TARGETARCH}"
-COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /home/appuser/.cache/opencode/tui/tui-linux-x64
-RUN chmod +x /home/appuser/.cache/opencode/tui/tui-linux-x64
+WORKDIR /src/packages/cli
+RUN set -eu; \
+    case "${TARGETARCH:-amd64}" in \
+        amd64) OC_ARCH="x64" ;; \
+        arm64) OC_ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    OPENCODE_VERSION="${OPENCODE_VERSION}" \
+    OPENCODE_CHANNEL=latest \
+    OPENCODE_TARGET="linux-${OC_ARCH}-musl" \
+    OPENCODE_MODELS_SNAPSHOT=/src/.cache/models-catalog/api.json \
+        bun run build; \
+    mkdir -p /out; \
+    cp "dist/cli-linux-${OC_ARCH}-musl/bin/opencode" /out/opencode; \
+    chmod 0755 /out/opencode
 
-# Also copy to alternate location for compatibility
-COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /usr/local/bin/opencode-tui
-RUN chmod +x /usr/local/bin/opencode-tui
+# ---------------------------------------------------------------------------
+# Selected OpenCode binary
+# ---------------------------------------------------------------------------
+FROM opencode-${OPENCODE_BUILD} AS opencode
 
-# Create a wrapper script to ensure OpenCode runs correctly
-RUN echo '#!/bin/bash\nexec /usr/local/bin/opencode.bin "$@"' > /usr/local/bin/opencode && \
-    chmod +x /usr/local/bin/opencode
+# ---------------------------------------------------------------------------
+# Runtime container
+# ---------------------------------------------------------------------------
+FROM python:3.13-alpine3.24
 
-# Install Python dependencies for proxy
-RUN pip3 install --break-system-packages flask flask-cors requests
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
-# Copy shared services
+# libgcc/libstdc++ and ripgrep are what upstream's own musl image installs
+# for the CLI; bash/curl/git serve the scripts and OpenCode's tools.
+RUN apk add --no-cache bash curl git libgcc libstdc++ ripgrep
+
+# Python dependencies for the proxy services
+RUN pip install --no-cache-dir flask flask-cors requests
+
+COPY --from=opencode /out/opencode /usr/local/bin/opencode
+RUN opencode --version
+
+# Managed OpenCode configuration (highest precedence; see the file header)
+COPY automation/corporate-proxy/opencode/config/opencode.jsonc /etc/opencode/opencode.jsonc
+
+# Shared translation services
 COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_tool_parser.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
+COPY automation/corporate-proxy/shared/services/api_spec_converter.py /app/api_spec_converter.py
 COPY automation/corporate-proxy/shared/services/tool_prompts.py /app/tool_prompts.py
 
-# Copy shared configs for translation wrapper
-COPY automation/corporate-proxy/shared/configs /app/shared/configs
+# Shared configs for the translation wrapper (it reads ../configs relative to
+# the script and /configs for tool settings)
+COPY automation/corporate-proxy/shared/configs /configs
 
-# Also copy tool_config.json to /configs/ where translation_wrapper expects it
-COPY automation/corporate-proxy/shared/configs/tool_config.json /configs/tool_config.json
-COPY automation/corporate-proxy/shared/configs/opencode_param_mappings.json /configs/opencode_param_mappings.json
-
-# Copy startup script
 COPY automation/corporate-proxy/opencode/scripts/start-services.sh /app/start-services.sh
 RUN chmod +x /app/start-services.sh
 
-# Create OpenCode config directories and Bun directories
-RUN mkdir -p /home/appuser/.config/opencode /home/appuser/.cache/opencode && \
-    mkdir -p /home/appuser/.local/share /home/appuser/.local/bin && \
-    chown -R appuser:appuser /home/appuser/.config /home/appuser/.cache /home/appuser/.local
-
-# Set proper ownership for app and workspace directories
-# Create /workspace/opencode directory that OpenCode expects
-RUN chown -R appuser:appuser /app && \
-    mkdir -p /workspace/opencode && \
-    chown -R appuser:appuser /workspace
+# Non-root user. The run scripts and compose may override the UID, so
+# start-services.sh falls back to a writable HOME when this one is not.
+RUN adduser -D -u 1001 appuser && \
+    mkdir -p /workspace && \
+    chown -R appuser:appuser /app /workspace
 
 WORKDIR /workspace
-
-# Switch to the non-root user
 USER appuser
-
-# Set HOME for OpenCode to find config
 ENV HOME=/home/appuser
 
-# Environment variables for OpenCode to use our proxy
-ENV OPENROUTER_API_KEY="test-secret-token-123"
-ENV OPENROUTER_BASE_URL="http://localhost:8052/v1"
+# OpenCode -> translation wrapper (company provider in opencode.jsonc). The
+# key is a placeholder: the wrapper does not check it.
+ENV COMPANY_PROXY_BASE_URL="http://localhost:8052/v1" \
+    COMPANY_PROXY_API_KEY="local-translation-wrapper" \
+    OPENCODE_DISABLE_AUTOUPDATE=1 \
+    OPENCODE_DISABLE_MODELS_FETCH=1
 
-# Environment for proxy services
-ENV COMPANY_API_BASE="http://localhost:8050"
-ENV COMPANY_API_TOKEN="test-secret-token-123"
-ENV WRAPPER_PORT="8052"
-ENV MOCK_API_PORT="8050"
-ENV AGENT_CLIENT="opencode"
+# Translation wrapper -> Company API (the mock by default)
+ENV COMPANY_API_BASE="http://localhost:8050" \
+    COMPANY_API_TOKEN="test-secret-token-123" \
+    WRAPPER_PORT="8052" \
+    MOCK_API_PORT="8050" \
+    AGENT_CLIENT="opencode"
 
 EXPOSE 8050 8052
 
 ENTRYPOINT ["/app/start-services.sh"]
-CMD ["bash"]

@@ -20,7 +20,7 @@ if ! check_env_vars "COMPANY_API_BASE" "COMPANY_API_TOKEN"; then
 fi
 
 # Build if needed
-build_if_needed "opencode-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CORPORATE_PROXY_ROOT"
+build_if_needed "opencode-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CORPORATE_PROXY_ROOT/../.."
 
 # Clean up any existing container
 cleanup_container "opencode-corporate-prod"
