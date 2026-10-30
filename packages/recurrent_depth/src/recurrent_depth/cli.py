@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import sys
 from typing import Any
+import urllib.parse
 
 import numpy as np
 
@@ -57,7 +58,7 @@ def cmd_inspect_weights(args: argparse.Namespace) -> int:
 
 
 def cmd_analyze_hidden(args: argparse.Namespace) -> int:
-    h = np.load(args.path)
+    h = np.load(args.path, allow_pickle=False)
     out: dict[str, Any] = {
         "signals": dynamics.dynamics_signals(h),
         "step_change": dynamics.step_change(h).tolist(),
@@ -65,7 +66,7 @@ def cmd_analyze_hidden(args: argparse.Namespace) -> int:
     lag, excess = dynamics.similarity_periodicity(dynamics.cosine_matrix(h))
     out["periodicity"] = {"lag": lag, "excess": excess}
     if args.unembed:
-        kl = dynamics.logit_lens_kl(h, np.load(args.unembed))
+        kl = dynamics.logit_lens_kl(h, np.load(args.unembed, allow_pickle=False))
         settle = dynamics.settle_steps(kl, args.kl_threshold)
         out["settle_steps"] = {"mean": float(settle.mean()), "std": float(settle.std()), "per_token": settle.tolist()}
     _dump(out)
@@ -88,15 +89,21 @@ def cmd_capture_hidden(args: argparse.Namespace) -> int:
 
 def cmd_probe(args: argparse.Namespace) -> int:
     plan = harness.ProbePlan.from_json(args.plan)
-    plan.validate()
+    if args.api_key_env is not None:
+        plan.api_key_env = args.api_key_env or None
+    from_cli = args.api_key_env is not None
+    plan.validate(allow_any_key_env=from_cli)
+    host = urllib.parse.urlparse(plan.base_url).hostname
+    key = f"the value of ${plan.api_key_env}" if plan.api_key_env else "no API key"
     print(f"plan: {plan.planned_requests()} requests at <= {plan.requests_per_minute}/min", file=sys.stderr)
+    print(f"sending {key} to {host}", file=sys.stderr)
 
     def progress(i: int, n: int) -> None:
         if i % 10 == 0 or i == n:
             print(f"  {i}/{n}", file=sys.stderr)
 
     try:
-        harness.run_plan(plan, out_path=args.out, progress=progress)
+        harness.run_plan(plan, out_path=args.out, progress=progress, allow_any_key_env=from_cli)
     except harness.BudgetExceeded as exc:
         print(f"stopped: {exc}; partial records are in {args.out}", file=sys.stderr)
         return 2
@@ -138,7 +145,12 @@ def _models(path: str | None) -> dict[str, scoring.SignalModel]:
 
 def cmd_score(args: argparse.Namespace) -> int:
     sig = _load_signals(args.signals)
-    cfg = scoring.ScoringConfig(prior_recurrent=args.prior, threshold=args.threshold, min_families=args.min_families)
+    cfg = scoring.ScoringConfig(
+        prior_recurrent=args.prior,
+        threshold=args.threshold,
+        min_families=args.min_families,
+        strict_independence=args.strict_independence,
+    )
     v = scoring.score(sig, _models(args.models), cfg)
     _dump({"signals": sig, "verdict": v.to_dict()})
     return 0
@@ -154,7 +166,9 @@ def cmd_fit(args: argparse.Namespace) -> int:
 
 def cmd_validate(args: argparse.Namespace) -> int:
     refs = json.loads(Path(args.references).read_text(encoding="utf-8"))
-    cfg = scoring.ScoringConfig(threshold=args.threshold, min_families=args.min_families)
+    cfg = scoring.ScoringConfig(
+        threshold=args.threshold, min_families=args.min_families, strict_independence=args.strict_independence
+    )
     _dump(validation.leave_one_out(refs, config=cfg))
     return 0
 
@@ -226,6 +240,11 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("probe", help="run a probe plan against an OpenAI-compatible endpoint")
     s.add_argument("plan", help="probe plan JSON (template: examples/probe_plan.example.json)")
     s.add_argument("--out", required=True, help="output JSONL of per-request records")
+    s.add_argument(
+        "--api-key-env",
+        help="environment variable holding the API key, overriding the plan (empty string for none); "
+        "plans themselves may only name variables ending in API_KEY",
+    )
     s.set_defaults(func=cmd_probe)
 
     s = sub.add_parser("simulate", help="run the default plan against a simulated endpoint")
@@ -263,6 +282,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--prior", type=float, default=0.5, help="prior probability that the model is recurrent (default 0.5)")
     s.add_argument("--threshold", type=float, default=0.9, help="posterior needed to decide (default 0.9)")
     s.add_argument("--min-families", type=int, default=2, help="independent families that must agree (default 2)")
+    s.add_argument(
+        "--strict-independence",
+        action="store_true",
+        help="count the timing and knob families once, since they share latency confounders",
+    )
     s.set_defaults(func=cmd_score)
 
     s = sub.add_parser("fit", help="fit likelihood models to labeled references")
@@ -274,6 +298,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("references", help=_REFS_HELP)
     s.add_argument("--threshold", type=float, default=0.9, help="posterior needed to decide (default 0.9)")
     s.add_argument("--min-families", type=int, default=2, help="independent families that must agree (default 2)")
+    s.add_argument(
+        "--strict-independence",
+        action="store_true",
+        help="count the timing and knob families once, since they share latency confounders",
+    )
     s.set_defaults(func=cmd_validate)
     return p
 

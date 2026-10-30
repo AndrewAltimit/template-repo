@@ -151,6 +151,12 @@ class ScoringConfig:
     # provided their LLR supports the verdict by at least decisive_min_llr.
     decisive_families: tuple[str, ...] = ("whitebox_config", "whitebox_weights")
     decisive_min_llr: float = 3.0
+    # Families that share confounders (server load, unreported hidden decoding)
+    # and so are only partly independent. Their agreement is always flagged in
+    # the notes; with ``strict_independence`` each group counts once toward
+    # ``min_families``.
+    dependent_groups: tuple[tuple[str, ...], ...] = (("timing", "knob"),)
+    strict_independence: bool = False
 
 
 # Rough priors. Units: z-scores for slopes; ratios as defined in features.py;
@@ -210,7 +216,12 @@ def score(
     contributions: dict[str, float] = {}
     by_family: dict[str, list[float]] = {}
     for name, value in signals.items():
-        if value is None or (isinstance(value, float) and math.isnan(value)):
+        if value is None:
+            continue
+        if not math.isfinite(float(value)):
+            # A clipped LLR of +/-inf minus itself is NaN, which min/max would turn
+            # into +cap: an infinite value must never count as evidence either way.
+            notes.append(f"signal {name!r} is not finite; ignored")
             continue
         model = models.get(name)
         if model is None:
@@ -235,15 +246,24 @@ def score(
     supporting = sorted(f for f, v in families.items() if v * direction >= cfg.min_family_llr)
     opposing = sorted(f for f, v in families.items() if v * direction <= -cfg.min_family_llr)
     decisive = any(f in cfg.decisive_families and families[f] * direction >= cfg.decisive_min_llr for f in supporting)
+    n_independent = len(supporting)
+    for group in cfg.dependent_groups:
+        shared = [f for f in group if f in supporting]
+        if len(shared) > 1:
+            notes.append(
+                f"supporting families {' and '.join(shared)} share latency confounders and are only partly independent"
+            )
+            if cfg.strict_independence:
+                n_independent -= len(shared) - 1
 
     label = INCONCLUSIVE
     if post >= cfg.threshold or post <= 1 - cfg.threshold:
-        if len(supporting) >= cfg.min_families or decisive:
+        if n_independent >= cfg.min_families or decisive:
             label = RECURRENT if direction > 0 else FIXED
         else:
             notes.append(
-                f"posterior {post:.3f} passes the threshold but only {len(supporting)} independent "
-                f"famil{'y' if len(supporting) == 1 else 'ies'} support it; need {cfg.min_families}"
+                f"posterior {post:.3f} passes the threshold but only {n_independent} independent "
+                f"famil{'y' if n_independent == 1 else 'ies'} support it; need {cfg.min_families}"
             )
     if opposing:
         notes.append(f"families pointing the other way: {', '.join(opposing)}")

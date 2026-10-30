@@ -3,7 +3,8 @@
 Requires the ``hf`` extra (torch and transformers). Nothing here downloads
 anything by itself: pass a local path or a model you have already loaded.
 Models with custom code (``trust_remote_code``) should only be loaded after
-you have read that code.
+you have read that code. Weights are loaded from safetensors only: pickled
+``.bin`` checkpoints can run arbitrary code when unpickled, so they are refused.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ def load_local(path: str, trust_remote_code: bool = False, device: str = "cpu") 
 
     kw = {"local_files_only": True, "trust_remote_code": trust_remote_code}
     tok = AutoTokenizer.from_pretrained(path, **kw)
-    model = AutoModelForCausalLM.from_pretrained(path, **kw).to(device).eval()
+    model = AutoModelForCausalLM.from_pretrained(path, use_safetensors=True, **kw).to(device).eval()
     return model, tok
 
 

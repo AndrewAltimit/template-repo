@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 from pathlib import Path
 import struct
 
@@ -70,22 +71,44 @@ class TensorInfo:
 def read_header(path: str | Path) -> dict[str, TensorInfo]:
     """Parse the header of one ``.safetensors`` file."""
     path = Path(path)
-    with open(path, "rb") as fh:
-        (n,) = struct.unpack("<Q", fh.read(8))
-        if n > 100_000_000:
-            raise ValueError(f"implausible safetensors header length {n}")
-        header = json.loads(fh.read(n))
-    base = 8 + n
     size = path.stat().st_size
+    with open(path, "rb") as fh:
+        prefix = fh.read(8)
+        if len(prefix) != 8:
+            raise ValueError(f"{path.name} is too short to be a safetensors file")
+        (n,) = struct.unpack("<Q", prefix)
+        if n > 100_000_000 or 8 + n > size:
+            raise ValueError(f"implausible safetensors header length {n} in {path.name}")
+        try:
+            header = json.loads(fh.read(n))
+        except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+            raise ValueError(f"{path.name} has an unreadable safetensors header: {exc}") from exc
+    if not isinstance(header, dict):
+        raise ValueError(f"{path.name} has a safetensors header that is not a JSON object")
+    base = 8 + n
     out: dict[str, TensorInfo] = {}
     for name, meta in header.items():
         if name == "__metadata__":
             continue
-        b, e = meta["data_offsets"]
+        try:
+            b, e = (int(v) for v in meta["data_offsets"])
+            shape = tuple(meta["shape"])
+            dtype = str(meta["dtype"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"tensor {name!r} in {path.name} has a malformed header entry") from exc
+        if not all(isinstance(d, int) and not isinstance(d, bool) and d >= 0 for d in shape):
+            raise ValueError(f"tensor {name!r} in {path.name} has an invalid shape {list(shape)}")
         if not 0 <= b <= e or base + e > size:
             raise ValueError(f"tensor {name!r} has data offsets [{b}, {e}] outside {path.name}")
-        out[name] = TensorInfo(name, meta["dtype"], tuple(meta["shape"]), path, base + b, base + e)
+        out[name] = TensorInfo(name, dtype, shape, path, base + b, base + e)
     return out
+
+
+def _shard_path(root: Path, shard: object) -> Path:
+    """Resolve a shard named in an index file, refusing names that leave the checkpoint directory."""
+    if not isinstance(shard, str) or not shard or Path(shard).name != shard or shard in (".", ".."):
+        raise ValueError(f"index names a shard outside the checkpoint directory: {shard!r}")
+    return root / shard
 
 
 def read_checkpoint(path: str | Path) -> dict[str, TensorInfo]:
@@ -96,9 +119,11 @@ def read_checkpoint(path: str | Path) -> dict[str, TensorInfo]:
     index = path / "model.safetensors.index.json"
     if index.exists():
         weight_map = json.loads(index.read_text(encoding="utf-8"))["weight_map"]
+        if not isinstance(weight_map, dict):
+            raise ValueError("model.safetensors.index.json has no weight_map object")
         out: dict[str, TensorInfo] = {}
-        for shard in sorted(set(weight_map.values())):
-            out.update(read_header(path / shard))
+        for shard_path in sorted({_shard_path(path, v) for v in weight_map.values()}):
+            out.update(read_header(shard_path))
         return out
     files = sorted(path.glob("*.safetensors"))
     if not files:
@@ -114,7 +139,7 @@ def load_tensor(info: TensorInfo) -> np.ndarray:
     if info.dtype not in _DTYPES:
         raise ValueError(f"unsupported dtype {info.dtype} for {info.name}")
     np_dtype = _DTYPES[info.dtype]
-    count = int(np.prod(info.shape)) if info.shape else 1
+    count = math.prod(info.shape)  # Python ints: no silent int64 overflow
     if count * np_dtype.itemsize != info.nbytes:
         raise ValueError(
             f"{info.name}: shape {info.shape} of {info.dtype} needs {count * np_dtype.itemsize} bytes "

@@ -15,11 +15,12 @@ from dataclasses import dataclass, field
 import json
 from pathlib import Path
 import random
+import re
 import statistics
 import time
 from typing import Any, Callable, Iterable
 
-from .client import BudgetExceeded, ChatClient, CompletionResult, RateLimiter
+from .client import RESERVED_FIELDS, BudgetExceeded, ChatClient, CompletionResult, RateLimiter
 from .tasks import TaskItem, build_suite, check_answer
 
 TERMS_NOTICE = (
@@ -27,6 +28,13 @@ TERMS_NOTICE = (
     "endpoint, that the plan respects the provider's terms of service and rate limits, and that the "
     "goal is measurement rather than extraction of weights or bypassing access controls."
 )
+
+# A plan file names the environment variable whose value is sent as a bearer
+# token to ``base_url``. A plan from someone else could otherwise name any
+# secret in the environment (a cloud credential, a CI token) and point
+# base_url at a server that collects it. Plans may only name variables that
+# look like API keys; anything else must be passed on the command line.
+API_KEY_ENV_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*API_KEY$")
 
 
 @dataclass
@@ -60,7 +68,12 @@ class ProbePlan:
     def planned_requests(self) -> int:
         return len(self.tasks) * len(self.depths) * self.reps * len(self.conditions())
 
-    def validate(self) -> None:
+    def validate(self, allow_any_key_env: bool = False) -> None:
+        """Refuse plans that are unauthorized, over budget, or able to leak or misuse credentials.
+
+        ``allow_any_key_env`` is for a variable name given by the operator on
+        the command line, not by the plan file.
+        """
         if not self.acknowledge_terms:
             raise PermissionError(TERMS_NOTICE)
         if self.planned_requests() > self.max_requests:
@@ -70,6 +83,16 @@ class ProbePlan:
             )
         if self.requests_per_minute <= 0:
             raise ValueError("requests_per_minute must be positive")
+        if self.api_key_env is not None and not allow_any_key_env and not API_KEY_ENV_PATTERN.match(self.api_key_env):
+            raise ValueError(
+                f"api_key_env {self.api_key_env!r} does not look like an API key variable (NAME_API_KEY); "
+                "a plan may not name arbitrary environment variables. Pass --api-key-env to override deliberately."
+            )
+        clash = sorted(RESERVED_FIELDS & (set(self.extra) | ({self.knob_param} if self.knob_param else set())))
+        if clash:
+            raise ValueError(f"extra and knob_param may not set request fields the harness controls: {clash}")
+        if not 1 <= self.max_tokens <= 64:
+            raise ValueError("max_tokens must be between 1 and 64; the probes need only a short final answer")
 
 
 def _record(item: TaskItem, knob: Any, res: CompletionResult) -> dict[str, Any]:
@@ -102,6 +125,7 @@ def run_plan(
     out_path: str | Path | None = None,
     on_item: Callable[[TaskItem], None] | None = None,
     progress: Callable[[int, int], None] | None = None,
+    allow_any_key_env: bool = False,
 ) -> list[dict[str, Any]]:
     """Execute ``plan`` and return the records (also appended to ``out_path``).
 
@@ -109,7 +133,7 @@ def run_plan(
     retries use up the budget before the plan finishes, the run stops, the
     records written so far are kept, and :class:`BudgetExceeded` is raised.
     """
-    plan.validate()
+    plan.validate(allow_any_key_env=allow_any_key_env)
     if client is None:
         limiter = RateLimiter(requests_per_minute=plan.requests_per_minute, max_requests=plan.max_requests)
         client = ChatClient(plan.base_url, plan.model, api_key_env=plan.api_key_env, limiter=limiter)

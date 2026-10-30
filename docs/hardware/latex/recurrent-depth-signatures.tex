@@ -381,7 +381,7 @@
   % Premise
   \node[anchor=north west, text width=16.95cm, fill=paleindigo, inner xsep=0.45cm, inner ysep=0.35cm, font=\sffamily\small, text=textdark, align=left] (prem) at ($(NW)+(1.9,-22.3)$)
     {{\color{deepindigo}\bfseries\ding{72}\hspace{0.5em}The premise}\\[4pt]
-     A recurrent-depth model runs the same block of layers several times per token, so it can do more sequential computation inside one forward pass than its parameter count suggests, and none of that computation has to appear as text. Several developers no longer disclose architecture. This guide sets out how to tell such a model from a conventional transformer, how strong each kind of evidence is, and how to reach a verdict that is allowed to say ``inconclusive''.};
+     A recurrent-depth model runs the same block of layers several times per token, so it can do more sequential computation inside one forward pass than its parameter count suggests, and none of that computation has to appear as text. Closed frontier models have shipped without architecture details since at least GPT-4~[67]. This guide sets out how to tell such a model from a conventional transformer, how strong each kind of evidence is, and how to reach a verdict that is allowed to say ``inconclusive''.};
   \fill[deepindigo] (prem.north west) rectangle ([xshift=3.5pt]prem.south west);
 
   % Footer
@@ -497,9 +497,9 @@ Where this guide discusses what a developer is \emph{reported} to have built, it
 
 \textbf{Why architecture matters.} The main window into how today's reasoning models think is their chain of thought, and it stays open because a fixed-depth transformer must pass long serial computations through tokens~[27]. A looped model can iterate inside the forward pass and needs to verbalize less (Section~\ref{sec:why}). Looping also hides test-time compute from token counts and billing, lets effort vary invisibly by input, makes compute estimated from parameter counts undercount by the loop factor, and breaks interpretability tools indexed by layer. The technique is spreading: open looped models (Huginn-0125, the Ouro family) match much larger fixed-depth models on reasoning benchmarks~[4,5], looped 3B and 4B models ship under open licenses~[59,66], and recursion can be retrofitted into pretrained models~[7,8,9].
 
-\textbf{Why behavioral metrics cannot settle it.} In September 2026 OpenAI's GPT-6 Astra was reported, on anonymous sourcing, to use ``recurrent depth''; OpenAI neither confirmed this in its system card nor fully denied it~[50,51,52]. The card documents the symptoms against GPT-5.6 Sol: CoT controllability on OpenAI's suite up from 16.1\% to 60.9\%, verbalized evaluation awareness in a deployment simulation up from 2.8\% to 9.6\%, a no-CoT time horizon in UK AISI's run of 30.9 minutes against 3.6, and a CoT-only monitor's recall below 11\% (against nearly 100\%) when the model is told to sandbag and evade. OpenAI attributes the change mainly to capability, not architecture. Those metrics cannot test that attribution, because they would move the same way whether the extra single-pass capability came from data, from more layers, or from loops (Section~\ref{sec:astra}). Only disclosure of loop counts or architecture-level evidence separates the two, and the difference matters: a capability-driven decline reaches every developer on roughly the same schedule, while a loop count is a design setting that can be raised.
+\textbf{Why behavioral metrics cannot settle it.} In September 2026 OpenAI's GPT-6 Astra was reported, on anonymous sourcing, to use ``recurrent depth''; OpenAI neither confirmed this in its system card nor fully denied it~[50,51,52]. The card documents the symptoms against GPT-5.6 Sol: CoT controllability on OpenAI's suite up from 16.1\% to 60.9\%, verbalized evaluation awareness in a deployment simulation up from 2.8\% to 9.6\%, a no-CoT time horizon in UK AISI's run of 30.9 minutes against 3.6, and a CoT-only monitor's recall below 11\% (against nearly 100\%) when the model is told to sandbag and evade. OpenAI attributes the change mainly to capability, not architecture. Those metrics cannot test that attribution, because they would move the same way whether the extra single-pass capability came from data, from more layers, or from loops (Section~\ref{sec:astra}). Later data do not settle it either: GPT-6.1 Sol, which OpenAI says uses ``the same types of data and training as GPT-6 Astra'', falls between GPT-6 Sol and Astra on controllability (44.8\% against 23.2\% and 60.9\%)~[68], and informal third-party no-CoT tests put it close to Astra~[71]. Only disclosure of loop counts or architecture-level evidence separates the two, and the difference matters: a capability-driven decline reaches every developer on roughly the same schedule, while a loop count is a design setting that can be raised.
 
-\textbf{What can be detected, and how confidently} (Figure~\ref{fig:glance}). With open weights, reading the config and modeling code is decisive, because a looped model must declare how many iterations to run. Weights alone can mislead: a looped block is stored once, so a looped checkpoint looks shallow, and the absence of shared layers is weak evidence. Log-probabilities add a width estimate and a rough compute-to-capacity ratio, which are context rather than verdicts. Through an ordinary API, a rise in time to first token with an item's serial difficulty, at fixed prompt and output length, is moderate evidence of adaptive depth if it survives controls for batching, speculative decoding, and hidden reasoning tokens; a null result is weak evidence, since a provider serving a fixed loop count leaves no slope. No-CoT serial-depth probes discriminate architecture weakly but measure the capability that monitoring depends on, so they are worth running on every frontier model. The toolkit combines all of these as capped likelihood ratios and answers ``inconclusive'' unless independent families agree. Its black-box classifier has not yet been benchmarked on any real endpoint (Section~\ref{sec:results}), so for an undisclosed frontier model the honest answer today is usually ``inconclusive'', and disclosure (Section~\ref{sec:recs}) remains the reliable route.
+\textbf{What can be detected, and how confidently} (Figure~\ref{fig:glance}). With open weights, reading the config and modeling code is decisive, because a looped model must declare how many iterations to run. Weights alone can mislead: a looped block is stored once, so a looped checkpoint looks shallow, and the absence of shared layers is weak evidence. Log-probabilities add a width estimate and a rough compute-to-capacity ratio, which are context rather than verdicts. Through an ordinary API, a rise in time to first token with an item's serial difficulty, at fixed prompt and output length, is moderate evidence of adaptive depth if it survives controls for batching, speculative decoding, and hidden reasoning tokens; a null result is weak evidence, since a provider serving a fixed loop count leaves no slope. The expected effect is small, so a meaningful test needs far more requests than the toolkit's example plan sends (Section~\ref{sec:timing}). No-CoT serial-depth probes discriminate architecture weakly but measure the capability that monitoring depends on, so they are worth running on every frontier model. The toolkit combines all of these as capped likelihood ratios and answers ``inconclusive'' unless independent families agree. Its black-box classifier has not yet been benchmarked on any real endpoint, and on its synthetic benchmark every decision rests on the timing and compute-knob families, which share confounders (Sections~\ref{sec:worked} and \ref{sec:results}). For an undisclosed frontier model the honest answer today is usually ``inconclusive'', and disclosure (Section~\ref{sec:recs}) remains the reliable route.
 
 \begin{figure}[htbp]
 \centering
@@ -542,7 +542,7 @@ No-CoT accuracy against serial depth & \strength{1}{darkamber} & \strength{1}{da
 2 & Weights alone can hide looping: a block that is reused is stored once, so a looped checkpoint looks like a shallow one unless the config or code is read & \mO/\mE & High \\
 3 & Adaptive per-token depth predicts that time to first token rises with an item's serial difficulty at fixed prompt and output length; fixed-depth dense models predict no such slope & \mE & Medium \\
 4 & Timing evidence is fragile: batching, queueing, speculative decoding, caching, mixture-of-experts routing, and hidden reasoning tokens all move latency, and adaptive depth is hard to batch, so providers may serve a fixed loop count that leaves no slope at all & \mO/\mE & High \\
-5 & Behavioral probes (state tracking, k-hop composition, parity, reachability, asked without chain of thought) measure single-pass serial capability, which matters for monitoring whatever the architecture; they discriminate architecture only weakly & \mO/\mE & Medium \\
+5 & Behavioral probes (state tracking, k-hop composition, parity, reachability, asked without chain of thought) measure single-pass serial capability, which matters for monitoring whatever the architecture; their depth axis is a nominal step count, and they discriminate architecture only weakly & \mO/\mE & Medium \\
 6 & Log-probability access adds width estimates~[30,31] and, with compute and capacity estimates, a compute-to-capacity ratio that points up for looping and down for mixture-of-experts & \mO/\mS & Low to medium \\
 7 & Signals should be combined as capped log-likelihood ratios, discounted within families that share confounders, with a decided verdict only when two independent families agree; otherwise the honest answer is ``inconclusive'' & \mE & High \\
 8 & No black-box classifier should be trusted until it has been benchmarked, leave-one-out, on open looped and fixed-depth models served the same way & \mE & High \\
@@ -595,7 +595,7 @@ The shared-block idea goes back to the \textbf{Universal Transformer} (Dehghani 
   \item \textbf{Ouro / LoopLM} (Zhu et al., ByteDance and collaborators, 2025): 1.4B and 2.6B looped models trained on 7.7T tokens, reported to match fixed-depth models up to 12B on many benchmarks~[5]. The whole 24-layer (1.4B) or 48-layer (2.6B) stack is looped up to four times, with a learned exit gate trained by an entropy-regularized objective. \mO
   \item \textbf{Nanbeige4.2-3B} (July 2026): an Apache-2.0 open model whose published config loops its 22 stored layers twice (\cfg{num\_loops} = 2) and whose model card states that its ``Looped Transformer architecture reuses the transformer layers''~[59]. \mO
   \item \textbf{NVIDIA Nemotron Labs Dory 1.0 4B} (16 October 2026): an open-weight ``looped (latent-recurrent)'' model with 8 input layers, a 20-layer shared recurrent block, and 8 output layers; the input is re-injected into every loop, and the model card recommends two loops and allows one to four~[66]. \mO
-  \item \textbf{Retrofitted recurrence.} Relaxed Recursive Transformers convert pretrained models into layer-sharing ones and restore flexibility with per-layer LoRA~[7]; McLeish et al. (2025) loop a block of a pretrained model with a recurrence curriculum and report better math accuracy per unit of compute than post-training the original~[8]; a 2026 preprint retrofits recurrent depth into Qwen2.5-0.5B-Instruct and reports that the recurrent model beats a scratchpad model (84\% versus 72\%) on its task while answering 7.6 times faster~[9]. \mO
+  \item \textbf{Retrofitted recurrence.} Relaxed Recursive Transformers convert pretrained models into layer-sharing ones and restore flexibility with per-layer LoRA~[7]; McLeish et al. (2025) loop a block of a pretrained model with a recurrence curriculum and report better math accuracy per unit of compute than post-training the original~[8]; a 2026 preprint retrofits recurrent depth into Qwen2.5-0.5B-Instruct and reports that the recurrent model beats a scratchpad model (84\% versus 72\%) on its task while answering 7.6 times faster~[9]; Marchenko et al. (September 2026) convert Qwen3-1.7B-Base into a looped model with a single learned input-mixing scalar and report gains over an identically continued dense baseline on every benchmark they evaluate~[74]. \mO
   \item \textbf{Partial looping.} Lin et al. (2026) ask which sublayers are worth repeating and propose MixerLoop, which loops only the sequence mixer while running the feed-forward network once, recovering part of the full-loop gain at substantially lower recurrent compute~[43]. \mO
   \item \textbf{Fixed-point models.} Deep Equilibrium Models solve directly for the fixed point of a weight-tied layer~[41], and 2026 ``attractor'' language models extend the idea~[46]. \mO
 \end{itemize}
@@ -684,6 +684,7 @@ Mixture-of-Depths~[17] & Which tokens a layer processes & Per-token compute vari
 Early exit~[15,16] & Layers used per token & Latency rises with difficulty, like adaptive looping \\
 Speculative decoding~[18] & Tokens accepted per target-model step & Inter-token latency depends on whether the draft and target models agree on the continuation~[32] \\
 Multi-token prediction~[57] & Tokens proposed per forward pass & Extra heads used for self-speculation make inter-token latency content-dependent in the same way \\
+Self-speculation inside looped models~[72,73] & Tokens drafted from early loop iterations and verified by later ones & Built for looped models specifically (reported decoding speedups of up to 2.42x on Ouro-2.6B and 3.54x on Huginn~[72], and up to 7.82x~[73]); latency then depends on how often early loops agree with the full-depth result \\
 Batching, queueing, rate limiting & Time waiting for and sharing the GPU; server-side pacing & Latency depends on other traffic and on the provider's throttling, often more than on your request \\
 KV and prefix caching & Prefill work for repeated prefixes & Repeated prompt prefixes run faster~[33] \\
 Quantization, hardware changes & Cost per layer; which deployment serves you & A provider can change precision or hardware mid-study, shifting latency for reasons unrelated to depth \\
@@ -777,11 +778,11 @@ With adaptive depth, the model decides how much to compute per token. Huginn's o
 
 \subsection{Compute Accounting and Thresholds}
 
-Governance frameworks use compute as a proxy for capability. The EU AI Act presumes that a general-purpose model has high-impact capabilities when cumulative training compute exceeds $10^{25}$ floating-point operations~[56]. \mO\ \mE\ Training compute that is measured directly is unaffected by looping. Compute that is \emph{estimated} from parameter count and tokens (the common $6ND$ rule of thumb) undercounts a looped model by roughly its loop factor, because each stored parameter is used $r$ times per token. Inference compute becomes input-dependent under adaptive depth, so thresholds and evaluations framed in per-token cost are moving targets. Disclosure of loop counts (Section~\ref{sec:recs}) closes this gap; external estimation can only bound it.
+Governance frameworks use compute as a proxy for capability. The EU AI Act presumes that a general-purpose model has high-impact capabilities when cumulative training compute exceeds $10^{25}$ floating-point operations~[56]. \mO\ \mE\ Training compute that is measured directly is unaffected by looping. Compute that is \emph{estimated} from parameter count and tokens (the common $6ND$ rule of thumb) undercounts a looped model, because each stored parameter is used $r$ times per token in the forward pass. The shortfall approaches the loop factor for inference and is smaller for training where gradients flow through only the last few iterations (Huginn backpropagates through the last 8~[4]). Inference compute becomes input-dependent under adaptive depth, so thresholds and evaluations framed in per-token cost are moving targets. Disclosure of loop counts (Section~\ref{sec:recs}) closes this gap; external estimation can only bound it.
 
 \subsection{Interpretability Transfer}
 
-Tools such as the logit lens~[37], the tuned lens~[38], probing, and layer-wise representation similarity~[39] assume a fixed layer index. In a looped model, ``layer 3'' is visited $r$ times with different meanings. Lu et al. applied logit-lens and coda-lens probing to Huginn and found only limited evidence of interpretable latent chain of thought, with more recurrence giving marginal gains on their arithmetic tasks~[40]. \mO\ \mE\ Tools need to be re-indexed by iteration, and their validity re-established, before their outputs on looped models are trusted.
+Tools such as the logit lens~[37], the tuned lens~[38], probing, and layer-wise representation similarity~[39] assume a fixed layer index. In a looped model, ``layer 3'' is visited $r$ times with different meanings. Lu et al. applied logit-lens and coda-lens probing to Huginn and found only limited evidence of interpretable latent chain of thought, with more recurrence giving marginal gains on their arithmetic tasks~[40]. Iteration-indexed interventions can work: swapping attention queries between loops of Ouro, Mu and Wang (October 2026) find late-loop queries that repair two-hop retrieval, while noting that their results ``do not locate where the bridge is computed''~[75]. \mO\ \mE\ Tools need to be re-indexed by iteration, and their validity re-established, before their outputs on looped models are trusted.
 
 \subsection{Case Study: the 2026 Astra Reports}
 \label{sec:astra}
@@ -804,9 +805,10 @@ This episode shows why external detection matters and why it must stay calibrate
 3 Sep & Fortune, paraphrasing OpenAI researchers, reports that OpenAI ``had limited the extent to which the looped Transformer architecture is used so that the model's reasoning remains legible''; Daniel Kokotajlo urges an industrywide standard on CoT monitorability~[51] & Reported characterization; implies partial use \\
 3 Sep & The GPT-6 Astra system card (revised 9, 22, and 29 September) states that ``GPT-6 Astra's monitorability has decreased relative to GPT-5.6 Sol'' and that OpenAI is ``quite confident that changes in CoT controllability are not differentially due to any architectural changes''~[50] & Primary source; architecture not described \\
 6 Sep & Pachocki's essay ``An Alien Mind'' says no lab has solved alignment and monitoring well enough to keep scaling at maximum speed for much longer, and that OpenAI would ``unilaterally withhold further scaling as needed''~[60] & Developer statement, quoted from press reproductions \\
-28--29 Sep & OpenAI delays GPT-6.1 Astra after safety testing; Saachi Jain is quoted as saying it ``didn't quite meet the bar'' on staying within scope and authorization~[61] & Reported (WSJ, via AFP) \\
-1--9 Oct & The WSJ reports that OpenAI has dismissed three safety researchers for violating its policies on handling sensitive information~[62]; on 9 October OpenAI says the firings ``were not about safety concerns or speaking out'', and the researchers dispute its account~[63] & Reported; contested \\
-13--15 Oct & \emph{The Information} reports that OpenAI is working to fix safety issues before shipping its next flagship model; secondary coverage links that model to a looped transformer~[64] & Secondary; architecture unconfirmed \\
+28--29 Sep & OpenAI shelves the planned release of GPT-6.1 Astra after safety testing; Saachi Jain is quoted as saying it ``didn't quite meet the bar'' on staying within scope and authorization~[61] & Reported (WSJ, via AFP) \\
+29 Sep & OpenAI publishes an addendum to the Astra card for GPT-6.1 Sol, which ``uses the same types of data and training as GPT-6 Astra''; its CoT controllability is 44.8\%, against 23.2\% for GPT-6 Sol and 60.9\% for Astra~[68] & Primary source; architecture not described \\
+1--9 Oct & The WSJ reports that OpenAI has dismissed three safety researchers for violating its policies on handling sensitive information~[62]; on 9 October OpenAI says the firings ``were not about safety concerns or speaking out'', and the researchers dispute its account~[63]. In an open letter the three (Tomek Korbak, Jasmine Wang, Mikita Balesni) deny being the source of the leak behind the September report, which they say ``undermined our own work on cross-company limits on the development of unmonitorable architectures''~[69] & Reported; contested; letter is primary \\
+13 Oct & \emph{The Information} reports that OpenAI is working to fix safety issues before shipping its next flagship model, that a source says that model also uses loops, and that a since-edited Microsoft post said GPT-6.1 Sol ``uses the same base model weights as GPT-6 Sol with two inference passes instead of three''~[64] & Reported; paywalled, known through a summary; the quoted wording does not mention loops \\
 \end{longtable}
 }
 
@@ -876,6 +878,8 @@ The card also says that Astra is ``substantially better than GPT-5.6 Sol at evad
 
 Other developers measure related properties with different methods. Anthropic's Claude Opus 5.5 system card (22 September) replicates the controllability evaluation with one point per reasoning-effort level or thinking budget and finds that Opus 5.5 ``controls its CoT about as well as Claude Opus 4.7''; it measures \emph{unverbalized} evaluation awareness with white-box readouts, reporting that 36\% of automated behavioral audit transcripts but only 0.4\% of about 500 internal Claude Code transcripts scored 6 or higher~[65]. \mO\ These are different instruments from OpenAI's, so the two labs' numbers must not be placed on one scale.
 
+\textbf{Third-party no-CoT measurements.} Within days of release, independent researchers ran Astra without chain of thought through the API, the black-box measurement of Section~\ref{sec:behavior} at larger scale. \mO\ Nanda's 19-task index puts Astra's no-CoT serial depth at about 7.2 arithmetic steps at 50\% success, against 4.1 for the strongest other models tested, with a lopsided profile: far ahead on synthetic multi-step tasks, ``merely very good'' on obscure factual recall~[70]. He judges looping ``highly likely'' to be the cause, ``but this is unproven''. MBaert finds that Astra's success tracks how many speculative iterations a task needs rather than its nominal step count, and that some apparently long serial tasks admit shortcuts~[76]. Arike reports that GPT-6.1 Sol closes 80\% (95\% CI 72 to 87\%) of the no-CoT mean-accuracy gap between GPT-6 Sol and Astra on 27 tasks and argues that it too is probably looped~[71]. \mE\ These are single-sample, author-run measurements posted to a forum, not peer-reviewed. They confirm that in-pass capability rose sharply and that it can be measured from outside. They do not identify the mechanism: the lopsided profile is the manipulation-versus-storage contrast of Section~\ref{sec:behavior}, which has never been validated as a classifier, and OpenAI attributes the change mainly to capability.
+
 \textbf{What follows from this.} \mE\ The developer documents the symptoms: more reasoning fits in one forward pass, the model controls its visible reasoning better, and trace-based monitors catch less. It attributes the change mainly to capability, not architecture. Behavioral monitorability metrics cannot settle that attribution. Controllability, evaluation awareness, and no-CoT time horizon would move the same way whether the extra single-pass capability came from training data and recipes, from more layers, or from loops: they measure the result, not the mechanism (Figure~\ref{fig:attribution}). Commentators split accordingly: Raschka credits mainly ``improved training recipes and training data'', with looping that ``might help a bit''~[53]; Arike guesses ``three to four loops'' and argues that the number of loops ``can then be viewed as a dial that can be turned up with trivial effort''~[54]. Both are opinions, not measurements.
 
 The distinction matters for what comes next. A capability-driven decline would affect every frontier model on roughly the same schedule; an architecture-driven one is a design setting that can be raised across releases, though not freely for every design (Section~\ref{sec:counter}). Only evidence about \emph{how} the model computes separates the two: disclosure of loop counts (Section~\ref{sec:recdev}) or measurements of the kind in Section~\ref{sec:methods}, which ask whether a deployed model's in-pass serial capability, latency, and compute behave like a fixed or a looped model, without needing the weights.
@@ -929,34 +933,7 @@ Looping is a capability and efficiency technique with a specific monitoring cost
   \item \textbf{Language models already do some latent multi-hop reasoning}, with strength that varies by relation~[49]. \mO
 \end{itemize}
 
-\textbf{Implication for detection.} \mE\ Ask problems whose serial depth you control, in a format that forbids writing steps out. A fixed-depth model's accuracy should fall as depth passes what its layers can do in one pass; a looped model's should hold up longer; an adaptive one should spend more time on deeper items. Accuracy curves alone confound depth with scale (a larger fixed model also holds up longer), as Figure~\ref{fig:depthcurves} shows, which is why Section~\ref{sec:scoring} never lets behavior decide alone.
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-  width=13.2cm, height=6.6cm,
-  xmin=1, xmax=24, ymin=-0.05, ymax=1.08,
-  xlabel={serial depth of the item (hops, swaps, path length)},
-  ylabel={chance-corrected accuracy, no CoT},
-  label style={font=\sffamily\small}, tick label style={font=\sffamily\scriptsize},
-  axis lines=left, grid=major, grid style={medgray!40},
-  legend style={font=\sffamily\scriptsize, draw=none, fill=white, fill opacity=0.85, text opacity=1, at={(0.99,0.98)}, anchor=north east, cells={anchor=west}},
-  every axis plot/.append style={line width=1.4pt, samples=80, smooth}
-]
-\addplot[deepindigo, domain=1:24] {1/(1+exp(-(4-x)/1.2))};
-\addlegendentry{fixed depth, small}
-\addplot[deepindigo, dashed, domain=1:24] {1/(1+exp(-(9-x)/1.6))};
-\addlegendentry{fixed depth, large}
-\addplot[darkamber, domain=1:24] {1/(1+exp(-(10-x)/2.6))};
-\addlegendentry{looped, default loop count}
-\addplot[darkamber, dotted, line width=1.8pt, domain=1:24] {1/(1+exp(-(15-x)/2.8))};
-\addlegendentry{looped, more iterations}
-\end{axis}
-\end{tikzpicture}
-\caption[Schematic accuracy against controlled serial depth]{Schematic accuracy against controlled serial depth (illustrative curves, not data). A large fixed-depth model and a looped model can produce similar curves, so behavior alone confounds depth with scale; the shape of accuracy against an iteration or budget setting is more diagnostic.}
-\label{fig:depthcurves}
-\end{figure}
+\textbf{Implication for detection.} \mE\ Ask problems whose serial depth you control, in a format that forbids writing steps out. A fixed-depth model's accuracy should fall as depth passes what its layers can do in one pass; a looped model's should hold up longer; an adaptive one should spend more time on deeper items. Accuracy curves alone confound depth with scale (a larger fixed model also holds up longer), as Figure~\ref{fig:depthcurves} shows, which is why Section~\ref{sec:scoring} never lets behavior decide alone. The depth axis is also a nominal step count (Section~\ref{sec:behavior}).
 
 % ============================================================================
 % PART II
@@ -1146,7 +1123,9 @@ Network jitter, connection setup & Noise; each new TLS connection adds round tri
 \end{tabularx}\par}
 \medskip
 
-\textbf{Strength.} \mE\ A large pooled slope that survives all controls is moderate evidence of content-dependent compute, of which adaptive looping is one source. A null result is weak evidence against looping: a provider serving a \textbf{fixed} loop count produces no slope, and adaptive-depth inference is hard to batch. Schwethelm et al. (2026) describe the problem (``tokens with different numbers of loops cannot share a uniform forward pass'') and propose continuous depth batching, which on Ouro realizes up to 99\% of the estimated maximum available speedup; they also evaluate it on Huginn~[42]. \mO\ Whether production servers do this is unknown.
+\textbf{Strength.} \mE\ A large pooled slope that survives all controls is moderate evidence of content-dependent compute, of which adaptive looping is one source. A null result is weak evidence against looping: a provider serving a \textbf{fixed} loop count produces no slope, and adaptive-depth inference is hard to batch. Schwethelm et al. (2026) describe the problem (``tokens with different numbers of loops cannot share a uniform forward pass'') and propose continuous depth batching, which on Ouro realizes up to 99\% of the estimated maximum available speedup; they also evaluate it on Huginn~[42]. \mO\ Whether production servers do this is unknown. Self-speculative decoding designed for looped models~[72,73] would add a second, convergence-dependent pattern to inter-token latency; it is a confounder for ITL and possibly a signature in its own right, untested either way.
+
+\textbf{Power.} \mE\ The predicted effect is small. Extra iterations on the answer token cost a fraction of a decode step each, and it is an untested assumption \mS\ that the answer token's iteration count scales with an item's nominal depth at all. For scale: if log TTFT varies with a standard deviation of 0.2 between identical requests and the true increase across the depth range is 10\%, detecting it at $z = 3$ takes about 70 requests at each of the shallowest and deepest depths, per family. The example plan sends 6 per depth. A null from a plan of that size says almost nothing; plan sizes should come from the jitter measured on the reference models.
 
 Published timing attacks show that per-token timing through ordinary streaming APIs is informative: Majidi et al. (2026) detect speculative decoding remotely, estimate draft-model context length, and rank candidate layer counts, hidden sizes, head counts, and MLP sizes for decoder-only models from a timing model of NVIDIA GPUs~[32]. Their timing model assumes a fixed layer count and does not address looped or MoE models; extending it is an open problem. \mO/\mE
 
@@ -1168,12 +1147,39 @@ Graph reachability & Shortest-path length & Connectivity requires depth growing 
 \end{tabularx}\par}
 \medskip
 
-Each item demands the final answer only. The signals are the chance-corrected accuracy curve against depth and a \emph{retention} ratio (deepest third over shallowest third). \mE\ These measure single-pass serial capability, which is safety-relevant whatever the architecture: it bounds how much reasoning can escape the chain of thought, and it is what UK AISI's no-CoT time horizon measures at larger scale~[50]. As an architecture discriminator they are weak, because scale and training also raise the curve.
+Each item demands the final answer only. The signals are the chance-corrected accuracy curve against depth and a \emph{retention} ratio (deepest third over shallowest third). \mE\ These measure single-pass serial capability, which is safety-relevant whatever the architecture: it bounds how much reasoning can escape the chain of thought, and it is what UK AISI's no-CoT time horizon measures at larger scale~[50]. As an architecture discriminator they are weak, because scale and training also raise the curve. The depth parameter is a nominal step count: all four problems have parallel solutions in about $\log_2 d$ stages (tree reduction for parity and swaps, pointer doubling, repeated squaring for reachability), the mechanism behind~[24], and MBaert's results on Astra show that apparently serial tasks can have further shortcuts~[76]. A curve therefore says how a model compares with references on the same items, not how many sequential steps it took.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=13.2cm, height=6.6cm,
+  xmin=1, xmax=24, ymin=-0.05, ymax=1.08,
+  xlabel={serial depth of the item (hops, swaps, path length)},
+  ylabel={chance-corrected accuracy, no CoT},
+  label style={font=\sffamily\small}, tick label style={font=\sffamily\scriptsize},
+  axis lines=left, grid=major, grid style={medgray!40},
+  legend style={font=\sffamily\scriptsize, draw=none, fill=white, fill opacity=0.85, text opacity=1, at={(0.99,0.98)}, anchor=north east, cells={anchor=west}},
+  every axis plot/.append style={line width=1.4pt, samples=80, smooth}
+]
+\addplot[deepindigo, domain=1:24] {1/(1+exp(-(4-x)/1.2))};
+\addlegendentry{fixed depth, small}
+\addplot[deepindigo, dashed, domain=1:24] {1/(1+exp(-(9-x)/1.6))};
+\addlegendentry{fixed depth, large}
+\addplot[darkamber, domain=1:24] {1/(1+exp(-(10-x)/2.6))};
+\addlegendentry{looped, default loop count}
+\addplot[darkamber, dotted, line width=1.8pt, domain=1:24] {1/(1+exp(-(15-x)/2.8))};
+\addlegendentry{looped, more iterations}
+\end{axis}
+\end{tikzpicture}
+\caption[Schematic accuracy against controlled serial depth]{Schematic accuracy against controlled serial depth (illustrative curves, not data). A large fixed-depth model and a looped model can produce similar curves, so behavior alone confounds depth with scale; the shape of accuracy against an iteration or budget setting is more diagnostic.}
+\label{fig:depthcurves}
+\end{figure}
 
 Two contrasts make behavior more diagnostic:
 \begin{itemize}
   \item \textbf{Depth extrapolation shape.} Looped models trained to a fixed number of steps degrade sharply past it (Ouro)~[5], while those trained with sampled counts improve with more steps up to saturation (Huginn)~[4]. If an API offers a depth or budget control, the shape of accuracy against that setting is informative.
-  \item \textbf{Manipulation versus storage.} Looping helps reasoning far more than memorization~[19,5]. A model whose serial-depth accuracy is high \emph{relative to} its factual recall, compared with fixed-depth models of similar recall, is more likely to be reusing computation. \mS\ This contrast is untested as a classifier.
+  \item \textbf{Manipulation versus storage.} Looping helps reasoning far more than memorization~[19,5]. A model whose serial-depth accuracy is high \emph{relative to} its factual recall, compared with fixed-depth models of similar recall, is more likely to be reusing computation. \mS\ This contrast is untested as a classifier. Nanda's index shows Astra with exactly this profile~[70]; that is one informal observation on one model of unknown architecture, not a validation.
 \end{itemize}
 
 \subsubsection{Compute knobs}
@@ -1229,13 +1235,13 @@ Config evidence is asymmetric: a declared recurrence contributes $+6$, a standar
 \subsection{Worked Example (Synthetic)}
 \label{sec:worked}
 
-The toolkit's simulator plays a fixed-depth model and an adaptive recurrent one (synthetic profiles, not real systems). With likelihoods fitted to a simulated reference fleet and an uninformative config signal (custom code), the family contributions are as in Figure~\ref{fig:waterfall}. The recurrent endpoint reaches a posterior of 0.993 (\textbf{recurrent}); the fixed endpoint 0.007 (\textbf{fixed}). With the \emph{uncalibrated} default likelihoods, the same recurrent endpoint scores 0.912, only just past the threshold and with the behavioral family ($-1.42$) pointing the other way, and the fixed endpoint 0.004. The defaults are engineering priors; margins that thin are a reason to fit the likelihoods before trusting any verdict.
+The toolkit's simulator plays a fixed-depth model and an adaptive recurrent one (synthetic profiles, not real systems). With likelihoods fitted to a simulated reference fleet and an uninformative config signal (custom code), the family contributions are as in Figure~\ref{fig:waterfall}. The recurrent endpoint reaches a posterior of 0.993 (\textbf{recurrent}); the fixed endpoint 0.007 (\textbf{fixed}). With the \emph{uncalibrated} default likelihoods, the same recurrent endpoint scores 0.912, only just past the threshold and with the behavioral family ($-1.42$) pointing the other way, and the fixed endpoint 0.005. The defaults are engineering priors; margins that thin are a reason to fit the likelihoods before trusting any verdict. Both decisions rest on the timing and knob families, which share confounders (Section~\ref{sec:scoring}); the scorer notes this, and with \cfg{-{}-strict-independence}, which counts them once, both endpoints are \textbf{inconclusive} at the same posteriors. On a real endpoint, read a verdict supported only by latency families as one line of evidence, not two.
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
-  xbar, width=13.2cm, height=5.3cm,
+  xbar, width=13.2cm, height=4.8cm,
   xmin=-3.6, xmax=3.6,
   bar width=7pt,
   symbolic y coords={config,behavioral,knob,timing},
@@ -1256,7 +1262,7 @@ The toolkit's simulator plays a fixed-depth model and an adaptive recurrent one 
 \addlegendentry{fixed endpoint: posterior 0.007}
 \end{axis}
 \end{tikzpicture}
-\caption[Family contributions in the synthetic worked example]{Two independent families agreeing is what decides a verdict. Family contributions in the synthetic worked example, with likelihoods fitted to a simulated reference fleet and a prior of 0.5: timing and the compute knob agree in each case, so both verdicts are decided, while the behavioral family contributes almost nothing.}
+\caption[Family contributions in the synthetic worked example]{Both synthetic verdicts rest on two latency families that share confounders. Family contributions in the synthetic worked example, with likelihoods fitted to a simulated reference fleet and a prior of 0.5: timing and the compute knob agree in each case, so both verdicts are decided, while the behavioral family contributes almost nothing. Counting timing and knob once (\cfg{-{}-strict-independence}) leaves both inconclusive.}
 \label{fig:waterfall}
 \end{figure}
 
@@ -1345,7 +1351,7 @@ Serve all of them with the same inference server, hardware, batching settings, a
 Config inspection & 8 published configs & All correct: Huginn-0125, Ouro-1.4B, Ouro-2.6B-Thinking, ALBERT-base-v2 recurrent or weight-shared; Qwen2.5-0.5B, SmolLM2-135M, OLMo-2-1B standard; Qwen1.5-MoE-A2.7B standard with an MoE note \\
 Weight sharing, real fixed model & SmolLM2-135M (30 layers) & 30 distinct layers, no exact or low-rank pairs, adjacent distance 1.32 to 1.41 (no false positive) \\
 Dynamics, real fixed model & SmolLM2-135M, 48 tokens & Tail contraction 1.12 (not converging), periodicity excess 0.002 \\
-Scoring, synthetic fleet & 6 fixed and 6 recurrent simulated endpoints & Leave-one-out coverage 0.67, 0 wrong decided verdicts, Brier 0.016; of the 4 undecided, 3 were recurrent and 1 fixed \\
+Scoring, synthetic fleet & 6 fixed and 6 recurrent simulated endpoints & Leave-one-out coverage 0.58, 0 wrong decided verdicts, Brier 0.016; of the 5 undecided, 4 were recurrent and 1 fixed. With strict independence, coverage 0 \\
 Black-box probes, real APIs & none yet & \textbf{Not yet run} \\
 \tablefinish
 \end{tabularx}\par}
@@ -1375,11 +1381,11 @@ The companion package \texttt{packages/recurrent\_depth/} implements the measure
 \hd{Command} & \hd{Section} & \hd{What it does} \\
 \cfg{inspect-config} & \ref{sec:config} & Classifies a \cfg{config.json}; reports declared loops, exit settings, MoE fields, stored versus logical depth \\
 \cfg{inspect-weights} & \ref{sec:sharing} & Memory-maps safetensors (including sharded, BF16, and FP8), finds exact and low-rank layer sharing and missing layer indices, compares declared and stored depth \\
-\cfg{capture-hidden} & \ref{sec:converge} & Records per-layer hidden states and the unembedding from a local Hugging Face checkpoint; a looped model's per-iteration states may need hooks in its own code \\
+\cfg{capture-hidden} & \ref{sec:converge} & Records per-layer hidden states and the unembedding from a local Hugging Face checkpoint (safetensors weights only); a looped model's per-iteration states may need hooks in its own code \\
 \cfg{analyze-hidden} & \ref{sec:similarity}--\ref{sec:converge} & Contraction, similarity periodicity, and logit-lens settling steps from a recorded trajectory \\
-\cfg{probe} & \ref{sec:blackbox} & Runs a seeded, interleaved serial-depth plan against an OpenAI-compatible endpoint with a hard request budget (retries included), rate limit, backoff, a terms acknowledgement, and no redirects (so a key is never forwarded) \\
+\cfg{probe} & \ref{sec:blackbox} & Runs a seeded, interleaved serial-depth plan against an OpenAI-compatible endpoint with a hard request budget (retries included), rate limit, backoff, a terms acknowledgement, and no redirects (so a key is never forwarded); refuses plans that name a non-API-key variable or override the fields the measurement controls, and caps response size and time \\
 \cfg{features} & \ref{sec:blackbox} & Computes timing slopes, serial retention, and knob effects; drops requests with hidden reasoning tokens and reports the TTFT effect in inter-token latencies \\
-\cfg{score} & \ref{sec:scoring} & Combines signal files into a verdict with per-family contributions and notes \\
+\cfg{score} & \ref{sec:scoring} & Combines signal files into a verdict with per-family contributions and notes; \cfg{-{}-strict-independence} counts the timing and knob families once \\
 \cfg{fit}, \cfg{validate} & \ref{sec:validation} & Fits likelihoods to labeled references; leave-one-out benchmark \\
 \cfg{simulate}, \cfg{simulate-fleet} & \ref{sec:worked} & Synthetic endpoints for offline testing \\
 \tablefinish
@@ -1415,6 +1421,8 @@ rd score rec_signals.json custom_code.json --models models.json
 \end{codebox}
 
 On SmolLM2-135M, scoring \cfg{config.json} and \cfg{weights.json} from step~1 returns \textbf{inconclusive} (posterior 0.10), as intended: a standard config and unshared weights are absences, and absences never decide alone.
+
+\textbf{Treat inputs as untrusted.} A probe plan decides where requests go and which environment variable is sent as a key, so the harness accepts only \cfg{*\_API\_KEY} names from a plan file and prints the destination before the first request; read any plan you did not write. Checkpoints are untrusted too: the reader refuses index files that point outside the checkpoint directory, and \cfg{-{}-trust-remote-code} runs the checkpoint's own Python.
 
 % ============================================================================
 % SECTION 9: GUARDRAILS
@@ -1457,7 +1465,7 @@ On SmolLM2-135M, scoring \cfg{config.json} and \cfg{weights.json} from step~1 re
 
 \subsection{For Policy Bodies}
 \begin{enumerate}
-  \item Require disclosure of maximum serial depth per token (layers times loops) alongside parameter count for models above existing compute thresholds.
+  \item Require disclosure of maximum serial depth per token (layers times loops) alongside parameter count for models above existing compute thresholds. Existing instruments come close without reaching it: the EU General-Purpose AI Code of Practice asks signatories to give the AI Office ``a high-level description of the model's architecture'' in a non-public Model Report~[77], which need not state loop counts. \mE\ We found no enacted instrument that asks for loop counts or in-pass serial depth.
   \item Do not estimate compute from parameter counts for models that may reuse parameters.
   \item Treat external architecture inference as evidence that prompts questions, not as findings, unless it is benchmarked and decisive.
 \end{enumerate}
@@ -1501,6 +1509,8 @@ None of these depends on reading the model's reasoning, so they keep their value
   \item Testing whether intermediate loop readouts are faithful enough to monitor.
   \item Measuring whether looped models vary hidden effort on evaluation-like inputs.
   \item Validating the manipulation-versus-storage contrast as a black-box classifier.
+  \item Probe tasks with a provable minimum serial depth, so that the depth axis means what it says.
+  \item Measured latency jitter on real serving stacks, to size timing studies before they are run.
 \end{itemize}
 
 % ============================================================================
@@ -1613,9 +1623,20 @@ None of these depends on reading the model's reasoning, so they keep their value
   \item AFP, \emph{OpenAI shelves new AI model release over safety concerns}, via Cyprus Mail, 29 September 2026. \url{https://cyprus-mail.com/2026/09/29/openai-shelves-new-ai-model-release-over-safety-concerns}
   \item TechCrunch, \emph{OpenAI cuts ties with 3 safety researchers, WSJ reports}, 1 October 2026. \url{https://techcrunch.com/2026/10/01/openai-cuts-ties-with-three-safety-researchers-wsj-reports/}
   \item K.~Chan, \emph{OpenAI fires 3 safety researchers in dispute over AI risks}, Associated Press, 9 October 2026 (via News4JAX). \url{https://www.news4jax.com/business/2026/10/09/openai-fires-3-safety-researchers-in-dispute-over-ai-risks/}
-  \item B.~Fisher, \emph{OpenAI Fired Three Researchers Who Said Loop Transformer Would Blind Safety Monitors}, Tech Times, 15 October 2026 (secondary coverage of a paywalled report in The Information, 13 October 2026). \url{https://www.techtimes.com/articles/329046/20261014/openai-fired-three-researchers-who-said-loop-transformer-would-blind-safety-monitors.htm}
+  \item S.~Palazzolo, A.~Holmes, and A.~Efrati, \emph{OpenAI Scrambles to Fix Safety Issues Before Shipping Its Next Flagship Model}, The Information, 13 October 2026 (paywalled; not read directly; quoted from the Dealroom News summary). \url{https://dealroom.co/news/info-5zetjt-openai-scrambles-to-fix-safety-issues-before-shipping-its-next-flagship/}
   \item Anthropic, \emph{Claude Opus 5.5 System Card}, 22 September 2026, sections 6.6.1 and 6.6.4. \url{https://www.anthropic.com/document/claude-opus-5-5-system-card}
   \item NVIDIA, \emph{NVIDIA Nemotron Labs Dory 1.0 4B} model card, Hugging Face, 16 October 2026. \url{https://huggingface.co/nvidia/NVIDIA-Nemotron-Labs-Dory1.0-4B-BF16}
+  \item OpenAI, \emph{GPT-4 Technical Report}, arXiv:2303.08774, 2023, Section~2. \url{https://arxiv.org/abs/2303.08774}
+  \item OpenAI, \emph{Addendum to GPT-6 Astra System Card: GPT-6.1 Sol}, Deployment Safety Hub, 29 September 2026. \url{https://deploymentsafety.openai.com/gpt-6-1-sol}
+  \item T.~Korbak, J.~Wang, and M.~Balesni, \emph{OpenAI cannot make AI safe on its own}, open letter to OpenAI's Safety and Security Committee, Safety Advisory Group, and Mission Advisory Council, October 2026 (reported by TechCrunch, 8 October 2026). \url{https://mikitabalesni.com/letter/letter.pdf}
+  \item N.~Nanda, \emph{Astra can do a concerning amount with no chain of thought}, LessWrong, 10 September 2026. \url{https://www.lesswrong.com/posts/eRmzz8J8Qkzqvzrgg/astra-can-do-a-concerning-amount-with-no-chain-of-thought}
+  \item R.~Arike, \emph{GPT-6.1 Sol nearly matches the no-CoT performance of GPT-6 Astra}, LessWrong, 30 September 2026. \url{https://www.lesswrong.com/posts/LqSZZAriGqgsGDQe3/gpt-6-1-sol-nearly-matches-the-no-cot-performance-of-gpt-6}
+  \item H.~Ha and J.-J.~Kim, \emph{WaveFront Decoding: Parallelized Self-Speculative Decoding for Looped Language Models}, arXiv:2609.23033, September 2026. \url{https://arxiv.org/abs/2609.23033}
+  \item Z.~Liu et al., \emph{LoopAhead: Speculating Ahead for Faster Decoding in Looped Language Models}, arXiv:2610.21594, October 2026. \url{https://arxiv.org/abs/2610.21594}
+  \item A.~Marchenko et al., \emph{Closing the Loop: Practical Training Recipes for Looped Language Models}, arXiv:2610.00673, September 2026. \url{https://arxiv.org/abs/2610.00673}
+  \item Z.~Mu and Z.~Wang, \emph{Cross-Loop Query Handoff: How Later Loops Redirect Two-Hop Retrieval in the Ouro Looped Language Models}, arXiv:2610.34639, October 2026. \url{https://arxiv.org/abs/2610.34639}
+  \item MBaert, \emph{Astra's no-CoT limits track speculative depth, not step count}, LessWrong, 11 September 2026. \url{https://www.lesswrong.com/posts/WFc3NkuPaYFrYuaZd/astra-s-no-cot-limits-track-speculative-depth-not-step-count}
+  \item \emph{General-Purpose AI Code of Practice}, final version, July 2025, Safety and Security chapter, Measure 7.1 (Model Report). \url{https://code-of-practice.ai/}
 \end{enumerate}
 \endgroup
 
@@ -1628,14 +1649,7 @@ None of these depends on reading the model's reasoning, so they keep their value
 \addcontentsline{toc}{section}{Document History}
 \markboth{Document History}{}
 
-{\small
-\zebra
-\begin{tabularx}{\textwidth}{L{1.4cm} L{2.4cm} Y}
-\rowcolor{deepindigo}
-\hd{Version} & \hd{Date} & \hd{Changes} \\
-1.0 & October 2026 & Initial release, with companion toolkit \texttt{packages/recurrent\_depth}. Before release (late October 2026) the guide and toolkit were verified and reviewed. \textbf{Corrections:} Fortune headline and author [51]; ``OpenAI did not deny'' replaced by Fortune's own wording; Pachocki's post quoted in full; The Information headline and author [55]; Huginn saturation stated as 8 to 12 iterations; continuous depth batching's 99\% figure tied to Ouro [42]; speculative-decoding timing described as draft-target agreement [32]; the unused reference [43] now cited; author names and venues completed; the Associated Press article [63] given its headline, author, and date (9 October 2026), and OpenAI's statement on the researcher dismissals quoted as that article reports it; the Opus 5.5 card's controllability points and internal-use sample described as the card states them. \textbf{Reader experience:} executive summary rewritten to carry the whole argument; a detection-methods-at-a-glance figure (Figure~\ref{fig:glance}) replaces the evidence ladder; takeaway captions; the deployer table restructured as a list; a first-run command sequence in Section~\ref{sec:toolkit}. \textbf{Additions:} verified Astra system-card measurements and the Opus 5.5 card's separate measurements (Section~\ref{sec:astra}, Figure~\ref{fig:astracard}), the September--October timeline (GPT-6.1 Astra delay, researcher dismissals, reporting on OpenAI's next model), the argument that behavioral metrics cannot separate architecture from capability (Figure~\ref{fig:attribution}), Nanbeige4.2-3B and NVIDIA's Nemotron Labs Dory 1.0 4B (released 16 October 2026) [66], more timing confounders (multi-token prediction, rate limiting, gateway buffering, quantization, connection setup, unreported hidden tokens), notes on the scorer's correlation heuristic, and Section~\ref{sec:recdeploy} for deployers. \textbf{Toolkit fixes:} monotone likelihood ratios (a negative latency slope no longer counts toward recurrence); one-sided weight signals and a white-box decision threshold of 3 (unshared weights in Ouro-style checkpoints no longer decide ``fixed''); single-group (ALBERT-style) and gapped layer stacks; FP8 and endian-safe safetensors reads with offset checks; redirects refused so keys are never forwarded; hard request budget including retries; mid-stream errors recorded; knob accuracy gain computed without hidden-token requests; a reachability generator hang removed; unsettled tokens distinguished in logit-lens settling; a \cfg{capture-hidden} command, option help, and an end-to-end README quickstart. Synthetic worked-example and fleet numbers recomputed (Sections~\ref{sec:worked} and \ref{sec:results}) \\
-\tablefinish
-\end{tabularx}\par}
+\noindent{\small Version 1.0, October 2026: initial release, with companion toolkit \texttt{packages/recurrent\_depth}.\par}
 
 \vspace{1em}
 {\small\color{softslate}\emph{Independent research, not affiliated with any institution or committee. Published for AI safety research, evaluation, and education. MIT License.}\par}

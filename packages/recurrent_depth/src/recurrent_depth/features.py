@@ -4,7 +4,8 @@ Signals (all computed only from what an ordinary API customer observes):
 
 ``ttft_slope_z``
     z-score of the depth coefficient in a regression of log time-to-first-token
-    on serial depth, controlling for prompt length. Within a task family the
+    on serial depth, controlling for prompt length and for slow drift over the
+    run (request order). Within a task family the
     prompt length is constant by construction, so a positive slope means the
     server spent more time before the first token on items that need more
     sequential steps. Fixed-depth dense models should show no slope. Adaptive
@@ -56,10 +57,22 @@ def ols(y: np.ndarray, X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _trim(rows: list[dict[str, Any]], key: str, frac: float) -> list[dict[str, Any]]:
+    """Drop the ``frac`` most extreme slow outliers, judged against their own depth.
+
+    Trimming on raw latency would preferentially remove the deepest items
+    whenever depth really does raise latency, biasing the slope toward zero.
+    Each value is therefore compared with the median of its depth cell, and
+    the largest ratios are dropped.
+    """
     if frac <= 0 or len(rows) < 10:
         return rows
-    cut = float(np.quantile([r[key] for r in rows], 1 - frac))
-    return [r for r in rows if r[key] <= cut]
+    by_depth: dict[Any, list[float]] = defaultdict(list)
+    for r in rows:
+        by_depth[r["depth"]].append(r[key])
+    med = {d: statistics.median(v) for d, v in by_depth.items()}
+    ratio = [r[key] / med[r["depth"]] for r in rows]
+    cut = float(np.quantile(ratio, 1 - frac))
+    return [r for r, q in zip(rows, ratio) if q <= cut]
 
 
 def timing_slope(
@@ -89,6 +102,12 @@ def timing_slope(
         pt = np.array(ptoks, dtype=float)
         if np.ptp(pt) > 0 and np.corrcoef(pt, depths)[0, 1] ** 2 < 0.95:
             cols.append((pt - pt.mean()) / (pt.std() or 1.0))
+        # Request order absorbs slow drift in server load. The run order is
+        # randomized, so this does not bias the depth coefficient; it only
+        # removes drift from the residuals that set its standard error.
+        seq = np.array([float(r.get("seq", 0) or 0) for r in rows])
+        if np.ptp(seq) > 0 and np.corrcoef(seq, depths)[0, 1] ** 2 < 0.5:
+            cols.append((seq - seq.mean()) / (seq.std() or 1.0))
         coef, se = ols(y, np.column_stack(cols))
         estimates.append((task, float(coef[1]), float(se[1]), len(rows)))
     if not estimates:

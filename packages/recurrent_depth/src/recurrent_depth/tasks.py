@@ -12,6 +12,15 @@ chasing / k-hop composition, permutation state tracking, parity, graph
 reachability). They are asked in a "no chain of thought" format: the model is
 told to answer with the final answer only, so any serial computation has to
 happen inside the forward pass.
+
+``depth`` is a nominal step count, not the irreducible serial depth. All four
+problems are associative or can be solved by repeated squaring (parity and
+swap composition by tree reduction, pointer chasing by pointer doubling,
+reachability by squaring the adjacency relation), so a model can in principle
+solve depth-d items in about log2(d) parallel stages, and heuristics can
+shorten them further. Compare accuracy and latency curves against reference
+models on the same items rather than reading ``depth`` as a count of steps
+the model must have taken.
 """
 
 from __future__ import annotations

@@ -12,7 +12,14 @@ Guardrails built in:
   sent over plain HTTP to a non-local host;
 * HTTP redirects are refused rather than followed, because urllib would
   otherwise replay the ``Authorization`` header to whatever host (and scheme)
-  the redirect names.
+  the redirect names;
+* request fields that the measurement depends on (model, messages, stream,
+  output length, sampling, number of choices) cannot be overridden through
+  ``extra``, so a plan cannot silently multiply cost or break the length
+  controls;
+* a response is cut off after ``max_response_bytes`` or ``timeout_s`` in
+  total, and malformed or hostile stream chunks are skipped rather than
+  allowed to crash the run.
 
 This client sends ordinary chat requests and records what any API customer
 can observe (text, token counts, timestamps, and log-probabilities when the
@@ -25,6 +32,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import http.client
 import json
+import math
 import os
 import time
 from typing import Any, Callable, Iterable, Iterator, Protocol
@@ -34,6 +42,24 @@ import urllib.request
 
 RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "host.docker.internal"})
+# Fields the client sets itself. ``extra`` may add provider parameters (for
+# example a reasoning-effort knob) but may not replace these.
+RESERVED_FIELDS = frozenset(
+    {
+        "model",
+        "messages",
+        "stream",
+        "stream_options",
+        "max_tokens",
+        "max_completion_tokens",
+        "n",
+        "temperature",
+        "logprobs",
+        "top_logprobs",
+        "best_of",
+    }
+)
+MAX_ERROR_BODY_BYTES = 64 * 1024
 
 
 class BudgetExceeded(RuntimeError):
@@ -69,7 +95,7 @@ def urllib_transport(url: str, headers: dict[str, str], body: bytes, timeout: fl
     try:
         resp = _OPENER.open(req, timeout=timeout)  # scheme validated in ChatClient
     except urllib.error.HTTPError as err:
-        payload = err.read()
+        payload = err.read(MAX_ERROR_BODY_BYTES)
         return TransportResponse(err.code, dict(err.headers.items()), [payload])
 
     def _iter() -> Iterator[bytes]:
@@ -154,6 +180,7 @@ class ChatClient:
         max_retries: int = 4,
         backoff_base_s: float = 2.0,
         include_usage: bool = True,
+        max_response_bytes: int = 4 * 1024 * 1024,
     ) -> None:
         self._api_key = os.environ.get(api_key_env) if api_key_env else None
         self.base_url = _validate_url(base_url, bool(self._api_key))
@@ -166,6 +193,7 @@ class ChatClient:
         self.max_retries = max_retries
         self.backoff_base_s = backoff_base_s
         self.include_usage = include_usage
+        self.max_response_bytes = max_response_bytes
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
@@ -186,6 +214,9 @@ class ChatClient:
         if logprobs > 0:
             body["logprobs"] = True
             body["top_logprobs"] = logprobs
+        clash = sorted(RESERVED_FIELDS & set(extra))
+        if clash:
+            raise ValueError(f"extra may not override request fields the client controls: {clash}")
         body.update(extra)
         return json.dumps(body).encode("utf-8")
 
@@ -213,7 +244,7 @@ class ChatClient:
 
     def _backoff(self, attempt: int, result: CompletionResult) -> float:
         if result.retry_after_s is not None:
-            return min(result.retry_after_s, 300.0)
+            return min(max(result.retry_after_s, 0.0), 300.0)
         return min(self.backoff_base_s * (2**attempt), 120.0)
 
     def _once(self, url: str, body: bytes) -> CompletionResult:
@@ -230,17 +261,27 @@ class ChatClient:
             ra = {k.lower(): v for k, v in resp.headers.items()}.get("retry-after")
             if ra is not None:
                 try:
-                    result.retry_after_s = float(ra)
+                    value = float(ra)
                 except ValueError:
-                    pass
+                    value = math.nan  # HTTP-date form: fall back to exponential backoff
+                if math.isfinite(value) and value >= 0:
+                    result.retry_after_s = value
         if not 200 <= resp.status < 300:
             result.error = f"HTTP {resp.status}: " + b"".join(resp.lines).decode("utf-8", "replace")[:300]
             result.total_s = self.clock() - start
             return result
         parts: list[str] = []
+        received = 0
         try:
             for raw in resp.lines:
                 now = self.clock() - start
+                received += len(raw)
+                if received > self.max_response_bytes:
+                    result.error = f"response exceeded {self.max_response_bytes} bytes"
+                    break
+                if now > self.timeout_s:
+                    result.error = f"response exceeded the {self.timeout_s} s total timeout"
+                    break
                 line = raw.decode("utf-8", "replace").strip()
                 if not line.startswith("data:"):
                     continue
@@ -249,9 +290,10 @@ class ChatClient:
                     break
                 try:
                     chunk = json.loads(data)
-                except json.JSONDecodeError:
+                except (json.JSONDecodeError, RecursionError):
                     continue
-                self._absorb(chunk, now, parts, result)
+                if isinstance(chunk, dict):
+                    self._absorb(chunk, now, parts, result)
         except (OSError, http.client.HTTPException) as exc:
             # A read timeout or dropped connection mid-stream: keep what arrived, mark the
             # request failed so its timing is not used, and let the run continue.
@@ -263,21 +305,44 @@ class ChatClient:
     @staticmethod
     def _absorb(chunk: dict, now: float, parts: list[str], result: CompletionResult) -> None:
         usage = chunk.get("usage")
-        if usage:
-            result.prompt_tokens = usage.get("prompt_tokens", result.prompt_tokens)
-            result.completion_tokens = usage.get("completion_tokens", result.completion_tokens)
-            details = usage.get("completion_tokens_details") or {}
-            if details.get("reasoning_tokens") is not None:
-                result.reasoning_tokens = details["reasoning_tokens"]
-        for choice in chunk.get("choices") or []:
-            delta = choice.get("delta") or {}
-            content = delta.get("content")
-            if content:
+        if isinstance(usage, dict):
+            result.prompt_tokens = _count(usage.get("prompt_tokens"), result.prompt_tokens)
+            result.completion_tokens = _count(usage.get("completion_tokens"), result.completion_tokens)
+            details = usage.get("completion_tokens_details")
+            if isinstance(details, dict):
+                result.reasoning_tokens = _count(details.get("reasoning_tokens"), result.reasoning_tokens)
+        choices = chunk.get("choices")
+        for choice in choices if isinstance(choices, list) else []:
+            if not isinstance(choice, dict):
+                continue
+            delta = choice.get("delta")
+            content = delta.get("content") if isinstance(delta, dict) else None
+            if isinstance(content, str) and content:
                 if result.ttft_s is None:
                     result.ttft_s = now
                 result.chunk_times_s.append(now)
                 parts.append(content)
-            lp = choice.get("logprobs") or {}
-            for entry in lp.get("content") or []:
-                tops = entry.get("top_logprobs") or []
-                result.top_logprobs.append({t["token"]: t["logprob"] for t in tops if "token" in t})
+            lp = choice.get("logprobs")
+            entries = lp.get("content") if isinstance(lp, dict) else None
+            for entry in entries if isinstance(entries, list) else []:
+                if not isinstance(entry, dict):
+                    continue
+                tops = entry.get("top_logprobs")
+                result.top_logprobs.append(
+                    {
+                        t["token"]: float(t["logprob"])
+                        for t in (tops if isinstance(tops, list) else [])
+                        if isinstance(t, dict) and isinstance(t.get("token"), str) and _is_number(t.get("logprob"))
+                    }
+                )
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _count(value: Any, default: int | None) -> int | None:
+    """A usage count from a provider: a non-negative integer, or ``default``."""
+    if not _is_number(value) or not math.isfinite(value) or value < 0 or value != int(value):
+        return default
+    return int(value)

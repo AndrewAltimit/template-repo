@@ -100,7 +100,7 @@ rd validate outputs/rds/refs.json                        # leave-one-out benchma
 rd fit      outputs/rds/refs.json --out outputs/rds/models.json
 ```
 
-`validate` reports coverage 0.67 (8 of 12 decided), 0 wrong decided verdicts, Brier 0.016, and a confusion table. With real references, write the file yourself as `[{"model": "...", "label": "recurrent" | "fixed", "signals": {...}}, ...]`, one row per reference model measured with the same plan and serving stack as the target.
+`validate` reports coverage 0.58 (7 of 12 decided), 0 wrong decided verdicts, Brier 0.016, and a confusion table. With `--strict-independence` (below) coverage falls to 0: every synthetic decision rests on the timing and knob families agreeing. With real references, write the file yourself as `[{"model": "...", "label": "recurrent" | "fixed", "signals": {...}}, ...]`, one row per reference model measured with the same plan and serving stack as the target.
 
 ### 4. Score
 
@@ -110,7 +110,7 @@ rd score outputs/rds/fix_signals.json outputs/rds/custom_code.json --models outp
 rd score outputs/rds/rec_signals.json outputs/rds/custom_code.json --models outputs/rds/models.json --prior 0.2
 ```
 
-With fitted likelihoods the recurrent endpoint scores `recurrent` (posterior 0.993; timing +3.0, knob +2.0, behavioral -0.06) and the fixed endpoint `fixed` (0.007). Without `--models` the uncalibrated defaults give 0.912 and 0.004: the recurrent verdict only just passes the threshold, which is why step 3 comes first. Report every verdict at more than one prior: at a prior of 0.2 the recurrent endpoint still scores `recurrent` (0.972). The output lists per-signal contributions, per-family log-likelihood ratios, the families that support the verdict, and notes. `score` accepts any number of signal files and refuses a signal name that appears in two of them.
+With fitted likelihoods the recurrent endpoint scores `recurrent` (posterior 0.993; timing +3.0, knob +2.0, behavioral -0.06) and the fixed endpoint `fixed` (0.007). Without `--models` the uncalibrated defaults give 0.912 and 0.005: the recurrent verdict only just passes the threshold, which is why step 3 comes first. Report every verdict at more than one prior: at a prior of 0.2 the recurrent endpoint still scores `recurrent` (0.972). The output lists per-signal contributions, per-family log-likelihood ratios, the families that support the verdict, and notes. `score` accepts any number of signal files and refuses a signal name that appears in two of them; non-finite values are ignored with a note.
 
 ### 5. A real endpoint
 
@@ -123,17 +123,22 @@ rd features outputs/rds/records.jsonl > outputs/rds/target_signals.json
 rd score outputs/rds/target_signals.json outputs/rds/config_signals.json --models outputs/rds/models.json
 ```
 
-The example plan sends 120 requests (4 tasks x 5 depths x 6 repetitions) at 10 per minute under a hard budget of 400. Pass the API key into the container by adding `-e OPENAI_API_KEY` (or the variable named in `api_key_env`) to the `rd` function. A server running on the host is reachable from the container at `host.docker.internal`, not `localhost`; the client sends a key over plain HTTP only to local hosts such as these, and `api_key_env` can be `null` for a local server that needs no key. If the endpoint has a compute knob, set `knob_param` and `knob_values` and give `features` the same order with `--knob-order`. Measure the reference models with the same plan, on the same serving stack, at more than one load level, before scoring the target; the report's Section 7 sets out the protocol.
+The example plan sends 120 requests (4 tasks x 5 depths x 6 repetitions) at 10 per minute under a hard budget of 400. Pass the API key into the container by adding `-e OPENAI_API_KEY` (or the variable named in `api_key_env`) to the `rd` function. A plan may only name a variable ending in `API_KEY`; for any other name, pass `--api-key-env NAME` to `probe` yourself. `probe` prints the destination host and the variable it will send before the first request. A server running on the host is reachable from the container at `host.docker.internal`, not `localhost`; the client sends a key over plain HTTP only to local hosts such as these, and `api_key_env` can be `null` for a local server that needs no key. If the endpoint has a compute knob, set `knob_param` and `knob_values` and give `features` the same order with `--knob-order`. Measure the reference models with the same plan, on the same serving stack, at more than one load level, before scoring the target; the report's Section 7 sets out the protocol.
 
 ## Decision Rule
 
 A verdict is `recurrent` or `fixed` only when the posterior passes the threshold (default 0.9) and at least two independent evidence families agree; a white-box family (config or weights) that supports the verdict with a log-likelihood ratio of at least 3, such as a declared recurrence or exact layer reuse, counts as direct observation and may decide alone. Absence of evidence never decides alone: a standard config class contributes -1.5, and unshared weights at most -0.5 per signal, because looped checkpoints such as Huginn and Ouro store their shared block once. Otherwise the verdict is `inconclusive`.
 
+The timing and knob families share confounders (server load, unreported hidden decoding), so a verdict they support together carries a note saying so. `score --strict-independence` (and the same flag on `validate`) counts them once toward the two-family rule; under it, black-box timing alone can no longer decide, and the synthetic worked example above is `inconclusive`.
+
 ## Guardrails
 
 - The harness refuses a plan unless `acknowledge_terms` is `true`, which records that you are authorized to query the endpoint and that the plan respects the provider's terms and rate limits.
 - A hard request budget (`max_requests`, counting retries) and a minimum spacing (`requests_per_minute`) are enforced; 429 and 5xx responses back off and honor `Retry-After`. If retries exhaust the budget, `probe` stops, keeps the records written so far, and exits with status 2.
-- API keys are read from an environment variable, never written to records, and never sent over plain HTTP to a non-local host. Redirects are refused, because urllib would otherwise replay the `Authorization` header to the redirect target.
+- API keys are read from an environment variable, never written to records, and never sent over plain HTTP to a non-local host. Redirects are refused, because urllib would otherwise replay the `Authorization` header to the redirect target. A plan file cannot name an arbitrary environment variable (such as a cloud credential) as its key; only `*API_KEY` names, unless the operator passes `--api-key-env`.
+- `extra` and `knob_param` cannot override the fields the measurement depends on (`model`, `messages`, `stream`, `max_tokens`, `n`, `temperature`, `logprobs`, and similar), and `max_tokens` is limited to 64, so a plan cannot multiply cost or defeat the length controls.
+- Responses are cut off at 4 MiB or at the request timeout in total, error bodies are read up to 64 KiB, an invalid `Retry-After` falls back to exponential backoff, and malformed stream chunks are skipped rather than crashing the run.
+- Checkpoints are treated as untrusted input: shard names in an index file may not leave the checkpoint directory, malformed safetensors headers raise errors, and `capture-hidden` loads safetensors weights only (pickled `.bin` files can execute code when loaded). `--trust-remote-code` runs the checkpoint's own Python; read it first.
 - Requests whose usage reports hidden reasoning tokens are excluded from timing and knob analysis rather than misread as in-pass computation; if any request in a run reports them, no knob signal is emitted.
 - Nothing here recovers weights. `graybox.estimate_rank` estimates a width from vectors you are entitled to collect.
 
