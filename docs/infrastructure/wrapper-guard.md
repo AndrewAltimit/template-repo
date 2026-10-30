@@ -106,6 +106,28 @@ git-guard refuses the following with exit code 1 and hands everything else to th
 
 Reading or unsetting these keys (`git config --get core.hooksPath`, `git config --unset core.hooksPath`) is allowed.
 
+**Exception: the `actions/checkout` credentials include.** Since v6, `actions/checkout` persists the job token in a separate file and links it from the repository config:
+
+```
+git config --local includeIf.gitdir:<runner>/_work/<repo>/<repo>/.git.path <runner>/_work/_temp/git-credentials-<uuid>.config
+git config --local includeIf.gitdir:<runner>/_work/<repo>/<repo>/.git/worktrees/*.path <same file>
+git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-<uuid>.config
+git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path <same container file>
+# with submodules: the same includeIf via --file .git/modules/<name>/config, and --global include.path <file>
+```
+
+git-guard allows exactly this shape and nothing broader:
+
+| Requirement | Why |
+|-------------|-----|
+| Value is an absolute path with no `.`/`..` segments or backslashes; file name `git-credentials-<uuid>.config` (canonical UUID) | Matches checkout's generated name; the file that is checked is the file git will include |
+| Condition is `gitdir:<absolute path>` (only checkout's trailing `/*` glob allowed); `onbranch:`, `gitdir/i:`, `hasconfig:` stay blocked | Matches checkout's conditions |
+| Host form: the file is in a `_temp` directory whose parent (the runner `_work` root) contains the `gitdir:` path | Binds the include to the runner layout (`$RUNNER_TEMP` = `_work/_temp`) without trusting environment variables |
+| Host form: the file **exists** and defines **only** `http.<url>.extraheader` (read with `git config --file <f> --no-includes --name-only --list`) | Checkout writes the token before the include; a file that sets `core.hooksPath` or nests another include is refused |
+| Container form: `gitdir:/github/workspace/...` paired with `/github/runner_temp/...`; if the file exists it must pass the same content check | On the host `/github` does not exist and cannot be created without root |
+
+`CI`, `GITHUB_ACTIONS`, `RUNNER_TEMP` and similar variables are deliberately **not** consulted: an agent on the same runner can set any of them. Injecting the same include with `-c`, `--config-env` or `GIT_CONFIG_*` is still blocked. The residual risk is that the credentials file could be rewritten after the include is added; that is an ordinary file write, which git-guard never prevented (see Limitations, item 6), so the exception adds no new route around the hook policy.
+
 **Pushes that can update a protected branch** (`main`, `master`)
 
 | Form | Example |
@@ -513,6 +535,20 @@ sudo bash automation/setup/security/verify-wrapper-guard.sh
 | `/etc/wrapper-guard/.secrets.yaml` | System gh-validator config (searched first) |
 | `/usr/lib/wrapper-guard/git.real` | Real git binary (hardened mode) |
 | `/usr/lib/wrapper-guard/gh.real` | Real gh binary (hardened mode) |
+
+## Self-Hosted Runner
+
+The runner service resolves `git` from its `PATH`, so with the PATH-based install every action (including `actions/checkout`) and every agent step runs through `~/.local/bin/git`. That is intended: agent jobs run as the same user under the same runner. Options considered for letting pipeline git work without opening a bypass:
+
+| Option | Verdict |
+|--------|---------|
+| Bypass variable (`GIT_GUARD_BYPASS`, `CI`, `GITHUB_ACTIONS`) | Rejected: any agent can set it |
+| Runner `PATH` without the wrapper, agents opt in | Rejected: agent steps lose the guard unless every one re-adds it |
+| Shape-exact allowlist for checkout's credentials include (implemented) | Adopted: no env trust, content-checked, no route beyond plain file writes |
+| Hardened mode (`setup-wrapper-guard.sh`) | Recommended on top: removes the direct `/usr/bin/git` bypass; the allowlist still applies |
+| Separate OS users (runner/actions vs. agents run via `sudo -u`) or agent jobs in `hardened-agent` | Strongest isolation, highest upkeep; the long-term option |
+
+When the pinned `actions/checkout` is bumped, check `src/git-auth-helper.ts` for new `git config` include writes; `checkout_credentials_include_allowed` in `src/policy.rs` lists the commands the current pin issues.
 
 ## Limitations and Known Gaps
 

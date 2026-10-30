@@ -12,7 +12,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # All available tools (binaries only, not libraries)
 TOOLS=(
+    "automation-cli"
     "board-manager"
+    "code-review-processor"
     "gh-validator"
     "git-guard"
     "github-agents-cli"
@@ -56,7 +58,9 @@ list_tools() {
     for tool in "${TOOLS[@]}"; do
         local desc=""
         case "$tool" in
+            "automation-cli")      desc="CI/CD orchestration and automation CLI" ;;
             "board-manager")       desc="GitHub project board operations" ;;
+            "code-review-processor") desc="Processor for AgentCore code review responses" ;;
             "gh-validator")        desc="GitHub CLI wrapper with secret masking" ;;
             "git-guard")           desc="Git wrapper requiring sudo for dangerous ops" ;;
             "github-agents-cli")   desc="AI agent CLI for issue/PR automation" ;;

@@ -35,6 +35,15 @@ signals, the terminal, and exit codes pass through untouched.
 Reading or unsetting these keys (`git config --get core.hooksPath`,
 `git config --unset core.hooksPath`) is allowed.
 
+One include is let through: the credentials include `actions/checkout`
+(v6+) writes, `includeIf.gitdir:<work>/<repo>/<repo>/.git[/worktrees/*].path
+<work>/_temp/git-credentials-<uuid>.config` (plus its `/github/workspace` ->
+`/github/runner_temp` container twin, the submodule `--file` form and the
+global `include.path` form). The file must exist and define only
+`http.<url>.extraheader`; no environment variable is trusted. Exact rules:
+`is_checkout_credentials_include` in `src/policy.rs` and
+[wrapper-guard.md](../../../docs/infrastructure/wrapper-guard.md).
+
 ### Pushes that can update a protected branch
 
 | Form | Example |

@@ -107,6 +107,12 @@ jobs:
             agent-swarm-honeypot-guide
 
           ./automation/ci-cd/build-latex-doc.sh \
+            recurrent-depth-signatures.tex \
+            docs/hardware/latex \
+            docs_output \
+            recurrent-depth-signatures
+
+          ./automation/ci-cd/build-latex-doc.sh \
             bioforge-crispr-automation.tex \
             docs/hardware/latex \
             docs_output \

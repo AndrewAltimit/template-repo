@@ -142,6 +142,7 @@ Scenario-based projection reports analyzing potential futures involving advanced
 | **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
 | **AI Agent Containment & Infrastructure Security** | Isolation, trust-tiered execution, and physical security for AI agents | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/ai-agent-containment-infrastructure-security-framework.tex) |
 | **Agent Swarm Honeypot Guide** | Deception program design for detecting, attributing, and reporting autonomous agent swarms | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/agent-swarm-honeypot-guide.tex) |
+| **Recurrent Depth Signatures** | Detecting looped (recurrent-depth) language models from the outside, and why architecture matters for AI safety | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/recurrent-depth-signatures.tex) |
 | **BioForge CRISPR Automation** | Agent-driven biological automation platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/bioforge-crispr-automation.tex) |
 | **Secure Terminal Briefcase** | Tamper-responsive hardware security system with PQC recovery | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/secure-terminal-briefcase.tex) |
 
@@ -162,8 +163,9 @@ Standalone packages addressing different aspects of AI agent development, safety
 | Package | Purpose | Documentation |
 |---------|---------|---------------|
 | **[Sleeper Agents](packages/sleeper_agents/)** | Python + Rust research framework for evaluating hidden backdoors in LLMs (confirms and localizes backdoors with a known trigger; unknown-backdoor detection is not yet demonstrated), based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
-| **[Economic Agents](packages/economic_agents/)** | Rust-based simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
+| **[Economic Agents](packages/economic_agents/)** | Rust simulation framework for governance research: agents earn mock money, form companies, hire sub-agents, and seek investment against mock backends. It shows where decisions and control points sit, not that unbound real-world agency exists | [README](packages/economic_agents/README.md) |
 | **[Tamper Briefcase](packages/tamper_briefcase/)** | Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid PQC recovery USB. For secure physical transport of field-deployable agent terminals | [README](packages/tamper_briefcase/README.md) \| [Hardware Docs](docs/hardware/secure-terminal-briefcase.md) |
+| **[Recurrent Depth](packages/recurrent_depth/)** | Python measurement toolkit for detecting looped (recurrent-depth) language models from configs, weights, or rate-limited API probes, with likelihood-ratio scoring that can return "inconclusive" | [README](packages/recurrent_depth/README.md) \| [Hardware Docs](docs/hardware/recurrent-depth-signatures.md) |
 | **[BioForge](packages/bioforge/)** | Agent-driven biological automation platform (Rust): Raspberry Pi 5 liquid handling with AI agent orchestration over MCP, gated by a safety enforcer. Simulated hardware | [README](packages/bioforge/README.md) \| [Hardware Docs](docs/hardware/bioforge-crispr-automation.md) |
 
 **Rust CLI Tools** (in `tools/rust/`):
@@ -223,7 +225,8 @@ For enterprise environments requiring custom certificates, customize [`automatio
 │   ├── sleeper_agents/       # AI backdoor detection framework (Python + Rust)
 │   ├── economic_agents/      # Autonomous economic agents (Rust)
 │   ├── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
-│   └── bioforge/             # Agent-driven CRISPR automation platform (Rust)
+│   ├── bioforge/             # Agent-driven CRISPR automation platform (Rust)
+│   └── recurrent_depth/      # Looped-architecture detection toolkit (Python)
 ├── tools/
 │   ├── mcp/                  # 21 MCP servers + shared cores (see MCP Servers section)
 │   ├── rust/                 # Rust CLI tools

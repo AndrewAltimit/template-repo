@@ -1,0 +1,83 @@
+#!/bin/bash
+# automation-cli installation script
+# Installs the unified CLI for CI/CD orchestration, service launching, and automation
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_DIR="${HOME}/.local/bin"
+BINARY_NAME="automation-cli"
+
+echo "============================================"
+echo "automation-cli Installation"
+echo "============================================"
+echo ""
+
+# Build (incremental, so this is fast when nothing changed and never installs a
+# stale binary). Fall back to an existing binary when cargo is unavailable.
+BINARY_PATH="${SCRIPT_DIR}/target/release/${BINARY_NAME}"
+if command -v cargo >/dev/null 2>&1; then
+    echo "Building from source..."
+    (cd "$SCRIPT_DIR" && cargo build --release)
+    echo "Build complete."
+elif [ -f "$BINARY_PATH" ]; then
+    echo "cargo not found; using existing binary: $BINARY_PATH"
+else
+    echo "ERROR: cargo not found and no prebuilt binary at $BINARY_PATH"
+    exit 1
+fi
+
+# Verify binary exists after build attempt
+if [ ! -f "$BINARY_PATH" ]; then
+    echo "ERROR: Failed to build ${BINARY_NAME} binary"
+    exit 1
+fi
+
+# Create install directory
+echo ""
+echo "Installing to: ${INSTALL_DIR}/${BINARY_NAME}"
+mkdir -p "$INSTALL_DIR"
+
+# Copy binary
+rm -f "${INSTALL_DIR}/${BINARY_NAME}"
+cp "$BINARY_PATH" "${INSTALL_DIR}/${BINARY_NAME}"
+chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
+
+echo "Binary installed successfully."
+
+# Check PATH
+echo ""
+if [[ ":$PATH:" == *":${INSTALL_DIR}:"* ]]; then
+    echo "PATH is configured correctly."
+else
+    echo "WARNING: ${INSTALL_DIR} is NOT in your PATH"
+    echo ""
+    echo "Add this line to your ~/.bashrc or ~/.zshrc:"
+    echo ""
+    echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+    echo ""
+fi
+
+# Verify installation
+echo ""
+echo "Verifying installation..."
+if "${INSTALL_DIR}/${BINARY_NAME}" --help >/dev/null 2>&1; then
+    echo "Installation successful!"
+    echo ""
+    "${INSTALL_DIR}/${BINARY_NAME}" --help | head -10
+else
+    echo "WARNING: Binary installed but --help failed"
+fi
+
+echo ""
+echo "============================================"
+echo "Installation complete!"
+echo "============================================"
+echo ""
+echo "Usage: ${BINARY_NAME} <command>"
+echo ""
+echo "Examples:"
+echo "  ${BINARY_NAME} ci list                  # Show all available CI stages"
+echo "  ${BINARY_NAME} ci run full              # All Python checks"
+echo "  ${BINARY_NAME} ci run rust-full         # All Rust checks"
+echo ""
