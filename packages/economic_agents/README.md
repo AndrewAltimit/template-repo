@@ -1,12 +1,12 @@
 # Economic Agents (Rust)
 
-> A simulation framework for autonomous AI agents operating in economic systems. Agents autonomously complete tasks, earn simulated currency, form companies, create sub-agents, and seek investment.
+> A simulation framework for autonomous AI agents operating in economic systems. Simulated agents complete mock tasks, earn simulated currency, form companies, create sub-agents, and seek investment against in-memory backends.
 
 ## Overview
 
-This framework simulates autonomous AI economic activity for governance research. The goal is not to argue that agent entrepreneurship is good or bad, but to make concrete a capability that public field experiments and agent payment infrastructure show **already exists today**, and to show that current legal and regulatory frameworks have no answer for it.
+This framework simulates autonomous AI economic activity for governance research. The goal is not to argue that agent entrepreneurship is good or bad, but to make concrete the loop a self-sustaining economic agent would have to close (earn, pay for compute, form a company, raise money) and the points where governance controls would have to sit. The simulation is not evidence that real agents can do this: as of October 2026 no public case shows an agent sustaining itself economically without human help, and supervised agent-run businesses are not yet profitable.
 
-**The gap is not in capability. It's in governance.**
+**The payment rails and the governance gaps are real today; unbound agency is not yet.** Card-network agent payment programs are live and bind each agent to a verified person or business; pay-per-request stablecoin protocols are live but small, and bind an agent to anyone only where a network program is layered on top. Who bears the loss when an agent exceeds its authority is unsettled. The companion ETRA report, *AI Agents as Autonomous Economic Actors* (v3.1, [LaTeX](../../docs/projections/latex/ai-agents-economic-actors.tex)), argues that the remaining self-sufficiency gap looks more like one of judgment and robustness than of raw skill.
 
 Agents interact with in-memory mock backends, or with local HTTP services that wrap the same mocks, for:
 

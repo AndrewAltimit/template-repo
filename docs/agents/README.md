@@ -127,7 +127,7 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 
 The repository includes an **Economic Agents Simulation Framework** that demonstrates autonomous AI economic capability for governance research:
 
-- **Autonomous Operation**: Agents complete tasks, earn cryptocurrency, form companies, and seek investment without human intervention
+- **Autonomous Operation (simulated)**: Agents complete tasks, earn mock cryptocurrency, form companies, and seek investment against mock backends; real-world unbound agency has not been demonstrated (see [ETRA-2025-AEA-001](../projections/latex/ai-agents-economic-actors.tex))
 - **Mock-to-Real Architecture**: Identical REST API interfaces allow switching between simulation and production backends
 - **Governance Research**: Raises questions about AI legal personhood, fiduciary duty, liability, and competitive dynamics
 - **Simulation Realism**: Latency, competition, market cycles, reputation systems, and investor behavior modeling
