@@ -152,11 +152,12 @@ pub fn run(args: FailureArgs) -> Result<()> {
             &failures.lint_stages(),
         )
     };
-    let lint_output = capture_gate_errors(&lint_gate, MAX_LINT_ERROR_LINES, is_lint_line);
+    let lint_output =
+        capture_gate_errors(&lint_gate, LINT_CMD_ENV, MAX_LINT_ERROR_LINES, is_lint_line);
     let test_output = if failures.test {
         output::header("Step 2b: Capturing test failure output");
         let test_gate = Gate::from_env(|k| std::env::var(k).ok(), TEST_CMD_ENV, &["test"]);
-        capture_gate_errors(&test_gate, MAX_TEST_ERROR_LINES, is_test_line)
+        capture_gate_errors(&test_gate, TEST_CMD_ENV, MAX_TEST_ERROR_LINES, is_test_line)
     } else {
         String::new()
     };
@@ -243,14 +244,20 @@ fn invoke_claude(prompt: &str) -> Result<()> {
 
 /// Run a gate and collect the error lines `keep` selects. Checks that cannot
 /// run in this repository are logged and skipped rather than sent to Claude.
-fn capture_gate_errors(gate: &Gate, max_lines: usize, keep: fn(&str) -> bool) -> String {
+/// `env_var` names the override for this gate, for the "not available" hint.
+fn capture_gate_errors(
+    gate: &Gate,
+    env_var: &str,
+    max_lines: usize,
+    keep: fn(&str) -> bool,
+) -> String {
     let mut out = String::new();
     for check in gate.run_captured() {
         output::step(&format!("Capturing {} errors...", check.name));
         if check.unavailable {
             output::warn(&format!(
-                "'{}' is not available in this repository; skipping. Set {LINT_CMD_ENV} / \
-                 {TEST_CMD_ENV} to this repo's commands (or to an empty string to skip)",
+                "'{}' is not available in this repository; skipping. Set {env_var} to \
+                 this repo's command (or to an empty string to skip)",
                 check.name
             ));
             continue;
@@ -260,7 +267,7 @@ fn capture_gate_errors(gate: &Gate, max_lines: usize, keep: fn(&str) -> bool) ->
             // The filter knows ruff/pytest/rustc shapes; for any other tool
             // fall back to the generic extract (error lines, else the tail)
             // so Claude never gets a failed gate with no output.
-            lines = check.error_output.clone();
+            lines = filter_lines(&check.error_output, max_lines, |_| true);
         }
         if !lines.is_empty() {
             if !out.is_empty() {
@@ -272,14 +279,17 @@ fn capture_gate_errors(gate: &Gate, max_lines: usize, keep: fn(&str) -> bool) ->
     out
 }
 
-/// rustc/clippy diagnostic lines: `error: ...`, `error[E0308]: ...`,
-/// `warning: ...`, and the ` --> file:line:col` location that follows them.
+/// rustc error lines: `error: ...` and `error[E0308]: ...`.
+fn is_rust_error(l: &str) -> bool {
+    let t = l.trim_start();
+    t.starts_with("error:") || t.starts_with("error[")
+}
+
+/// rustc/clippy diagnostic lines: errors, `warning: ...`, and the
+/// ` --> file:line:col` location that follows them.
 fn is_rust_diagnostic(l: &str) -> bool {
     let t = l.trim_start();
-    t.starts_with("error:")
-        || t.starts_with("error[")
-        || t.starts_with("warning:")
-        || t.starts_with("--> ")
+    is_rust_error(l) || t.starts_with("warning:") || t.starts_with("--> ")
 }
 
 /// Lint lines worth showing Claude: ruff/flake8 (`file:1:1: F401`, `Found N
@@ -293,14 +303,17 @@ fn is_lint_line(l: &str) -> bool {
         || is_rust_diagnostic(l)
 }
 
-/// Test failure lines: pytest and `cargo test` (`... FAILED`, panics).
+/// Test failure lines: pytest and `cargo test` (`... FAILED`, panics, and
+/// compile errors). Compiler warnings and their `-->` locations are left out:
+/// they precede the test results and would fill the line cap, pushing out
+/// the failures Claude actually needs.
 fn is_test_line(l: &str) -> bool {
     l.contains("FAILED")
         || l.contains("AssertionError")
         || l.contains("Error:")
         || l.contains("Traceback")
         || l.contains("panicked at")
-        || is_rust_diagnostic(l)
+        || is_rust_error(l)
 }
 
 fn filter_lines(text: &str, max_lines: usize, keep: fn(&str) -> bool) -> String {
@@ -392,12 +405,19 @@ mod tests {
     fn capture_falls_back_when_filter_keeps_nothing() {
         // Output in a shape none of the filters know still reaches Claude.
         let gate = Gate::Command("echo 'mytool: style problem in a.c' >&2; exit 1".into());
-        let out = capture_gate_errors(&gate, 50, is_lint_line);
+        let out = capture_gate_errors(&gate, LINT_CMD_ENV, 50, is_lint_line);
         assert!(out.contains("style problem in a.c"), "{out}");
+
+        // The fallback respects the caller's line cap.
+        let gate = Gate::Command(
+            "for i in $(seq 1 300); do echo \"mytool: issue $i\"; done; exit 1".into(),
+        );
+        let out = capture_gate_errors(&gate, LINT_CMD_ENV, 20, is_lint_line);
+        assert_eq!(out.lines().count(), 20, "{out}");
 
         // A passing gate contributes nothing.
         let gate = Gate::Command("echo all good".into());
-        assert!(capture_gate_errors(&gate, 50, is_lint_line).is_empty());
+        assert!(capture_gate_errors(&gate, LINT_CMD_ENV, 50, is_lint_line).is_empty());
     }
 
     /// Real clippy / cargo test output shapes (e.g. AGENT_LINT_CMD set to
@@ -431,6 +451,21 @@ mod tests {
         assert!(kept.contains("... FAILED"), "{kept}");
         assert!(kept.contains("panicked at"), "{kept}");
         assert!(!kept.contains("running 12 tests"), "{kept}");
+
+        // Compile warnings before the results must not crowd the failures
+        // out of the capped test capture.
+        let mut noisy = String::new();
+        for i in 0..200 {
+            noisy.push_str(&format!(
+                "warning: unused variable `v{i}`\n  --> src/a.rs:{i}:1\n"
+            ));
+        }
+        noisy.push_str("test a::b ... FAILED\nthread 'a::b' panicked at src/a.rs:1:1:\n");
+        let kept = filter_lines(&noisy, MAX_TEST_ERROR_LINES, is_test_line);
+        assert!(kept.contains("... FAILED"), "{kept}");
+        assert!(kept.contains("panicked at"), "{kept}");
+        assert!(!kept.contains("unused variable"), "{kept}");
+        assert!(is_test_line("error[E0425]: cannot find value `x`"));
     }
 
     fn env_from(pairs: &'static [(&'static str, &'static str)]) -> impl Fn(&str) -> Option<String> {

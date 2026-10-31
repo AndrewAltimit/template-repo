@@ -4,7 +4,7 @@
 //! Uses OPENROUTER_API_KEY for authentication.
 //!
 //! Optional tuning:
-//! - `OPENROUTER_MAX_TOKENS`: completion budget (default 32768). Reasoning
+//! - `OPENROUTER_MAX_TOKENS`: completion budget (default 131072). Reasoning
 //!   models spend part of this on hidden reasoning before writing content.
 //! - `OPENROUTER_REASONING_EFFORT`: `minimal`/`low`/`medium`/`high`, or
 //!   `none` (aliases `off`, `disabled`) to omit the `reasoning` param
@@ -24,13 +24,16 @@ const DEFAULT_MODEL: &str = "particle-ai/particle-1";
 /// OpenRouter API endpoint
 const OPENROUTER_API_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
 
-/// Overall request timeout (large reviews can take several minutes).
-const REQUEST_TIMEOUT: Duration = Duration::from_secs(600);
+/// Overall request timeout. A full 131k-token completion at the ~360 tok/s
+/// observed for particle-1 takes about 6 minutes; leave headroom.
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(900);
 
 /// Default completion budget. Reasoning models (particle-1 included) count
 /// hidden reasoning tokens against `max_tokens`, so this must leave plenty of
-/// headroom beyond the review text itself.
-const DEFAULT_MAX_TOKENS: u32 = 32_768;
+/// headroom beyond the review text itself. 131072 is particle-1's endpoint
+/// maximum; 32768 was observed to be exhausted by reasoning alone on an
+/// ~900-line diff, and a full 131k completion costs only a few cents.
+const DEFAULT_MAX_TOKENS: u32 = 131_072;
 
 /// Default reasoning effort sent via OpenRouter's unified `reasoning` param.
 const DEFAULT_REASONING_EFFORT: &str = "medium";
@@ -126,6 +129,24 @@ impl OpenRouterAgent {
 
         let request_body = self.request_body(prompt);
 
+        // particle-1 occasionally gets stuck reasoning and spends the whole
+        // budget without writing anything (seen in CI on a diff that reviewed
+        // fine in ~35s on two immediate reruns). That is intermittent, so one
+        // retry is cheaper and more reliable than an ever-larger budget.
+        for attempt in 1..=REASONING_EXHAUSTED_ATTEMPTS {
+            let body = self.send(api_key, &request_body).await?;
+            match extract_content(&body, self.max_tokens) {
+                Err(e) if attempt < REASONING_EXHAUSTED_ATTEMPTS && reasoning_exhausted(&body) => {
+                    tracing::warn!("{}; retrying (attempt {} failed)", e, attempt);
+                },
+                result => return result,
+            }
+        }
+        unreachable!("the last attempt always returns")
+    }
+
+    /// POST one chat-completions request and return the raw response body.
+    async fn send(&self, api_key: &str, request_body: &serde_json::Value) -> Result<String> {
         let response = self
             .client
             .post(OPENROUTER_API_URL)
@@ -135,7 +156,7 @@ impl OpenRouterAgent {
                 "https://github.com/AndrewAltimit/template-repo",
             )
             .header("X-Title", "PR Review Agent")
-            .json(&request_body)
+            .json(request_body)
             .send()
             .await
             .map_err(|e| {
@@ -163,8 +184,29 @@ impl OpenRouterAgent {
             )));
         }
 
-        extract_content(&body, self.max_tokens)
+        Ok(body)
     }
+}
+
+/// Attempts when the model spends its whole budget reasoning (1 retry).
+const REASONING_EXHAUSTED_ATTEMPTS: u32 = 2;
+
+/// True when the response hit `max_tokens` without producing any content,
+/// i.e. the budget went entirely to reasoning.
+fn reasoning_exhausted(body: &str) -> bool {
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(body.trim()) else {
+        return false;
+    };
+    let truncated = json
+        .pointer("/choices/0/finish_reason")
+        .and_then(|f| f.as_str())
+        == Some("length");
+    let empty = match json.pointer("/choices/0/message/content") {
+        None | Some(serde_json::Value::Null) => true,
+        Some(serde_json::Value::String(s)) => s.trim().is_empty(),
+        Some(_) => false,
+    };
+    truncated && empty
 }
 
 /// Parse OPENROUTER_MAX_TOKENS, falling back to the default on bad input.
@@ -445,6 +487,23 @@ mod tests {
         let fenced = r#"{"choices":[{"finish_reason":"length","message":{"content":"Issues:\n```rust\nlet x = 1;"}}]}"#;
         let out = extract_content(fenced, 50).unwrap();
         assert!(out.ends_with("let x = 1;\n```"), "{out}");
+    }
+
+    #[test]
+    fn test_reasoning_exhausted_detection() {
+        // The CI failure shape: whole budget spent reasoning, no content.
+        let stuck = r#"{"choices":[{"finish_reason":"length","message":{"content":null}}]}"#;
+        assert!(reasoning_exhausted(&format!("\n\n  {stuck}")));
+        let blank = r#"{"choices":[{"finish_reason":"length","message":{"content":"  "}}]}"#;
+        assert!(reasoning_exhausted(blank));
+
+        // Partial content, a normal stop, an API error, or junk: no retry.
+        let partial = r#"{"choices":[{"finish_reason":"length","message":{"content":"half"}}]}"#;
+        assert!(!reasoning_exhausted(partial));
+        let done = r#"{"choices":[{"finish_reason":"stop","message":{"content":null}}]}"#;
+        assert!(!reasoning_exhausted(done));
+        assert!(!reasoning_exhausted(r#"{"error":{"message":"x"}}"#));
+        assert!(!reasoning_exhausted("<html>"));
     }
 
     #[test]

@@ -340,7 +340,20 @@ fn run_command_captured(cmd: &str) -> CheckResult {
             .stdin(Stdio::null())
             .output()?)
     });
-    check_from_output(cmd, raw, false)
+    check_from_output(&command_label(cmd), raw, false)
+}
+
+/// Short display name for a repo command, used in logs, the summary, and the
+/// prompt section headers (full commands can be long docker invocations).
+fn command_label(cmd: &str) -> String {
+    const MAX_CHARS: usize = 60;
+    let one_line = cmd.split_whitespace().collect::<Vec<_>>().join(" ");
+    if one_line.chars().count() <= MAX_CHARS {
+        one_line
+    } else {
+        let head: String = one_line.chars().take(MAX_CHARS - 3).collect();
+        format!("{head}...")
+    }
 }
 
 /// Build a [`CheckResult`]. `builtin_stage` enables detection of stages that
@@ -370,10 +383,13 @@ fn check_from_output(
                 raw_output,
             }
         },
+        // Only a built-in stage that cannot start counts as unavailable. A
+        // repo command that fails to spawn is a real failure of a configured
+        // gate, not a hint to set the variable that is already set.
         Err(e) => CheckResult {
             name: name.to_string(),
             passed: false,
-            unavailable: true,
+            unavailable: builtin_stage,
             error_output: format!("Failed to execute: {e}"),
             raw_output: String::new(),
         },
@@ -620,6 +636,25 @@ mod tests {
             log.push_str(&format!("FAILED tests/test_{i}.py::test_x\n"));
         }
         assert!(!stage_unavailable(&log));
+    }
+
+    #[test]
+    fn command_label_shortens_long_commands() {
+        assert_eq!(command_label("cargo fmt --all"), "cargo fmt --all");
+        let long = "docker compose --profile ci run --rm rust-ci\n  cargo clippy --workspace --all-targets -- -D warnings";
+        let label = command_label(long);
+        assert_eq!(label.chars().count(), 60, "{label}");
+        assert!(label.starts_with("docker compose --profile ci run --rm rust-ci cargo"));
+        assert!(label.ends_with("..."));
+    }
+
+    #[test]
+    fn spawn_error_is_unavailable_only_for_builtin_stages() {
+        let c = check_from_output("lint-basic", Err(anyhow::anyhow!("no binary")), true);
+        assert!(!c.passed && c.unavailable);
+        let c = check_from_output("make lint", Err(anyhow::anyhow!("no bash")), false);
+        assert!(!c.passed && !c.unavailable);
+        assert!(c.error_output.contains("Failed to execute"));
     }
 
     #[cfg(unix)]

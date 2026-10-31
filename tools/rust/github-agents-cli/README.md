@@ -22,7 +22,7 @@ Requirements: GitHub CLI (`gh`) installed and authenticated (`GITHUB_TOKEN`
 | `claude` | Claude Code CLI (`claude --print`, prompt on stdin) | Default/highest priority. Path override: `CLAUDE_PATH`, model: `CLAUDE_MODEL` |
 | `opencode` | OpenCode CLI (`opencode run -m openrouter/<model>`) | Needs `OPENROUTER_API_KEY`; model: `OPENCODE_MODEL` (default `particle-ai/particle-1`) |
 | `crush` | Crush CLI (`crush run -q`) | Needs `OPENROUTER_API_KEY`; model: `CRUSH_MODEL` |
-| `openrouter` | OpenRouter API (text only) | Needs `OPENROUTER_API_KEY`; model: `OPENROUTER_MODEL`; optional `OPENROUTER_MAX_TOKENS` (32768) and `OPENROUTER_REASONING_EFFORT` (`minimal`/`low`/`medium`/`high`, default `medium`; `none`, `off` or `disabled` to omit) |
+| `openrouter` | OpenRouter API (text only) | Needs `OPENROUTER_API_KEY`; model: `OPENROUTER_MODEL`; optional `OPENROUTER_MAX_TOKENS` (131072) and `OPENROUTER_REASONING_EFFORT` (`minimal`/`low`/`medium`/`high`, default `medium`; `none`, `off` or `disabled` to omit) |
 | `gemini`, `codex` | -- | **Disabled by project policy.** Requests fail with exit code 5; in agent lists (`--agents claude,gemini`) they are skipped with a warning |
 
 An explicitly requested agent (`[Approved][Crush]`, `--agent crush`) is never
