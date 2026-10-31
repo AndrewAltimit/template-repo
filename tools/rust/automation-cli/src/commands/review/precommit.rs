@@ -43,11 +43,64 @@ pub struct PrecommitArgs {
     pub fail_on_error: bool,
 }
 
+/// Env override for the agent autoformat gate (see [`Gate::from_env`]).
+pub(super) const AUTOFORMAT_CMD_ENV: &str = "AGENT_AUTOFORMAT_CMD";
+/// Env override for the agent lint gate (see [`Gate::from_env`]).
+pub(super) const LINT_CMD_ENV: &str = "AGENT_LINT_CMD";
+/// Env override for the agent test gate (see [`Gate::from_env`]).
+pub(super) const TEST_CMD_ENV: &str = "AGENT_TEST_CMD";
+
+/// How an agent gate (autoformat, lint, test) runs in this repository.
+///
+/// The built-in stages assume template-repo's CI layout (`python-ci` /
+/// `rust-ci` compose services). Other repositories using these tools set the
+/// `AGENT_*_CMD` variables to their own command, or to an empty string to
+/// turn the gate off.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum Gate {
+    /// Built-in `automation-cli ci run <stage>` stages.
+    Stages(Vec<String>),
+    /// Repository-specific shell command, run with `bash -c` at the repo root.
+    Command(String),
+    /// Disabled by an empty override.
+    Skip,
+}
+
+impl Gate {
+    /// Resolve a gate: `var` unset means the default stages, set but blank
+    /// means skip, anything else is a shell command.
+    pub(super) fn from_env(
+        lookup: impl Fn(&str) -> Option<String>,
+        var: &str,
+        default_stages: &[&str],
+    ) -> Self {
+        match lookup(var) {
+            None => Self::Stages(default_stages.iter().map(|s| (*s).to_string()).collect()),
+            Some(cmd) if cmd.trim().is_empty() => Self::Skip,
+            Some(cmd) => Self::Command(cmd.trim().to_string()),
+        }
+    }
+
+    /// Run every step of the gate with captured output.
+    pub(super) fn run_captured(&self) -> Vec<CheckResult> {
+        match self {
+            Self::Stages(stages) => stages.iter().map(|s| run_ci_stage_captured(s)).collect(),
+            Self::Command(cmd) => vec![run_command_captured(cmd)],
+            Self::Skip => Vec::new(),
+        }
+    }
+}
+
 /// Result of a single precommit check.
 pub struct CheckResult {
     pub name: String,
     pub passed: bool,
+    /// The check could not run at all (missing compose service, unknown
+    /// stage, no compose file), as opposed to running and finding problems.
+    pub unavailable: bool,
     pub error_output: String,
+    /// Combined stdout + stderr, for callers that apply their own filter.
+    pub raw_output: String,
 }
 
 /// Aggregated result of all precommit checks.
@@ -73,7 +126,11 @@ impl PrecommitResult {
         }
 
         for check in &self.checks {
-            let status = if check.passed { "PASS" } else { "FAIL" };
+            let status = match (check.passed, check.unavailable) {
+                (true, _) => "PASS",
+                (false, true) => "UNAVAILABLE",
+                (false, false) => "FAIL",
+            };
             out.push_str(&format!("[{status}] {}\n", check.name));
             if !check.passed && !check.error_output.is_empty() {
                 out.push_str(&check.error_output);
@@ -177,9 +234,22 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
     Ok(())
 }
 
-/// Run autoformat via the CI stage, then restage any files that were modified.
-/// Returns the number of files restaged.
+/// Run the autoformat gate (`AGENT_AUTOFORMAT_CMD`, default the `autoformat`
+/// CI stage), then restage any files that were modified. Returns the number
+/// of files restaged.
 pub(super) fn run_autoformat_and_restage() -> Result<u32> {
+    let gate = Gate::from_env(
+        |k| std::env::var(k).ok(),
+        AUTOFORMAT_CMD_ENV,
+        &["autoformat"],
+    );
+    if gate == Gate::Skip {
+        output::info(&format!(
+            "Autoformat skipped ({AUTOFORMAT_CMD_ENV} is empty)"
+        ));
+        return Ok(0);
+    }
+
     let staged_before = git_name_list(&["diff", "--cached", "--name-only"])?;
     // Snapshot unstaged tracked files before formatting so we can isolate
     // formatter-modified files from pre-existing edits afterwards.
@@ -189,8 +259,19 @@ pub(super) fn run_autoformat_and_restage() -> Result<u32> {
 
     // Formatting is best effort: a failure is reported but restaging still
     // happens for whatever the formatters did manage to change.
-    if let Err(e) = run_ci_stage("autoformat") {
-        output::warn(&format!("autoformat stage failed: {e}"));
+    for check in gate.run_captured() {
+        if check.unavailable {
+            output::warn(&format!(
+                "autoformat stage '{}' is not available in this repository; set \
+                 {AUTOFORMAT_CMD_ENV} to this repo's formatter (or to an empty string to skip)",
+                check.name
+            ));
+        } else if !check.passed {
+            output::warn(&format!(
+                "autoformat '{}' failed:\n{}",
+                check.name, check.error_output
+            ));
+        }
     }
 
     // Restage previously-staged files so format changes are included.
@@ -232,21 +313,9 @@ fn git_name_list(args: &[&str]) -> Result<Vec<String>> {
         .collect())
 }
 
-/// Run `automation-cli ci run <stage>` (this binary) with live output.
-fn run_ci_stage(stage: &str) -> Result<()> {
-    let status = process::self_command()?
-        .args(["ci", "run", stage])
-        .stdin(Stdio::null())
-        .status()?;
-    if !status.success() {
-        bail!("ci run {stage} exited with {status}");
-    }
-    Ok(())
-}
-
 /// Run a CI stage (via this binary) and capture its output for error
 /// reporting. Never fails: a stage that cannot even be started is reported
-/// as a failed check with the spawn error as its output.
+/// as an unavailable check with the spawn error as its output.
 pub(super) fn run_ci_stage_captured(stage: &str) -> CheckResult {
     let raw = process::self_command().and_then(|mut cmd| {
         Ok(cmd
@@ -254,30 +323,66 @@ pub(super) fn run_ci_stage_captured(stage: &str) -> CheckResult {
             .stdin(Stdio::null())
             .output()?)
     });
+    check_from_output(stage, raw, true)
+}
 
+/// Run a repository-provided shell command at the repo root, capturing output.
+fn run_command_captured(cmd: &str) -> CheckResult {
+    let raw = std::process::Command::new("bash")
+        .args(["-c", cmd])
+        .stdin(Stdio::null())
+        .output()
+        .map_err(anyhow::Error::from);
+    check_from_output(cmd, raw, false)
+}
+
+/// Build a [`CheckResult`]. `builtin_stage` enables detection of stages that
+/// cannot run in this repository (their failure is not a code problem).
+fn check_from_output(
+    name: &str,
+    raw: Result<std::process::Output>,
+    builtin_stage: bool,
+) -> CheckResult {
     match raw {
-        Ok(output) => {
-            let passed = output.status.success();
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let passed = out.status.success();
+            let raw_output = format!("{stdout}\n{stderr}");
+            let unavailable = !passed && builtin_stage && stage_unavailable(&raw_output);
             let error_output = if passed {
                 String::new()
             } else {
-                extract_error_lines(
-                    &String::from_utf8_lossy(&output.stdout),
-                    &String::from_utf8_lossy(&output.stderr),
-                )
+                extract_error_lines(&stdout, &stderr)
             };
             CheckResult {
-                name: stage.to_string(),
+                name: name.to_string(),
                 passed,
+                unavailable,
                 error_output,
+                raw_output,
             }
         },
         Err(e) => CheckResult {
-            name: stage.to_string(),
+            name: name.to_string(),
             passed: false,
-            error_output: format!("Failed to execute stage: {e}"),
+            unavailable: true,
+            error_output: format!("Failed to execute: {e}"),
+            raw_output: String::new(),
         },
     }
+}
+
+/// True when a built-in stage failed because this repository lacks the CI
+/// infrastructure it needs, rather than because the code has problems.
+fn stage_unavailable(output: &str) -> bool {
+    const MARKERS: &[&str] = &[
+        "no such service:",
+        "unknown stage:",
+        "no configuration file provided",
+    ];
+    let lower = output.to_lowercase();
+    MARKERS.iter().any(|m| lower.contains(m))
 }
 
 /// Extract the most relevant error lines from combined stdout/stderr output.
@@ -325,11 +430,15 @@ mod tests {
                     name: "lint-basic".to_string(),
                     passed: true,
                     error_output: String::new(),
+                    unavailable: false,
+                    raw_output: String::new(),
                 },
                 CheckResult {
                     name: "test".to_string(),
                     passed: false,
                     error_output: "src/foo.rs:10: error[E0308]: mismatched types".to_string(),
+                    unavailable: false,
+                    raw_output: String::new(),
                 },
             ],
             autoformat_changed_files: 3,
@@ -349,6 +458,8 @@ mod tests {
                 name: "format".to_string(),
                 passed: true,
                 error_output: String::new(),
+                unavailable: false,
+                raw_output: String::new(),
             }],
             autoformat_changed_files: 0,
         };
@@ -363,11 +474,15 @@ mod tests {
                     name: "format".to_string(),
                     passed: true,
                     error_output: String::new(),
+                    unavailable: false,
+                    raw_output: String::new(),
                 },
                 CheckResult {
                     name: "lint-full".to_string(),
                     passed: false,
                     error_output: "error: unused import".to_string(),
+                    unavailable: false,
+                    raw_output: String::new(),
                 },
             ],
             autoformat_changed_files: 0,
@@ -431,5 +546,81 @@ mod tests {
         };
         assert!(result.summary().is_empty());
         assert!(result.all_passed());
+    }
+
+    #[test]
+    fn gate_from_env_default_skip_and_command() {
+        let unset = |_: &str| None;
+        assert_eq!(
+            Gate::from_env(unset, LINT_CMD_ENV, &["lint-basic"]),
+            Gate::Stages(vec!["lint-basic".to_string()])
+        );
+
+        let empty = |_: &str| Some("  ".to_string());
+        assert_eq!(
+            Gate::from_env(empty, LINT_CMD_ENV, &["lint-basic"]),
+            Gate::Skip
+        );
+        assert!(Gate::Skip.run_captured().is_empty());
+
+        let cmd =
+            |k: &str| (k == LINT_CMD_ENV).then(|| " cargo clippy -- -D warnings ".to_string());
+        assert_eq!(
+            Gate::from_env(cmd, LINT_CMD_ENV, &["lint-basic"]),
+            Gate::Command("cargo clippy -- -D warnings".to_string())
+        );
+        // Only the named variable is consulted.
+        assert_eq!(
+            Gate::from_env(cmd, AUTOFORMAT_CMD_ENV, &["autoformat"]),
+            Gate::Stages(vec!["autoformat".to_string()])
+        );
+    }
+
+    #[test]
+    fn stage_unavailable_detects_missing_infra() {
+        // Observed in a repo without template-repo's compose services.
+        assert!(stage_unavailable(
+            "no such service: python-ci\nError: docker compose ... exited with exit status: 1"
+        ));
+        assert!(stage_unavailable("Error: unknown stage: lint-basic"));
+        assert!(stage_unavailable(
+            "no configuration file provided: not found"
+        ));
+        assert!(!stage_unavailable("src/foo.py:1:1: F401 unused import"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn check_from_output_flags_unavailable_only_for_builtin_failures() {
+        use std::os::unix::process::ExitStatusExt;
+        let out = |code: i32, stderr: &str| {
+            Ok(std::process::Output {
+                status: std::process::ExitStatus::from_raw(code << 8),
+                stdout: Vec::new(),
+                stderr: stderr.as_bytes().to_vec(),
+            })
+        };
+        let c = check_from_output("lint-basic", out(1, "no such service: python-ci"), true);
+        assert!(!c.passed && c.unavailable);
+        // A user command printing the same text is a real failure.
+        let c = check_from_output("make lint", out(1, "no such service: python-ci"), false);
+        assert!(!c.passed && !c.unavailable);
+        let c = check_from_output("lint-basic", out(0, ""), true);
+        assert!(c.passed && !c.unavailable);
+    }
+
+    #[test]
+    fn summary_marks_unavailable_checks() {
+        let result = PrecommitResult {
+            checks: vec![CheckResult {
+                name: "lint-basic".to_string(),
+                passed: false,
+                unavailable: true,
+                error_output: "no such service: python-ci".to_string(),
+                raw_output: String::new(),
+            }],
+            autoformat_changed_files: 0,
+        };
+        assert!(result.summary().contains("[UNAVAILABLE] lint-basic"));
     }
 }

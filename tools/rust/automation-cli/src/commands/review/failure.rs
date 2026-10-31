@@ -3,12 +3,11 @@
 //!
 //! GitHub outputs: `exceeded_max`, `made_changes`, `pushed`, `commit_sha`.
 
-use std::process::Stdio;
-
 use anyhow::{Result, bail};
 use clap::Args;
 
 use super::common::{self, CLAUDE_TIMEOUT};
+use super::precommit::{Gate, LINT_CMD_ENV, TEST_CMD_ENV};
 use crate::shared::{output, process, project};
 
 /// Error extraction limits
@@ -144,7 +143,16 @@ pub fn run(args: FailureArgs) -> Result<()> {
     }
 
     output::header("Step 2: Checking for remaining lint issues");
-    let lint_output = capture_stage_errors(&failures.lint_stages(), MAX_LINT_ERROR_LINES, |l| {
+    let lint_gate = if failures.lint.is_empty() {
+        Gate::Skip
+    } else {
+        Gate::from_env(
+            |k| std::env::var(k).ok(),
+            LINT_CMD_ENV,
+            &failures.lint_stages(),
+        )
+    };
+    let lint_output = capture_gate_errors(&lint_gate, MAX_LINT_ERROR_LINES, |l| {
         l.contains(": error")
             || l.contains(": warning")
             || l.contains("Error:")
@@ -153,7 +161,8 @@ pub fn run(args: FailureArgs) -> Result<()> {
     });
     let test_output = if failures.test {
         output::header("Step 2b: Capturing test failure output");
-        capture_stage_errors(&["test"], MAX_TEST_ERROR_LINES, |l| {
+        let test_gate = Gate::from_env(|k| std::env::var(k).ok(), TEST_CMD_ENV, &["test"]);
+        capture_gate_errors(&test_gate, MAX_TEST_ERROR_LINES, |l| {
             l.contains("FAILED")
                 || l.contains("AssertionError")
                 || l.contains("Error:")
@@ -243,27 +252,21 @@ fn invoke_claude(prompt: &str) -> Result<()> {
     Ok(())
 }
 
-/// Run each CI stage (via this binary), keeping only lines matching `keep`,
-/// capped at `max_lines` per stage.
-fn capture_stage_errors(stages: &[&str], max_lines: usize, keep: fn(&str) -> bool) -> String {
+/// Run a gate and collect the error lines `keep` selects. Checks that cannot
+/// run in this repository are logged and skipped rather than sent to Claude.
+fn capture_gate_errors(gate: &Gate, max_lines: usize, keep: fn(&str) -> bool) -> String {
     let mut out = String::new();
-    for stage in stages {
-        output::step(&format!("Capturing {stage} errors..."));
-        let raw = match process::self_command()
-            .and_then(|mut c| Ok(c.args(["ci", "run", stage]).stdin(Stdio::null()).output()?))
-        {
-            Ok(raw) => raw,
-            Err(e) => {
-                output::warn(&format!("could not run stage {stage}: {e}"));
-                continue;
-            },
-        };
-        let combined = format!(
-            "{}\n{}",
-            String::from_utf8_lossy(&raw.stdout),
-            String::from_utf8_lossy(&raw.stderr)
-        );
-        let lines = filter_lines(&combined, max_lines, keep);
+    for check in gate.run_captured() {
+        output::step(&format!("Capturing {} errors...", check.name));
+        if check.unavailable {
+            output::warn(&format!(
+                "'{}' is not available in this repository; skipping. Set {LINT_CMD_ENV} / \
+                 {TEST_CMD_ENV} to this repo's commands (or to an empty string to skip)",
+                check.name
+            ));
+            continue;
+        }
+        let lines = filter_lines(&check.raw_output, max_lines, keep);
         if !lines.is_empty() {
             if !out.is_empty() {
                 out.push('\n');
