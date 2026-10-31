@@ -192,10 +192,14 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
         for stage_name in split_stages(stages.as_deref()) {
             output::step(&format!("Running {label}: {stage_name}..."));
             let check = run_ci_stage_captured(stage_name);
-            if check.passed {
-                output::success(&format!("{stage_name}: passed"));
-            } else {
-                output::fail(&format!("{stage_name}: failed"));
+            // An unavailable stage still counts as a failure here: a caller
+            // that asked for this gate explicitly should not pass silently.
+            match (check.passed, check.unavailable) {
+                (true, _) => output::success(&format!("{stage_name}: passed")),
+                (false, true) => output::fail(&format!(
+                    "{stage_name}: unavailable in this repository (counted as failed)"
+                )),
+                (false, false) => output::fail(&format!("{stage_name}: failed")),
             }
             result.checks.push(check);
         }
@@ -327,12 +331,15 @@ pub(super) fn run_ci_stage_captured(stage: &str) -> CheckResult {
 }
 
 /// Run a repository-provided shell command at the repo root, capturing output.
+/// The root is set explicitly rather than relying on the caller's cwd.
 fn run_command_captured(cmd: &str) -> CheckResult {
-    let raw = std::process::Command::new("bash")
-        .args(["-c", cmd])
-        .stdin(Stdio::null())
-        .output()
-        .map_err(anyhow::Error::from);
+    let raw = project::find_project_root().and_then(|root| {
+        Ok(std::process::Command::new("bash")
+            .args(["-c", cmd])
+            .current_dir(root)
+            .stdin(Stdio::null())
+            .output()?)
+    });
     check_from_output(cmd, raw, false)
 }
 
@@ -349,7 +356,7 @@ fn check_from_output(
             let stderr = String::from_utf8_lossy(&out.stderr);
             let passed = out.status.success();
             let raw_output = format!("{stdout}\n{stderr}");
-            let unavailable = !passed && builtin_stage && stage_unavailable(&raw_output);
+            let unavailable = !passed && builtin_stage && stage_unavailable(&stderr);
             let error_output = if passed {
                 String::new()
             } else {
@@ -375,14 +382,26 @@ fn check_from_output(
 
 /// True when a built-in stage failed because this repository lacks the CI
 /// infrastructure it needs, rather than because the code has problems.
-fn stage_unavailable(output: &str) -> bool {
+///
+/// Only the last few stderr lines are checked: that is where compose and
+/// `ci run` report these errors before exiting, and it keeps a real lint or
+/// test log that merely mentions the same text from being hidden.
+fn stage_unavailable(stderr: &str) -> bool {
     const MARKERS: &[&str] = &[
         "no such service:",
         "unknown stage:",
         "no configuration file provided",
     ];
-    let lower = output.to_lowercase();
-    MARKERS.iter().any(|m| lower.contains(m))
+    const TAIL_LINES: usize = 10;
+    stderr
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .rev()
+        .take(TAIL_LINES)
+        .any(|l| {
+            let lower = l.to_lowercase();
+            MARKERS.iter().any(|m| lower.contains(m))
+        })
 }
 
 /// Extract the most relevant error lines from combined stdout/stderr output.
@@ -593,6 +612,27 @@ mod tests {
             "no configuration file provided: not found"
         ));
         assert!(!stage_unavailable("src/foo.py:1:1: F401 unused import"));
+
+        // A real log that merely mentions the text early on is not hidden:
+        // only the stderr tail, where compose / ci run report it, counts.
+        let mut log = String::from("test asserts 'no such service: x' message\n");
+        for i in 0..20 {
+            log.push_str(&format!("FAILED tests/test_{i}.py::test_x\n"));
+        }
+        assert!(!stage_unavailable(&log));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn check_from_output_ignores_markers_on_stdout() {
+        use std::os::unix::process::ExitStatusExt;
+        let raw = Ok(std::process::Output {
+            status: std::process::ExitStatus::from_raw(1 << 8),
+            stdout: b"assert msg == 'no such service: python-ci'\n".to_vec(),
+            stderr: b"1 failed\n".to_vec(),
+        });
+        let c = check_from_output("test", raw, true);
+        assert!(!c.passed && !c.unavailable);
     }
 
     #[cfg(unix)]

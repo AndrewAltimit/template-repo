@@ -317,21 +317,23 @@ fn extract_content(body: &str, max_tokens: u32) -> Result<String> {
 /// Close a fenced code block left open by truncation, so it does not swallow
 /// the footer the reviewer appends after the agent output.
 fn close_open_fence(text: &str) -> String {
-    /// Leading run of ` or ~ (length >= 3) on a line, i.e. a fence marker.
-    fn fence(line: &str) -> Option<(char, usize)> {
+    /// Leading run of ` or ~ (length >= 3) on a line, i.e. a fence marker,
+    /// plus whether anything (an info string) follows the run.
+    fn fence(line: &str) -> Option<(char, usize, bool)> {
         let t = line.trim_start();
         let c = t.chars().next().filter(|c| *c == '`' || *c == '~')?;
         let n = t.chars().take_while(|x| *x == c).count();
-        (n >= 3).then_some((c, n))
+        let has_info = !t[n * c.len_utf8()..].trim().is_empty();
+        (n >= 3).then_some((c, n, has_info))
     }
 
     // CommonMark: a fence closes on the same character with a run at least
-    // as long as the opener.
+    // as long as the opener and nothing after it (a closer has no info string).
     let mut open: Option<(char, usize)> = None;
     for line in text.lines() {
         match (open, fence(line)) {
-            (None, Some(f)) => open = Some(f),
-            (Some((c, n)), Some((c2, n2))) if c == c2 && n2 >= n => open = None,
+            (None, Some((c, n, _))) => open = Some((c, n)),
+            (Some((c, n)), Some((c2, n2, false))) if c == c2 && n2 >= n => open = None,
             _ => {},
         }
     }
@@ -454,6 +456,18 @@ mod tests {
         // A longer opener needs an equally long closer.
         assert_eq!(close_open_fence("````\n```\nb"), "````\n```\nb\n````");
         assert_eq!(close_open_fence("no fences"), "no fences");
+        // A fence with an info string cannot close a block, so a nested
+        // example opener leaves the outer block open.
+        assert_eq!(
+            close_open_fence("````md\n```rust\nlet x = 1;"),
+            "````md\n```rust\nlet x = 1;\n````"
+        );
+        assert_eq!(
+            close_open_fence("```\na\n```rust\nb"),
+            "```\na\n```rust\nb\n```"
+        );
+        // Trailing whitespace on a closer is fine.
+        assert_eq!(close_open_fence("```\na\n```  "), "```\na\n```  ");
     }
 
     #[test]

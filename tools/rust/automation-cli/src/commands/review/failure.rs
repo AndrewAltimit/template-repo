@@ -255,7 +255,13 @@ fn capture_gate_errors(gate: &Gate, max_lines: usize, keep: fn(&str) -> bool) ->
             ));
             continue;
         }
-        let lines = filter_lines(&check.raw_output, max_lines, keep);
+        let mut lines = filter_lines(&check.raw_output, max_lines, keep);
+        if lines.is_empty() && !check.passed {
+            // The filter knows ruff/pytest/rustc shapes; for any other tool
+            // fall back to the generic extract (error lines, else the tail)
+            // so Claude never gets a failed gate with no output.
+            lines = check.error_output.clone();
+        }
         if !lines.is_empty() {
             if !out.is_empty() {
                 out.push('\n');
@@ -380,6 +386,19 @@ fn format_handler_comment(iteration: u32, made_changes: bool, sha: &str, failure
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn capture_falls_back_when_filter_keeps_nothing() {
+        // Output in a shape none of the filters know still reaches Claude.
+        let gate = Gate::Command("echo 'mytool: style problem in a.c' >&2; exit 1".into());
+        let out = capture_gate_errors(&gate, 50, is_lint_line);
+        assert!(out.contains("style problem in a.c"), "{out}");
+
+        // A passing gate contributes nothing.
+        let gate = Gate::Command("echo all good".into());
+        assert!(capture_gate_errors(&gate, 50, is_lint_line).is_empty());
+    }
 
     /// Real clippy / cargo test output shapes (e.g. AGENT_LINT_CMD set to
     /// `cargo clippy ... -D warnings` in a Rust-only repository).
