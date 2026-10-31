@@ -308,12 +308,22 @@ fn is_test_line(l: &str) -> bool {
         // pytest collection errors: the "ERROR collecting <file>" header and
         // the "ERROR <file> - ..." short-summary line name the broken file.
         || l.contains("ERROR collecting")
-        || l.starts_with("ERROR ")
+        || is_pytest_error_summary(l)
         || l.contains("AssertionError")
         || l.contains("Error:")
         || l.contains("Traceback")
         || l.contains("panicked at")
         || is_rust_error(l)
+}
+
+/// pytest's short-summary `ERROR <path>.py[::test] - ...` line. The path must
+/// follow a single space: captured-log lines pad the level name
+/// (`ERROR    pkg.mod:file.py:12 msg`), so a noisy suite's logs can't fill the
+/// line cap ahead of the `FAILED` lines.
+fn is_pytest_error_summary(l: &str) -> bool {
+    l.strip_prefix("ERROR ")
+        .and_then(|rest| rest.split(' ').next())
+        .is_some_and(|path| path.contains(".py"))
 }
 
 /// Keep the lines `keep` selects, plus the ` --> file:line:col` location
@@ -463,10 +473,15 @@ mod tests {
         // pytest collection errors keep the line naming the broken file.
         let collect = "______ ERROR collecting tests/test_x.py ______\n\
                        ERROR tests/test_y.py\n\
+                       ERROR tests/test_z.py::test_db - RuntimeError\n\
+                       ERROR    pkg.mod:file.py:12 connection reset\n\
                        collected 0 items / 2 errors";
         let kept = filter_lines(collect, 50, is_test_line);
         assert!(kept.contains("ERROR collecting tests/test_x.py"), "{kept}");
         assert!(kept.contains("ERROR tests/test_y.py"), "{kept}");
+        assert!(kept.contains("ERROR tests/test_z.py::test_db"), "{kept}");
+        // pytest captured-log lines at ERROR level are not failure lines.
+        assert!(!kept.contains("connection reset"), "{kept}");
         assert!(!kept.contains("collected 0 items"), "{kept}");
 
         // Compile warnings before the results must not crowd the failures
