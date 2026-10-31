@@ -305,6 +305,10 @@ fn is_lint_line(l: &str) -> bool {
 /// the failures Claude actually needs.
 fn is_test_line(l: &str) -> bool {
     l.contains("FAILED")
+        // pytest collection errors: the "ERROR collecting <file>" header and
+        // the "ERROR <file> - ..." short-summary line name the broken file.
+        || l.contains("ERROR collecting")
+        || l.starts_with("ERROR ")
         || l.contains("AssertionError")
         || l.contains("Error:")
         || l.contains("Traceback")
@@ -455,6 +459,15 @@ mod tests {
         assert!(kept.contains("... FAILED"), "{kept}");
         assert!(kept.contains("panicked at"), "{kept}");
         assert!(!kept.contains("running 12 tests"), "{kept}");
+
+        // pytest collection errors keep the line naming the broken file.
+        let collect = "______ ERROR collecting tests/test_x.py ______\n\
+                       ERROR tests/test_y.py\n\
+                       collected 0 items / 2 errors";
+        let kept = filter_lines(collect, 50, is_test_line);
+        assert!(kept.contains("ERROR collecting tests/test_x.py"), "{kept}");
+        assert!(kept.contains("ERROR tests/test_y.py"), "{kept}");
+        assert!(!kept.contains("collected 0 items"), "{kept}");
 
         // Compile warnings before the results must not crowd the failures
         // out of the capped test capture.
