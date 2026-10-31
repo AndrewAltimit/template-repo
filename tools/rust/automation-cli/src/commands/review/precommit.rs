@@ -404,6 +404,8 @@ fn extract_error_lines(stdout: &str, stderr: &str) -> String {
                 || lower.contains("undefined")
                 || lower.contains("unused")
                 || lower.contains("mismatched")
+                // rustc/clippy location line under each diagnostic
+                || l.trim_start().starts_with("--> ")
         })
         .take(MAX_ERROR_LINES)
         .collect();
@@ -499,6 +501,10 @@ mod tests {
         assert!(result.contains("unused variable"));
         assert!(!result.contains("Building"));
         assert!(!result.contains("Finished"));
+
+        // clippy's location line is kept so the agent knows where to look.
+        let result = extract_error_lines("warning: unused import\n  --> src/lib.rs:3:5\n", "");
+        assert!(result.contains("--> src/lib.rs:3:5"), "{result}");
     }
 
     #[test]

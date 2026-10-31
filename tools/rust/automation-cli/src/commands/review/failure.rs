@@ -152,22 +152,11 @@ pub fn run(args: FailureArgs) -> Result<()> {
             &failures.lint_stages(),
         )
     };
-    let lint_output = capture_gate_errors(&lint_gate, MAX_LINT_ERROR_LINES, |l| {
-        l.contains(": error")
-            || l.contains(": warning")
-            || l.contains("Error:")
-            || l.contains("FAILED")
-            || l.contains("Found ")
-    });
+    let lint_output = capture_gate_errors(&lint_gate, MAX_LINT_ERROR_LINES, is_lint_line);
     let test_output = if failures.test {
         output::header("Step 2b: Capturing test failure output");
         let test_gate = Gate::from_env(|k| std::env::var(k).ok(), TEST_CMD_ENV, &["test"]);
-        capture_gate_errors(&test_gate, MAX_TEST_ERROR_LINES, |l| {
-            l.contains("FAILED")
-                || l.contains("AssertionError")
-                || l.contains("Error:")
-                || l.contains("Traceback")
-        })
+        capture_gate_errors(&test_gate, MAX_TEST_ERROR_LINES, is_test_line)
     } else {
         String::new()
     };
@@ -277,6 +266,37 @@ fn capture_gate_errors(gate: &Gate, max_lines: usize, keep: fn(&str) -> bool) ->
     out
 }
 
+/// rustc/clippy diagnostic lines: `error: ...`, `error[E0308]: ...`,
+/// `warning: ...`, and the ` --> file:line:col` location that follows them.
+fn is_rust_diagnostic(l: &str) -> bool {
+    let t = l.trim_start();
+    t.starts_with("error:")
+        || t.starts_with("error[")
+        || t.starts_with("warning:")
+        || t.starts_with("--> ")
+}
+
+/// Lint lines worth showing Claude: ruff/flake8 (`file:1:1: F401`, `Found N
+/// errors`) and rustc/clippy diagnostics.
+fn is_lint_line(l: &str) -> bool {
+    l.contains(": error")
+        || l.contains(": warning")
+        || l.contains("Error:")
+        || l.contains("FAILED")
+        || l.contains("Found ")
+        || is_rust_diagnostic(l)
+}
+
+/// Test failure lines: pytest and `cargo test` (`... FAILED`, panics).
+fn is_test_line(l: &str) -> bool {
+    l.contains("FAILED")
+        || l.contains("AssertionError")
+        || l.contains("Error:")
+        || l.contains("Traceback")
+        || l.contains("panicked at")
+        || is_rust_diagnostic(l)
+}
+
 fn filter_lines(text: &str, max_lines: usize, keep: fn(&str) -> bool) -> String {
     text.lines()
         .filter(|l| keep(l))
@@ -360,6 +380,39 @@ fn format_handler_comment(iteration: u32, made_changes: bool, sha: &str, failure
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Real clippy / cargo test output shapes (e.g. AGENT_LINT_CMD set to
+    /// `cargo clippy ... -D warnings` in a Rust-only repository).
+    #[test]
+    fn filters_keep_rust_diagnostics() {
+        let clippy = "    Checking oasis-css v0.1.0 (/app/crates/oasis-css)\n\
+                      warning: unused import: `std::fmt`\n \
+                      --> crates/oasis-css/src/lib.rs:3:5\n\
+                      error[E0308]: mismatched types\n\
+                      error: could not compile `oasis-css` (lib) due to 1 previous error\n\
+                      Container rust-ci-run-1 Creating";
+        let kept = filter_lines(clippy, 50, is_lint_line);
+        assert!(kept.contains("unused import"), "{kept}");
+        assert!(
+            kept.contains("--> crates/oasis-css/src/lib.rs:3:5"),
+            "{kept}"
+        );
+        assert!(kept.contains("error[E0308]"), "{kept}");
+        assert!(kept.contains("could not compile"), "{kept}");
+        assert!(!kept.contains("Checking"), "{kept}");
+        assert!(!kept.contains("Container"), "{kept}");
+
+        // ruff output still matches.
+        assert!(is_lint_line("src/a.py:1:1: F401 unused; Found 1 error"));
+
+        let test = "test cascade::tests::nth ... FAILED\n\
+                    thread 'cascade::tests::nth' panicked at crates/oasis-css/src/x.rs:9:5:\n\
+                    running 12 tests";
+        let kept = filter_lines(test, 50, is_test_line);
+        assert!(kept.contains("... FAILED"), "{kept}");
+        assert!(kept.contains("panicked at"), "{kept}");
+        assert!(!kept.contains("running 12 tests"), "{kept}");
+    }
 
     fn env_from(pairs: &'static [(&'static str, &'static str)]) -> impl Fn(&str) -> Option<String> {
         move |k| {
