@@ -247,10 +247,10 @@ fn extract_content(body: &str, max_tokens: u32) -> Result<String> {
         // carry a `text` field never leak into the review.
         Some(serde_json::Value::Array(parts)) => parts
             .iter()
-            .filter(|p| {
-                p.get("type")
-                    .and_then(|t| t.as_str())
-                    .is_none_or(|t| t == "text")
+            .filter(|p| match p.get("type") {
+                None => true,
+                Some(serde_json::Value::String(t)) => t == "text",
+                Some(_) => false,
             })
             .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
             .collect(),
@@ -259,15 +259,13 @@ fn extract_content(body: &str, max_tokens: u32) -> Result<String> {
         Some(_) => return Err(unexpected()),
     };
 
+    // Actual usage, reported alongside the configured budget in case the
+    // provider clamped `max_tokens` below what we requested.
+    let usage_u64 = |ptr: &str| json.pointer(ptr).and_then(|r| r.as_u64());
+    let usage = |ptr: &str| usage_u64(ptr).map_or_else(|| "unknown".to_string(), |r| r.to_string());
+
     if content.trim().is_empty() {
         if truncated {
-            // Report actual usage as well as the configured budget, in case
-            // the provider clamped `max_tokens` below what we requested.
-            let usage = |ptr: &str| {
-                json.pointer(ptr)
-                    .and_then(|r| r.as_u64())
-                    .map_or_else(|| "unknown".to_string(), |r| r.to_string())
-            };
             return Err(Error::Config(format!(
                 "OpenRouter model hit max_tokens (requested {}) before writing any review \
                  text (completion tokens: {}, reasoning tokens: {}); raise \
@@ -295,21 +293,52 @@ fn extract_content(body: &str, max_tokens: u32) -> Result<String> {
     }
 
     if truncated {
+        // Prefer what the provider actually allowed over what we requested.
+        let limit = usage_u64("/usage/completion_tokens").unwrap_or(u64::from(max_tokens));
         tracing::warn!(
-            "OpenRouter review was cut off at max_tokens ({}); returning partial output",
+            "OpenRouter review was cut off at its output limit ({} tokens, requested {}); \
+             returning partial output",
+            limit,
             max_tokens
         );
         // Note goes first so readers of the posted comment see the review is
         // incomplete before reading sections that may be cut short.
         return Ok(format!(
-            "> **Review truncated:** the model hit its {}-token output limit, so later \
+            "> **Review truncated:** the model hit its output limit ({} tokens), so later \
              sections may be missing.\n\n{}",
-            max_tokens,
-            content.trim_end()
+            limit,
+            close_open_fence(content.trim_end())
         ));
     }
 
     Ok(content)
+}
+
+/// Close a fenced code block left open by truncation, so it does not swallow
+/// the footer the reviewer appends after the agent output.
+fn close_open_fence(text: &str) -> String {
+    /// Leading run of ` or ~ (length >= 3) on a line, i.e. a fence marker.
+    fn fence(line: &str) -> Option<(char, usize)> {
+        let t = line.trim_start();
+        let c = t.chars().next().filter(|c| *c == '`' || *c == '~')?;
+        let n = t.chars().take_while(|x| *x == c).count();
+        (n >= 3).then_some((c, n))
+    }
+
+    // CommonMark: a fence closes on the same character with a run at least
+    // as long as the opener.
+    let mut open: Option<(char, usize)> = None;
+    for line in text.lines() {
+        match (open, fence(line)) {
+            (None, Some(f)) => open = Some(f),
+            (Some((c, n)), Some((c2, n2))) if c == c2 && n2 >= n => open = None,
+            _ => {},
+        }
+    }
+    match open {
+        Some((c, n)) => format!("{text}\n{}", c.to_string().repeat(n)),
+        None => text.to_string(),
+    }
 }
 
 impl Default for OpenRouterAgent {
@@ -401,7 +430,30 @@ mod tests {
         let out = extract_content(body, 50).unwrap();
         // Truncation note leads so it is visible at the top of the comment.
         assert!(out.starts_with("> **Review truncated:**"), "{out}");
+        assert!(out.contains("(50 tokens)"), "{out}");
         assert!(out.ends_with("Partial review"), "{out}");
+
+        // A clamped budget is reported from usage, not from the request.
+        let clamped = r#"{"choices":[{"finish_reason":"length","message":{"content":"x"}}],"usage":{"completion_tokens":8192}}"#;
+        let out = extract_content(clamped, 32_768).unwrap();
+        assert!(out.contains("(8192 tokens)"), "{out}");
+
+        // Output cut inside a code block gets the fence closed so the
+        // reviewer's footer is not swallowed.
+        let fenced = r#"{"choices":[{"finish_reason":"length","message":{"content":"Issues:\n```rust\nlet x = 1;"}}]}"#;
+        let out = extract_content(fenced, 50).unwrap();
+        assert!(out.ends_with("let x = 1;\n```"), "{out}");
+    }
+
+    #[test]
+    fn test_close_open_fence() {
+        assert_eq!(close_open_fence("a\n```\nb\n```"), "a\n```\nb\n```");
+        assert_eq!(close_open_fence("a\n```py\nb"), "a\n```py\nb\n```");
+        // `~~~` blocks close with `~~~`; a ``` inside one does not close it.
+        assert_eq!(close_open_fence("~~~\n```\nb"), "~~~\n```\nb\n~~~");
+        // A longer opener needs an equally long closer.
+        assert_eq!(close_open_fence("````\n```\nb"), "````\n```\nb\n````");
+        assert_eq!(close_open_fence("no fences"), "no fences");
     }
 
     #[test]
@@ -413,6 +465,10 @@ mod tests {
         // `text`; untyped parts with `text` are kept.
         let mixed = r#"{"choices":[{"finish_reason":"stop","message":{"content":[{"type":"reasoning","text":"secret thoughts"},{"type":"text","text":"a"},{"text":"b"}]}}]}"#;
         assert_eq!(extract_content(mixed, 100).unwrap(), "ab");
+
+        // A present but non-string `type` is not treated as text.
+        let odd_type = r#"{"choices":[{"finish_reason":"stop","message":{"content":[{"type":5,"text":"x"},{"type":"text","text":"a"}]}}]}"#;
+        assert_eq!(extract_content(odd_type, 100).unwrap(), "a");
 
         let refusal =
             r#"{"choices":[{"finish_reason":"stop","message":{"content":null,"refusal":"no"}}]}"#;
