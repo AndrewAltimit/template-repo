@@ -119,7 +119,7 @@ fall back to (or are clamped toward) the default with a warning on stderr.
 | `OPENCODE_AUTO_CONSULT` | `true` | Advisory flag reported to clients; the server never consults on its own |
 | `OPENCODE_TIMEOUT` | `300` | Overall deadline in seconds per consultation, including retries (1-3600) |
 | `OPENCODE_MAX_PROMPT` | `32000` | Max characters of query + context; query has priority |
-| `OPENCODE_MAX_TOKENS` | `4096` | Default completion token limit |
+| `OPENCODE_MAX_TOKENS` | `16384` | Default completion token limit (reasoning models spend part of it on hidden reasoning) |
 | `OPENCODE_TEMPERATURE` | `0.3` | Default sampling temperature (0-2) |
 | `OPENCODE_MAX_RETRIES` | `2` | Retries for 408/429/5xx/connection errors (0-10) |
 | `OPENCODE_INCLUDE_HISTORY` | `true` | Replay the last 3 exchanges as chat turns |

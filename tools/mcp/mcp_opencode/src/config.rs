@@ -107,7 +107,7 @@ impl OpenCodeConfig {
             base_url,
             timeout_secs: env_num(lookup, "OPENCODE_TIMEOUT", 300, 1, 3600),
             max_prompt_chars: env_num(lookup, "OPENCODE_MAX_PROMPT", 32_000, 100, 2_000_000),
-            max_tokens: env_num(lookup, "OPENCODE_MAX_TOKENS", 4096, 1, 1_000_000),
+            max_tokens: env_num(lookup, "OPENCODE_MAX_TOKENS", 16_384, 1, 1_000_000),
             temperature: env_num(lookup, "OPENCODE_TEMPERATURE", 0.3, 0.0, 2.0),
             max_retries: env_num(lookup, "OPENCODE_MAX_RETRIES", 2, 0, 10),
             log_consultations: env_bool(lookup, "OPENCODE_LOG_CONSULTATIONS", true),
