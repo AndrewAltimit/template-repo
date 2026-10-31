@@ -7,7 +7,8 @@
 //! - `OPENROUTER_MAX_TOKENS`: completion budget (default 32768). Reasoning
 //!   models spend part of this on hidden reasoning before writing content.
 //! - `OPENROUTER_REASONING_EFFORT`: `minimal`/`low`/`medium`/`high`, or
-//!   `none` to omit the `reasoning` param entirely (default `medium`).
+//!   `none` (aliases `off`, `disabled`) to omit the `reasoning` param
+//!   entirely (default `medium`).
 
 use std::time::Duration;
 
@@ -241,9 +242,16 @@ fn extract_content(body: &str, max_tokens: u32) -> Result<String> {
 
     let content = match message.get("content") {
         Some(serde_json::Value::String(s)) => s.clone(),
-        // Some providers return content as an array of typed parts.
+        // Some providers return content as an array of typed parts. Keep only
+        // text parts (or untyped ones) so reasoning/thinking parts that also
+        // carry a `text` field never leak into the review.
         Some(serde_json::Value::Array(parts)) => parts
             .iter()
+            .filter(|p| {
+                p.get("type")
+                    .and_then(|t| t.as_str())
+                    .is_none_or(|t| t == "text")
+            })
             .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
             .collect(),
         // `null` content is expected when a reasoning model runs out of budget.
@@ -253,15 +261,20 @@ fn extract_content(body: &str, max_tokens: u32) -> Result<String> {
 
     if content.trim().is_empty() {
         if truncated {
-            let reasoning_tokens = json
-                .pointer("/usage/completion_tokens_details/reasoning_tokens")
-                .and_then(|r| r.as_u64())
-                .map_or_else(|| "unknown".to_string(), |r| r.to_string());
+            // Report actual usage as well as the configured budget, in case
+            // the provider clamped `max_tokens` below what we requested.
+            let usage = |ptr: &str| {
+                json.pointer(ptr)
+                    .and_then(|r| r.as_u64())
+                    .map_or_else(|| "unknown".to_string(), |r| r.to_string())
+            };
             return Err(Error::Config(format!(
-                "OpenRouter model hit max_tokens ({}) before writing any review text \
-                 (reasoning tokens used: {}); raise OPENROUTER_MAX_TOKENS or lower \
-                 OPENROUTER_REASONING_EFFORT",
-                max_tokens, reasoning_tokens
+                "OpenRouter model hit max_tokens (requested {}) before writing any review \
+                 text (completion tokens: {}, reasoning tokens: {}); raise \
+                 OPENROUTER_MAX_TOKENS or lower OPENROUTER_REASONING_EFFORT",
+                max_tokens,
+                usage("/usage/completion_tokens"),
+                usage("/usage/completion_tokens_details/reasoning_tokens")
             )));
         }
         if let Some(refusal) = message
@@ -286,10 +299,13 @@ fn extract_content(body: &str, max_tokens: u32) -> Result<String> {
             "OpenRouter review was cut off at max_tokens ({}); returning partial output",
             max_tokens
         );
+        // Note goes first so readers of the posted comment see the review is
+        // incomplete before reading sections that may be cut short.
         return Ok(format!(
-            "{}\n\n_(Review truncated: the model hit its {}-token output limit.)_",
-            content.trim_end(),
-            max_tokens
+            "> **Review truncated:** the model hit its {}-token output limit, so later \
+             sections may be missing.\n\n{}",
+            max_tokens,
+            content.trim_end()
         ));
     }
 
@@ -368,11 +384,13 @@ mod tests {
             r#""finish_reason":"length","native_finish_reason":"length","#,
             r#""message":{"role":"assistant","content":null,"refusal":null,"#,
             r#""reasoning":"Let me analyze the diff carefully for bugs."}}],"#,
-            r#""usage":{"completion_tokens_details":{"reasoning_tokens":4096}}}"#
+            r#""usage":{"completion_tokens":4000,"#,
+            r#""completion_tokens_details":{"reasoning_tokens":3990}}}"#
         );
         let msg = extract_content(body, 4096).unwrap_err().to_string();
-        assert!(msg.contains("max_tokens (4096)"), "{msg}");
-        assert!(msg.contains("reasoning tokens used: 4096"), "{msg}");
+        assert!(msg.contains("requested 4096"), "{msg}");
+        assert!(msg.contains("completion tokens: 4000"), "{msg}");
+        assert!(msg.contains("reasoning tokens: 3990"), "{msg}");
         assert!(msg.contains("OPENROUTER_MAX_TOKENS"), "{msg}");
     }
 
@@ -381,14 +399,20 @@ mod tests {
         let body =
             r#"{"choices":[{"finish_reason":"length","message":{"content":"Partial review"}}]}"#;
         let out = extract_content(body, 50).unwrap();
-        assert!(out.starts_with("Partial review"));
-        assert!(out.contains("truncated"));
+        // Truncation note leads so it is visible at the top of the comment.
+        assert!(out.starts_with("> **Review truncated:**"), "{out}");
+        assert!(out.ends_with("Partial review"), "{out}");
     }
 
     #[test]
     fn test_extract_content_parts_and_refusal() {
         let parts = r#"{"choices":[{"finish_reason":"stop","message":{"content":[{"type":"text","text":"a"},{"type":"text","text":"b"}]}}]}"#;
         assert_eq!(extract_content(parts, 100).unwrap(), "ab");
+
+        // Non-text parts (e.g. reasoning) are dropped even if they carry
+        // `text`; untyped parts with `text` are kept.
+        let mixed = r#"{"choices":[{"finish_reason":"stop","message":{"content":[{"type":"reasoning","text":"secret thoughts"},{"type":"text","text":"a"},{"text":"b"}]}}]}"#;
+        assert_eq!(extract_content(mixed, 100).unwrap(), "ab");
 
         let refusal =
             r#"{"choices":[{"finish_reason":"stop","message":{"content":null,"refusal":"no"}}]}"#;
