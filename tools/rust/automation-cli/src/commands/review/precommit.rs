@@ -81,6 +81,11 @@ impl Gate {
         }
     }
 
+    /// [`Gate::from_env`] against the process environment.
+    pub(super) fn from_process_env(var: &str, default_stages: &[&str]) -> Self {
+        Self::from_env(env_lookup, var, default_stages)
+    }
+
     /// Run every step of the gate with captured output.
     pub(super) fn run_captured(&self) -> Vec<CheckResult> {
         match self {
@@ -89,6 +94,13 @@ impl Gate {
             Self::Skip => Vec::new(),
         }
     }
+}
+
+/// Process-environment lookup for gate overrides. Uses `var_os` so a set but
+/// non-UTF-8 value still counts as set instead of silently falling back to
+/// the built-in stages.
+fn env_lookup(var: &str) -> Option<String> {
+    std::env::var_os(var).map(|v| v.to_string_lossy().into_owned())
 }
 
 /// Result of a single precommit check.
@@ -242,11 +254,7 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
 /// CI stage), then restage any files that were modified. Returns the number
 /// of files restaged.
 pub(super) fn run_autoformat_and_restage() -> Result<u32> {
-    let gate = Gate::from_env(
-        |k| std::env::var(k).ok(),
-        AUTOFORMAT_CMD_ENV,
-        &["autoformat"],
-    );
+    let gate = Gate::from_process_env(AUTOFORMAT_CMD_ENV, &["autoformat"]);
     if gate == Gate::Skip {
         output::info(&format!(
             "Autoformat skipped ({AUTOFORMAT_CMD_ENV} is empty)"

@@ -1131,7 +1131,7 @@ fn run_precommit_autoformat() {
 fn run_precommit_lint_capture() -> String {
     use super::precommit::{Gate, LINT_CMD_ENV};
 
-    let gate = Gate::from_env(|k| std::env::var(k).ok(), LINT_CMD_ENV, &["lint-basic"]);
+    let gate = Gate::from_process_env(LINT_CMD_ENV, &["lint-basic"]);
     if gate == Gate::Skip {
         output::info(&format!("Lint gate skipped ({LINT_CMD_ENV} is empty)"));
     }

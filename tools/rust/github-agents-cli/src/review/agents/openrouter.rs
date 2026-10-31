@@ -127,17 +127,27 @@ impl OpenRouterAgent {
                 .unwrap_or("provider default")
         );
 
-        let request_body = self.request_body(prompt);
+        let mut request_body = self.request_body(prompt);
+        let mut budget = self.max_tokens;
 
         // particle-1 occasionally gets stuck reasoning and spends the whole
         // budget without writing anything (seen in CI on a diff that reviewed
         // fine in ~35s on two immediate reruns). That is intermittent, so one
-        // retry is cheaper and more reliable than an ever-larger budget.
+        // retry is cheaper and more reliable than an ever-larger budget. The
+        // retry uses a smaller budget so a second stall fails sooner instead
+        // of holding the PR pipeline for two full-budget completions.
         for attempt in 1..=REASONING_EXHAUSTED_ATTEMPTS {
             let body = self.send(api_key, &request_body).await?;
-            match extract_content(&body, self.max_tokens) {
+            match extract_content(&body, budget) {
                 Err(e) if attempt < REASONING_EXHAUSTED_ATTEMPTS && reasoning_exhausted(&body) => {
-                    tracing::warn!("{}; retrying (attempt {} failed)", e, attempt);
+                    budget = retry_budget(budget);
+                    request_body["max_tokens"] = budget.into();
+                    tracing::warn!(
+                        "{}; retrying with max_tokens {} (attempt {} failed)",
+                        e,
+                        budget,
+                        attempt
+                    );
                 },
                 result => return result,
             }
@@ -201,12 +211,46 @@ fn reasoning_exhausted(body: &str) -> bool {
         .pointer("/choices/0/finish_reason")
         .and_then(|f| f.as_str())
         == Some("length");
-    let empty = match json.pointer("/choices/0/message/content") {
-        None | Some(serde_json::Value::Null) => true,
-        Some(serde_json::Value::String(s)) => s.trim().is_empty(),
-        Some(_) => false,
-    };
+    // Same text selection as `extract_content`, so an array holding only
+    // non-text parts counts as empty here too.
+    let empty = matches!(
+        message_text(json.pointer("/choices/0/message/content")),
+        Some(s) if s.trim().is_empty()
+    );
     truncated && empty
+}
+
+/// Smallest budget a retry is given; below this a normal review may not fit.
+const MIN_RETRY_MAX_TOKENS: u32 = 32_768;
+
+/// Budget for the retry after a reasoning stall: half the previous budget,
+/// but never below `MIN_RETRY_MAX_TOKENS` or above the previous budget.
+fn retry_budget(previous: u32) -> u32 {
+    (previous / 2).max(MIN_RETRY_MAX_TOKENS).min(previous)
+}
+
+/// The review text in a message's `content`: a string, or the text parts of
+/// an array of typed parts. Reasoning/thinking parts that also carry a
+/// `text` field are left out so they never leak into the review. `null` or
+/// missing content is empty; any other shape is `None` (unexpected).
+fn message_text(content: Option<&serde_json::Value>) -> Option<String> {
+    match content {
+        Some(serde_json::Value::String(s)) => Some(s.clone()),
+        Some(serde_json::Value::Array(parts)) => Some(
+            parts
+                .iter()
+                .filter(|p| match p.get("type") {
+                    None => true,
+                    Some(serde_json::Value::String(t)) => t == "text",
+                    Some(_) => false,
+                })
+                .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
+                .collect(),
+        ),
+        // `null` content is expected when a reasoning model runs out of budget.
+        Some(serde_json::Value::Null) | None => Some(String::new()),
+        Some(_) => None,
+    }
 }
 
 /// Parse OPENROUTER_MAX_TOKENS, falling back to the default on bad input.
@@ -282,24 +326,7 @@ fn extract_content(body: &str, max_tokens: u32) -> Result<String> {
         .unwrap_or("");
     let truncated = finish_reason == "length";
 
-    let content = match message.get("content") {
-        Some(serde_json::Value::String(s)) => s.clone(),
-        // Some providers return content as an array of typed parts. Keep only
-        // text parts (or untyped ones) so reasoning/thinking parts that also
-        // carry a `text` field never leak into the review.
-        Some(serde_json::Value::Array(parts)) => parts
-            .iter()
-            .filter(|p| match p.get("type") {
-                None => true,
-                Some(serde_json::Value::String(t)) => t == "text",
-                Some(_) => false,
-            })
-            .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
-            .collect(),
-        // `null` content is expected when a reasoning model runs out of budget.
-        Some(serde_json::Value::Null) | None => String::new(),
-        Some(_) => return Err(unexpected()),
-    };
+    let content = message_text(message.get("content")).ok_or_else(unexpected)?;
 
     // Actual usage, reported alongside the configured budget in case the
     // provider clamped `max_tokens` below what we requested.
@@ -504,6 +531,25 @@ mod tests {
         assert!(!reasoning_exhausted(done));
         assert!(!reasoning_exhausted(r#"{"error":{"message":"x"}}"#));
         assert!(!reasoning_exhausted("<html>"));
+        // Array content with no text parts is as empty as `null`.
+        let empty_parts = r#"{"choices":[{"message":{"content":[]},"finish_reason":"length"}]}"#;
+        assert!(reasoning_exhausted(empty_parts));
+        let only_reasoning = r#"{"choices":[{"message":{"content":[{"type":"reasoning","text":"hmm"}]},"finish_reason":"length"}]}"#;
+        assert!(reasoning_exhausted(only_reasoning));
+        let text_part = r#"{"choices":[{"message":{"content":[{"type":"text","text":"review"}]},"finish_reason":"length"}]}"#;
+        assert!(!reasoning_exhausted(text_part));
+        assert!(!reasoning_exhausted(
+            r#"{"choices":[{"message":{"content":5},"finish_reason":"length"}]}"#
+        ));
+    }
+
+    #[test]
+    fn test_retry_budget() {
+        assert_eq!(retry_budget(131_072), 65_536);
+        assert_eq!(retry_budget(40_000), 32_768);
+        assert_eq!(retry_budget(32_768), 32_768);
+        // Never above the configured budget.
+        assert_eq!(retry_budget(4_096), 4_096);
     }
 
     #[test]

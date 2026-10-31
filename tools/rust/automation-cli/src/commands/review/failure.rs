@@ -146,17 +146,13 @@ pub fn run(args: FailureArgs) -> Result<()> {
     let lint_gate = if failures.lint.is_empty() {
         Gate::Skip
     } else {
-        Gate::from_env(
-            |k| std::env::var(k).ok(),
-            LINT_CMD_ENV,
-            &failures.lint_stages(),
-        )
+        Gate::from_process_env(LINT_CMD_ENV, &failures.lint_stages())
     };
     let lint_output =
         capture_gate_errors(&lint_gate, LINT_CMD_ENV, MAX_LINT_ERROR_LINES, is_lint_line);
     let test_output = if failures.test {
         output::header("Step 2b: Capturing test failure output");
-        let test_gate = Gate::from_env(|k| std::env::var(k).ok(), TEST_CMD_ENV, &["test"]);
+        let test_gate = Gate::from_process_env(TEST_CMD_ENV, &["test"]);
         capture_gate_errors(&test_gate, TEST_CMD_ENV, MAX_TEST_ERROR_LINES, is_test_line)
     } else {
         String::new()
@@ -316,9 +312,17 @@ fn is_test_line(l: &str) -> bool {
         || is_rust_error(l)
 }
 
+/// Keep the lines `keep` selects, plus the ` --> file:line:col` location
+/// directly under a kept rustc error, so a compile error is never sent to
+/// Claude without its location even when `keep` drops `-->` lines.
 fn filter_lines(text: &str, max_lines: usize, keep: fn(&str) -> bool) -> String {
+    let mut prev_kept_error = false;
     text.lines()
-        .filter(|l| keep(l))
+        .filter(|l| {
+            let kept = keep(l) || (prev_kept_error && l.trim_start().starts_with("--> "));
+            prev_kept_error = kept && is_rust_error(l);
+            kept
+        })
         .take(max_lines)
         .collect::<Vec<_>>()
         .join("\n")
@@ -466,6 +470,13 @@ mod tests {
         assert!(kept.contains("panicked at"), "{kept}");
         assert!(!kept.contains("unused variable"), "{kept}");
         assert!(is_test_line("error[E0425]: cannot find value `x`"));
+
+        // A compile error keeps its location line; a warning's does not.
+        let compile = "warning: unused\n  --> src/w.rs:1:1\n\
+                       error[E0425]: cannot find value `x`\n  --> src/a.rs:3:9\n   |";
+        let kept = filter_lines(compile, 50, is_test_line);
+        assert!(kept.contains("--> src/a.rs:3:9"), "{kept}");
+        assert!(!kept.contains("src/w.rs"), "{kept}");
     }
 
     fn env_from(pairs: &'static [(&'static str, &'static str)]) -> impl Fn(&str) -> Option<String> {
