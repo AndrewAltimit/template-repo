@@ -116,8 +116,9 @@ pub fn find_claude_cli() -> Option<&'static str> {
 ///
 /// Handles silent push failures (exit 0 but remote unchanged) and
 /// non-fast-forward rejections (fetch + rebase + recompute expected SHA).
-/// `--no-verify` skips local pre-push hooks, which would otherwise re-run the
-/// full CI suite inside the agent job. Returns the SHA that landed.
+/// Hooks are not skipped: git-guard blocks `--no-verify` on every command, and
+/// runner checkouts carry no pre-push hooks other than git-lfs's (which must
+/// run so LFS objects are uploaded). Returns the SHA that landed.
 pub fn push_and_verify(branch: &str, initial_sha: &str) -> Result<String> {
     const MAX_ATTEMPTS: u32 = 5;
     let mut last_err: Option<anyhow::Error> = None;
@@ -166,7 +167,7 @@ pub fn push_and_verify(branch: &str, initial_sha: &str) -> Result<String> {
 /// One `git push`, echoing git's output and returning its stderr in the error
 /// so the caller can classify the rejection.
 fn push_once(branch: &str) -> Result<()> {
-    let out = process::run_output("git", &["push", "--no-verify", "origin", branch])?;
+    let out = process::run_output("git", &push_args(branch))?;
     let stderr = String::from_utf8_lossy(&out.stderr);
     eprint!("{}", String::from_utf8_lossy(&out.stdout));
     eprint!("{stderr}");
@@ -175,6 +176,12 @@ fn push_once(branch: &str) -> Result<()> {
     } else {
         bail!("git push exited with {}: {}", out.status, stderr.trim())
     }
+}
+
+/// Arguments for the agent push. Must stay within what git-guard allows: no
+/// `--no-verify`, no force, and an explicit non-protected branch refspec.
+fn push_args(branch: &str) -> [&str; 3] {
+    ["push", "origin", branch]
 }
 
 pub fn looks_like_non_fast_forward(msg: &str) -> bool {
@@ -240,6 +247,19 @@ pub fn truncate_in_place(s: &mut String, max: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn push_args_pass_git_guard_policy() {
+        // git-guard blocks hook skipping and force pushes; the agent push
+        // must never include them or every attempt fails on guarded runners.
+        let args = push_args("fix/some-branch");
+        assert_eq!(args, ["push", "origin", "fix/some-branch"]);
+        for a in args {
+            assert!(!a.starts_with("--no-ver"), "{a}");
+            assert!(!a.starts_with("--force") && a != "-f", "{a}");
+            assert!(!a.starts_with('+'), "{a}");
+        }
+    }
 
     #[test]
     fn parse_ls_remote_sha_basic() {

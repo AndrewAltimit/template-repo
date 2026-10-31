@@ -118,7 +118,7 @@ mcp-opencode --mode standalone --port 8014
 | `clear_opencode_history` | Clear conversation history |
 | `toggle_opencode_auto_consult` | Set or flip the advisory auto-consult flag |
 
-Key environment: `OPENROUTER_API_KEY` (required), `OPENCODE_MODEL` (default `particle-ai/particle-1`), `OPENCODE_TIMEOUT` (300), `OPENCODE_MAX_PROMPT` (32000), `OPENCODE_MAX_TOKENS` (4096). Details: [`tools/mcp/mcp_opencode/README.md`](../../tools/mcp/mcp_opencode/README.md) and `docs/integrations/ai-services/ai-code-agents.md`.
+Key environment: `OPENROUTER_API_KEY` (required), `OPENCODE_MODEL` (default `particle-ai/particle-1`), `OPENCODE_TIMEOUT` (300), `OPENCODE_MAX_PROMPT` (32000), `OPENCODE_MAX_TOKENS` (16384). Details: [`tools/mcp/mcp_opencode/README.md`](../../tools/mcp/mcp_opencode/README.md) and `docs/integrations/ai-services/ai-code-agents.md`.
 
 ## Crush MCP Server
 

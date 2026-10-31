@@ -1125,30 +1125,77 @@ fn run_precommit_autoformat() {
     }
 }
 
-/// Run lint checks and capture error output for agent feedback.
-/// Returns the error output string (empty if all checks pass).
+/// Run the lint gate (`AGENT_LINT_CMD`, default the `lint-basic` CI stage)
+/// and capture error output for agent feedback. Returns the error output
+/// (empty if all checks pass, are skipped, or cannot run in this repo).
 fn run_precommit_lint_capture() -> String {
-    let stages = ["lint-basic"];
-    let mut errors = String::new();
+    use super::precommit::{Gate, LINT_CMD_ENV};
 
-    for stage in &stages {
-        let check = super::precommit::run_ci_stage_captured(stage);
-        if !check.passed {
-            if !errors.is_empty() {
-                errors.push('\n');
-            }
-            errors.push_str(&format!("### {stage} failures:\n"));
-            errors.push_str(&check.error_output);
+    let gate = Gate::from_process_env(LINT_CMD_ENV, &["lint-basic"]);
+    if gate == Gate::Skip {
+        output::info(&format!("Lint gate skipped ({LINT_CMD_ENV} is empty)"));
+    }
+    lint_failures_text(&gate.run_captured())
+}
+
+/// Format failed lint checks for the agent. Checks that could not run at all
+/// are logged and left out: they are not code problems the agent can fix.
+fn lint_failures_text(checks: &[super::precommit::CheckResult]) -> String {
+    let mut errors = String::new();
+    for check in checks.iter().filter(|c| !c.passed) {
+        if check.unavailable {
+            output::warn(&format!(
+                "lint stage '{}' is not available in this repository; skipping. Set \
+                 {} to this repo's lint command (or to an empty string to skip)",
+                check.name,
+                super::precommit::LINT_CMD_ENV
+            ));
+            continue;
+        }
+        if !errors.is_empty() {
             errors.push('\n');
         }
+        errors.push_str(&format!("### {} failures:\n", check.name));
+        errors.push_str(&check.error_output);
+        errors.push('\n');
     }
-
     errors
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lint_failures_text_skips_unavailable_checks() {
+        use super::super::precommit::CheckResult;
+        let check = |name: &str, passed: bool, unavailable: bool, err: &str| CheckResult {
+            name: name.to_string(),
+            passed,
+            unavailable,
+            error_output: err.to_string(),
+            raw_output: String::new(),
+        };
+        // A repo without template-repo's compose services: nothing for Claude.
+        let only_unavailable = [check(
+            "lint-basic",
+            false,
+            true,
+            "no such service: python-ci",
+        )];
+        assert!(lint_failures_text(&only_unavailable).is_empty());
+
+        let mixed = [
+            check("lint-basic", false, true, "no such service: python-ci"),
+            check("cargo clippy", false, false, "error: unused import"),
+            check("fmt", true, false, ""),
+        ];
+        let text = lint_failures_text(&mixed);
+        assert!(text.contains("### cargo clippy failures:"), "{text}");
+        assert!(text.contains("unused import"), "{text}");
+        assert!(!text.contains("python-ci"), "{text}");
+        assert!(!text.contains("fmt failures"), "{text}");
+    }
 
     #[test]
     fn summary_claims_fixes_detects_real_fixes() {

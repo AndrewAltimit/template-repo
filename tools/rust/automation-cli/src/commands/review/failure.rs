@@ -3,12 +3,11 @@
 //!
 //! GitHub outputs: `exceeded_max`, `made_changes`, `pushed`, `commit_sha`.
 
-use std::process::Stdio;
-
 use anyhow::{Result, bail};
 use clap::Args;
 
 use super::common::{self, CLAUDE_TIMEOUT};
+use super::precommit::{Gate, LINT_CMD_ENV, TEST_CMD_ENV};
 use crate::shared::{output, process, project};
 
 /// Error extraction limits
@@ -144,21 +143,17 @@ pub fn run(args: FailureArgs) -> Result<()> {
     }
 
     output::header("Step 2: Checking for remaining lint issues");
-    let lint_output = capture_stage_errors(&failures.lint_stages(), MAX_LINT_ERROR_LINES, |l| {
-        l.contains(": error")
-            || l.contains(": warning")
-            || l.contains("Error:")
-            || l.contains("FAILED")
-            || l.contains("Found ")
-    });
+    let lint_gate = if failures.lint.is_empty() {
+        Gate::Skip
+    } else {
+        Gate::from_process_env(LINT_CMD_ENV, &failures.lint_stages())
+    };
+    let lint_output =
+        capture_gate_errors(&lint_gate, LINT_CMD_ENV, MAX_LINT_ERROR_LINES, is_lint_line);
     let test_output = if failures.test {
         output::header("Step 2b: Capturing test failure output");
-        capture_stage_errors(&["test"], MAX_TEST_ERROR_LINES, |l| {
-            l.contains("FAILED")
-                || l.contains("AssertionError")
-                || l.contains("Error:")
-                || l.contains("Traceback")
-        })
+        let test_gate = Gate::from_process_env(TEST_CMD_ENV, &["test"]);
+        capture_gate_errors(&test_gate, TEST_CMD_ENV, MAX_TEST_ERROR_LINES, is_test_line)
     } else {
         String::new()
     };
@@ -243,27 +238,33 @@ fn invoke_claude(prompt: &str) -> Result<()> {
     Ok(())
 }
 
-/// Run each CI stage (via this binary), keeping only lines matching `keep`,
-/// capped at `max_lines` per stage.
-fn capture_stage_errors(stages: &[&str], max_lines: usize, keep: fn(&str) -> bool) -> String {
+/// Run a gate and collect the error lines `keep` selects. Checks that cannot
+/// run in this repository are logged and skipped rather than sent to Claude.
+/// `env_var` names the override for this gate, for the "not available" hint.
+fn capture_gate_errors(
+    gate: &Gate,
+    env_var: &str,
+    max_lines: usize,
+    keep: fn(&str) -> bool,
+) -> String {
     let mut out = String::new();
-    for stage in stages {
-        output::step(&format!("Capturing {stage} errors..."));
-        let raw = match process::self_command()
-            .and_then(|mut c| Ok(c.args(["ci", "run", stage]).stdin(Stdio::null()).output()?))
-        {
-            Ok(raw) => raw,
-            Err(e) => {
-                output::warn(&format!("could not run stage {stage}: {e}"));
-                continue;
-            },
-        };
-        let combined = format!(
-            "{}\n{}",
-            String::from_utf8_lossy(&raw.stdout),
-            String::from_utf8_lossy(&raw.stderr)
-        );
-        let lines = filter_lines(&combined, max_lines, keep);
+    for check in gate.run_captured() {
+        output::step(&format!("Capturing {} errors...", check.name));
+        if check.unavailable {
+            output::warn(&format!(
+                "'{}' is not available in this repository; skipping. Set {env_var} to \
+                 this repo's command (or to an empty string to skip)",
+                check.name
+            ));
+            continue;
+        }
+        let mut lines = filter_lines(&check.raw_output, max_lines, keep);
+        if lines.is_empty() && !check.passed {
+            // The filter knows ruff/pytest/rustc shapes; for any other tool
+            // fall back to the generic extract (error lines, else the tail)
+            // so Claude never gets a failed gate with no output.
+            lines = filter_lines(&check.error_output, max_lines, |_| true);
+        }
         if !lines.is_empty() {
             if !out.is_empty() {
                 out.push('\n');
@@ -274,9 +275,68 @@ fn capture_stage_errors(stages: &[&str], max_lines: usize, keep: fn(&str) -> boo
     out
 }
 
+/// rustc error lines: `error: ...` and `error[E0308]: ...`.
+fn is_rust_error(l: &str) -> bool {
+    let t = l.trim_start();
+    t.starts_with("error:") || t.starts_with("error[")
+}
+
+/// rustc/clippy diagnostic lines: errors, `warning: ...`, and the
+/// ` --> file:line:col` location that follows them.
+fn is_rust_diagnostic(l: &str) -> bool {
+    let t = l.trim_start();
+    is_rust_error(l) || t.starts_with("warning:") || t.starts_with("--> ")
+}
+
+/// Lint lines worth showing Claude: ruff/flake8 (`file:1:1: F401`, `Found N
+/// errors`) and rustc/clippy diagnostics.
+fn is_lint_line(l: &str) -> bool {
+    l.contains(": error")
+        || l.contains(": warning")
+        || l.contains("Error:")
+        || l.contains("FAILED")
+        || l.contains("Found ")
+        || is_rust_diagnostic(l)
+}
+
+/// Test failure lines: pytest and `cargo test` (`... FAILED`, panics, and
+/// compile errors). Compiler warnings and their `-->` locations are left out:
+/// they precede the test results and would fill the line cap, pushing out
+/// the failures Claude actually needs.
+fn is_test_line(l: &str) -> bool {
+    l.contains("FAILED")
+        // pytest collection errors: the "ERROR collecting <file>" header and
+        // the "ERROR <file> - ..." short-summary line name the broken file.
+        || l.contains("ERROR collecting")
+        || is_pytest_error_summary(l)
+        || l.contains("AssertionError")
+        || l.contains("Error:")
+        || l.contains("Traceback")
+        || l.contains("panicked at")
+        || is_rust_error(l)
+}
+
+/// pytest's short-summary `ERROR <path>.py[::test] - ...` line. The path must
+/// follow a single space: captured-log lines pad the level name
+/// (`ERROR    pkg.mod:file.py:12 msg`), so a noisy suite's logs can't fill the
+/// line cap ahead of the `FAILED` lines.
+fn is_pytest_error_summary(l: &str) -> bool {
+    l.strip_prefix("ERROR ")
+        .and_then(|rest| rest.split(' ').next())
+        .is_some_and(|path| path.contains(".py"))
+}
+
+/// Keep the lines `keep` selects, plus the ` --> file:line:col` location
+/// directly under a kept rustc error, so a compile error is never sent to
+/// Claude without its location even when `keep` drops `-->` lines.
 fn filter_lines(text: &str, max_lines: usize, keep: fn(&str) -> bool) -> String {
+    let mut prev_kept_error = false;
     text.lines()
-        .filter(|l| keep(l))
+        .filter(|l| {
+            let kept = keep(l) || (prev_kept_error && l.trim_start().starts_with("--> "));
+            prev_kept_error = kept && is_rust_error(l);
+            kept
+        })
         .take(max_lines)
         .collect::<Vec<_>>()
         .join("\n")
@@ -357,6 +417,95 @@ fn format_handler_comment(iteration: u32, made_changes: bool, sha: &str, failure
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn capture_falls_back_when_filter_keeps_nothing() {
+        // Output in a shape none of the filters know still reaches Claude.
+        let gate = Gate::Command("echo 'mytool: style problem in a.c' >&2; exit 1".into());
+        let out = capture_gate_errors(&gate, LINT_CMD_ENV, 50, is_lint_line);
+        assert!(out.contains("style problem in a.c"), "{out}");
+
+        // The fallback respects the caller's line cap.
+        let gate = Gate::Command(
+            "for i in $(seq 1 300); do echo \"mytool: issue $i\"; done; exit 1".into(),
+        );
+        let out = capture_gate_errors(&gate, LINT_CMD_ENV, 20, is_lint_line);
+        assert_eq!(out.lines().count(), 20, "{out}");
+
+        // A passing gate contributes nothing.
+        let gate = Gate::Command("echo all good".into());
+        assert!(capture_gate_errors(&gate, LINT_CMD_ENV, 50, is_lint_line).is_empty());
+    }
+
+    /// Real clippy / cargo test output shapes (e.g. AGENT_LINT_CMD set to
+    /// `cargo clippy ... -D warnings` in a Rust-only repository).
+    #[test]
+    fn filters_keep_rust_diagnostics() {
+        let clippy = "    Checking oasis-css v0.1.0 (/app/crates/oasis-css)\n\
+                      warning: unused import: `std::fmt`\n \
+                      --> crates/oasis-css/src/lib.rs:3:5\n\
+                      error[E0308]: mismatched types\n\
+                      error: could not compile `oasis-css` (lib) due to 1 previous error\n\
+                      Container rust-ci-run-1 Creating";
+        let kept = filter_lines(clippy, 50, is_lint_line);
+        assert!(kept.contains("unused import"), "{kept}");
+        assert!(
+            kept.contains("--> crates/oasis-css/src/lib.rs:3:5"),
+            "{kept}"
+        );
+        assert!(kept.contains("error[E0308]"), "{kept}");
+        assert!(kept.contains("could not compile"), "{kept}");
+        assert!(!kept.contains("Checking"), "{kept}");
+        assert!(!kept.contains("Container"), "{kept}");
+
+        // ruff output still matches.
+        assert!(is_lint_line("src/a.py:1:1: F401 unused; Found 1 error"));
+
+        let test = "test cascade::tests::nth ... FAILED\n\
+                    thread 'cascade::tests::nth' panicked at crates/oasis-css/src/x.rs:9:5:\n\
+                    running 12 tests";
+        let kept = filter_lines(test, 50, is_test_line);
+        assert!(kept.contains("... FAILED"), "{kept}");
+        assert!(kept.contains("panicked at"), "{kept}");
+        assert!(!kept.contains("running 12 tests"), "{kept}");
+
+        // pytest collection errors keep the line naming the broken file.
+        let collect = "______ ERROR collecting tests/test_x.py ______\n\
+                       ERROR tests/test_y.py\n\
+                       ERROR tests/test_z.py::test_db - RuntimeError\n\
+                       ERROR    pkg.mod:file.py:12 connection reset\n\
+                       collected 0 items / 2 errors";
+        let kept = filter_lines(collect, 50, is_test_line);
+        assert!(kept.contains("ERROR collecting tests/test_x.py"), "{kept}");
+        assert!(kept.contains("ERROR tests/test_y.py"), "{kept}");
+        assert!(kept.contains("ERROR tests/test_z.py::test_db"), "{kept}");
+        // pytest captured-log lines at ERROR level are not failure lines.
+        assert!(!kept.contains("connection reset"), "{kept}");
+        assert!(!kept.contains("collected 0 items"), "{kept}");
+
+        // Compile warnings before the results must not crowd the failures
+        // out of the capped test capture.
+        let mut noisy = String::new();
+        for i in 0..200 {
+            noisy.push_str(&format!(
+                "warning: unused variable `v{i}`\n  --> src/a.rs:{i}:1\n"
+            ));
+        }
+        noisy.push_str("test a::b ... FAILED\nthread 'a::b' panicked at src/a.rs:1:1:\n");
+        let kept = filter_lines(&noisy, MAX_TEST_ERROR_LINES, is_test_line);
+        assert!(kept.contains("... FAILED"), "{kept}");
+        assert!(kept.contains("panicked at"), "{kept}");
+        assert!(!kept.contains("unused variable"), "{kept}");
+        assert!(is_test_line("error[E0425]: cannot find value `x`"));
+
+        // A compile error keeps its location line; a warning's does not.
+        let compile = "warning: unused\n  --> src/w.rs:1:1\n\
+                       error[E0425]: cannot find value `x`\n  --> src/a.rs:3:9\n   |";
+        let kept = filter_lines(compile, 50, is_test_line);
+        assert!(kept.contains("--> src/a.rs:3:9"), "{kept}");
+        assert!(!kept.contains("src/w.rs"), "{kept}");
+    }
 
     fn env_from(pairs: &'static [(&'static str, &'static str)]) -> impl Fn(&str) -> Option<String> {
         move |k| {

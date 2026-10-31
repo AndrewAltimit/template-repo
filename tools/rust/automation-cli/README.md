@@ -124,7 +124,17 @@ automation-cli review precommit [--autoformat] [--lint[=STAGES]] [--test[=STAGES
 - **failure** reads `FORMAT_CHECK_RESULT`, `BASIC_LINT_RESULT`, `FULL_LINT_RESULT`, `TEST_SUITE_RESULT` (falling back to `failure-types`), autoformats, captures remaining lint/test errors, runs Claude, commits and pushes. Outputs: `exceeded_max` (and exit 1 when `iteration >= max-iterations`), `made_changes`, `pushed`, `commit_sha`.
 - **precommit** runs `autoformat` and restages formatter changes, then the requested stages (`--lint` defaults to `lint-basic`, `--test` to `test`; values are comma-separated). Prints a `[PASS]/[FAIL]` summary on stdout. Outputs: `precommit_passed`, `precommit_autoformat_changed`, `precommit_failed_checks`. Exits 0 unless `--fail-on-error`.
 
-Both agents push with `git push --no-verify` and verify the result with `git ls-remote`, rebasing onto the remote on non-fast-forward rejections (up to 5 attempts). In GitHub Actions (`GITHUB_TOKEN` + `GITHUB_REPOSITORY` set) they configure an authenticated `origin` and a bot identity. CI stages are run by re-invoking this binary, so no shell wrapper is required.
+Both agents push with a plain `git push origin <branch>` (no `--no-verify`, which [git-guard](../git-guard/README.md) blocks; hooks run as usual, including git-lfs's pre-push upload) and verify the result with `git ls-remote`, rebasing onto the remote on non-fast-forward rejections (up to 5 attempts). In GitHub Actions (`GITHUB_TOKEN` + `GITHUB_REPOSITORY` set) they configure an authenticated `origin` and a bot identity. CI stages are run by re-invoking this binary, so no shell wrapper is required.
+
+**Using the agents in another repository.** The autoformat, lint and test gates default to this repo's CI stages (`autoformat`, `lint-basic`/`lint-full`, `test`), which need its `python-ci`/`rust-ci` compose services. Other repositories override them on the workflow step:
+
+| Variable | Gate | Unset | Empty string | Any other value |
+|----------|------|-------|--------------|-----------------|
+| `AGENT_AUTOFORMAT_CMD` | autoformat (respond, failure, precommit) | `autoformat` stage | skip | run with `bash -c` at the repo root |
+| `AGENT_LINT_CMD` | lint feedback (respond, failure) | `lint-basic` (failure: per failure type) | skip | run with `bash -c` |
+| `AGENT_TEST_CMD` | test capture (failure) | `test` stage | skip | run with `bash -c` |
+
+For example, a Rust-only repository might set `AGENT_AUTOFORMAT_CMD: cargo fmt --all` and `AGENT_LINT_CMD: cargo clippy --workspace --all-targets -- -D warnings`. A default stage that cannot run in the current repository (missing compose service, unknown stage, no compose file) is logged and skipped instead of being sent to Claude as lint errors.
 
 ## `wait`: Readiness Check
 
