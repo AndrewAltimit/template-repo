@@ -107,18 +107,18 @@ So the data fit a change in the GPT-6.1 Terra tier (and GPT-6.1 Sol, see P6) mor
 
 ### P5. Timing replication
 
-*Interim: two of three load windows complete. Window 3 (about 02:20 UTC) is still running; its result cannot change the outcome below.*
-
-Argon at minimal effort, depth 1 versus 12, 20 reps per cell, with Llama 3.3 70B (fixed depth) run in parallel in each window. Positive z means TTFT rises with depth.
+Three load windows about 90 minutes apart. Argon at minimal effort, depth 1 versus 12, 20 reps per cell (160 requests per window), with Llama 3.3 70B (fixed depth) run in parallel in each window. Positive z means TTFT rises with depth.
 
 | Window (UTC) | Argon TTFT slope z | Llama 3.3 70B TTFT slope z |
 |---|---|---|
 | W1 (22:59 to 23:10) | -0.73 | -1.05 |
 | W2 (00:40 to 00:50) | +1.61 | +2.38 |
-| Pooled (W1 + W2) | +0.89 | +1.05 |
+| W3 (02:20 to 02:29) | +0.94 | -0.56 |
+| Pooled (480 requests) | +1.34 | +0.41 |
 
-- **The adaptive-looping outcome is ruled out.** It required z of at least 2 in every window, and W1 is negative. The signs disagree between windows, which is the pre-registered "no adaptive looping" outcome.
-- **W2 is load-confounded.** The fixed-depth reference reached |z| of at least 2 in that window, so Argon's +1.61 there is more likely server load than depth.
+- **Result: no adaptive looping, by both pre-registered criteria.** The adaptive outcome needed z of at least 2 in every window and a pooled z of at least 3. No window reaches 2, and W1 is negative. The pooled |z| of 1.34 is below 2, and the window signs disagree.
+- **W2 is load-confounded.** The fixed-depth reference reached |z| of at least 2 there, so Argon's +1.61 in that window is more likely server load than depth.
+- **The weak positive tilt is not evidence of looping.** Argon's pooled slope is positive but well under the threshold, and most of it comes from W2, the load-confounded window. Requests that reported reasoning tokens (3 or 4 per window) are excluded from the slope.
 - This replicates round 1, where a z of +2.37 in run 1 did not hold in run 2 (-1.50).
 
 ## Published evidence (checked against the sources)
