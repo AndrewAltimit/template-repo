@@ -1,0 +1,22 @@
+{
+  "base_url": "https://openrouter.ai/api/v1",
+  "model": "your-model-name",
+  "api_key_env": "OPENROUTER_API_KEY",
+  "tasks": ["pointer_chase", "permutation", "parity", "reachability"],
+  "depths": [2, 8, 12, 24],
+  "reps": 4,
+  "seed": 0,
+  "temperature": 0.0,
+  "conditions": [
+    {"label": "minimal", "max_tokens": 256, "params": {"reasoning": {"effort": "minimal"}}},
+    {"label": "low", "max_tokens": 2048, "params": {"reasoning": {"effort": "low"}}},
+    {"label": "medium", "max_tokens": 4096, "params": {"reasoning": {"effort": "medium"}}},
+    {"label": "high", "max_tokens": 8192, "params": {"reasoning": {"effort": "high"}}}
+  ],
+  "requests_per_minute": 10,
+  "max_requests": 300,
+  "max_total_completion_tokens": 300000,
+  "timeout_s": 300,
+  "extra": {},
+  "acknowledge_terms": false
+}

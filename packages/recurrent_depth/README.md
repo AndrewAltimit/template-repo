@@ -13,7 +13,8 @@ The toolkit measures and infers. It does not extract weights, bypass access cont
 | Config inspection (`inspect-config`) | Checked on 8 published configs: Huginn-0125, Ouro-1.4B, Ouro-2.6B-Thinking, and ALBERT-base-v2 flagged as recurrent or weight-shared; Qwen2.5-0.5B, SmolLM2-135M, OLMo-2-1B flagged as standard; Qwen1.5-MoE-A2.7B flagged as standard with an MoE note |
 | Weight-sharing analysis (`inspect-weights`) | Unit-tested on synthetic tied, low-rank-shared, independent, single-group (ALBERT-style), and gapped stacks, and on FP8 decoding; on real SmolLM2-135M it reports 30 of 30 distinct layers, no exact or low-rank pairs, adjacent relative distance 1.32-1.41 (no false positive). Not yet run on a real weight-shared checkpoint |
 | Hidden-state dynamics (`analyze-hidden`) | Unit-tested on synthetic trajectories; on real SmolLM2-135M the tail contraction is 1.12 and periodicity excess 0.002 (fixed-depth behavior). Not yet run on a real looped model's per-iteration states |
-| Black-box probe harness (`probe`) | Tested end to end against a simulated endpoint and scripted transports (streaming, mid-stream errors, retries, hard budget, key handling, refused redirects). **Not yet run against a real API** |
+| Black-box probe harness (`probe`) | Tested end to end against a simulated endpoint and scripted transports (streaming, mid-stream errors, retries, hard budget, key handling, refused redirects). First real runs (2026-11-03, OpenRouter): 1,200 requests across 10 endpoints, no harness errors. Timing slopes of fixed-depth references ranged from z = -2.3 to +0.9 in one load window, and a +2.4 slope on one target did not replicate, so single runs are not enough. Reasoning endpoints that cannot disable reasoning often answer hard items with visible reasoning even at minimal effort, which leaves only easy items for timing |
+| Reasoning-budget sweep (`budget-probe`, `budget-features`) | Unit-tested with scripted transports (budget guards, token budget, truncation, synthetic in-pass versus load-bearing models). Diagnostics only: not scored, and confounded by capability. Filler-token conditions, long-chain generators (to depth 128), and the two-hop loader are unit-tested on synthetic inputs, including a code-like alias field that must not execute |
 | Scoring and leave-one-out validation | Tested on simulated reference fleets. The default likelihood parameters are engineering priors, **not calibrated on real models** |
 
 Treat any verdict as provisional until the likelihoods have been fitted to real reference models measured with the same plan (see [step 3 of the Quickstart](#3-calibrate-and-validate)).
@@ -27,6 +28,8 @@ Treat any verdict as provisional until the likelihoods have been fitted to real 
 | `dynamics`, `hf_capture` (`capture-hidden`) | White box (activations) | `state_contraction`, `similarity_periodicity`, logit-lens KL settling steps per token |
 | `graybox` | Gray box (log-probabilities) | Hidden-width estimate from the rank of logit vectors; `compute_capacity_ratio` from user-supplied compute and capacity estimates |
 | `tasks`, `client`, `harness`, `features` | Black box (API) | `ttft_slope_z`, `itl_slope_z` (latency versus serial depth at fixed prompt and output length), `serial_retention` (no-CoT accuracy as depth grows), `knob_latency_log_ratio`, `knob_accuracy_gain` (effect of a compute knob without extra visible or billed tokens); diagnostic `ttft_excess_in_itl` (TTFT increase across depths in inter-token latencies, to flag unreported hidden decoding) |
+| `budget` | Black box (API) | Diagnostics from a reasoning-budget sweep: `in_pass_share` (no-reasoning accuracy as a fraction of full-budget accuracy, with a bootstrap interval), `tokens_per_step` (billed or reported reasoning tokens per unit of serial depth), `tokens_to_solve`, and truncation rates. Measures how load-bearing visible reasoning is without reading it. Also `latency_per_token` (decode milliseconds per billed token) and, for filler conditions, compliance and accuracy among compliant responses. Not scored |
+| `twohop` | Black box (API) | Latent two-hop fact composition on TwoHopFact (Yang et al. 2024, CC BY 4.0, local copy): single-hop and two-hop accuracy and `composition_rate`, the two-hop accuracy among facts whose two hops the model answers correctly, with a Wilson interval. Not scored |
 | `scoring`, `validation` | Any | Likelihood-ratio combination (monotone in each signal's direction, with one-sided floors for absence-of-evidence signals) with family-level correlation discounts, an explicit `inconclusive` outcome, fitting to references, and leave-one-out benchmarking |
 
 The task suite (pointer chasing, S5 permutation tracking, prefix parity, graph reachability) keeps the prompt length constant across depths within each family, so a latency slope cannot come from longer prompts.
@@ -125,6 +128,27 @@ rd score outputs/rds/target_signals.json outputs/rds/config_signals.json --model
 
 The example plan sends 120 requests (4 tasks x 5 depths x 6 repetitions) at 10 per minute under a hard budget of 400. Pass the API key into the container by adding `-e OPENAI_API_KEY` (or the variable named in `api_key_env`) to the `rd` function. A plan may only name a variable ending in `API_KEY`; for any other name, pass `--api-key-env NAME` to `probe` yourself. `probe` prints the destination host and the variable it will send before the first request. A server running on the host is reachable from the container at `host.docker.internal`, not `localhost`; the client sends a key over plain HTTP only to local hosts such as these, and `api_key_env` can be `null` for a local server that needs no key. If the endpoint has a compute knob, set `knob_param` and `knob_values` and give `features` the same order with `--knob-order`. Measure the reference models with the same plan, on the same serving stack, at more than one load level, before scoring the target; the report's Section 7 sets out the protocol.
 
+### 6. Reasoning-budget sweep
+
+The timing probes only detect *adaptive* recurrence: a model that always runs the same number of loop iterations looks like a deeper fixed model from outside. The budget sweep asks a different question that an API customer can answer without reading the chain of thought: as the reasoning budget shrinks, how much accuracy does the model lose on serial tasks, and how many reasoning tokens does it spend per step? If much of the serial work happens in the forward pass, accuracy should fall less and fewer tokens should be needed per step.
+
+```bash
+cp packages/recurrent_depth/examples/budget_plan.example.json outputs/rds/budget_plan.json
+# edit model, conditions (lowest budget first), max_requests, max_total_completion_tokens; set acknowledge_terms
+rd budget-probe outputs/rds/budget_plan.json --out outputs/rds/budget.jsonl
+rd budget-features outputs/rds/budget.jsonl > outputs/rds/budget_summary.json
+```
+
+Each condition is a label, an output cap (`max_tokens`, reasoning included, at most 16384), and provider parameters (for OpenRouter, `{"reasoning": {"effort": "low"}}` or `{"reasoning": {"max_tokens": 1024}}`). The default depths are 2, 8, 12, and 24; combinations a generator cannot produce (pointer chasing above depth 13, where the backward route around the 26-letter cycle is shorter, and reachability above depth 17) are skipped and listed. Providers may map a token budget onto coarse effort levels, so the analysis uses the tokens actually billed per request (`--token-metric completion`, the default, which also counts reasoning a provider under-reports) or the reported reasoning tokens (`--token-metric reasoning`).
+
+`in_pass_share` near 1 means the visible reasoning adds little on these tasks; near 0 means the model needs it. It is only meaningful when the lowest condition really suppresses reasoning; some endpoints keep reasoning on hard items even at their lowest setting, in which case `in_pass_share_valid` is false and `tokens_per_step` is the measure to use. A stronger fixed-depth model also degrades less, so these numbers are diagnostics, not scored signals: compare models within one family, or against fixed-depth references of similar capability, and read a high share as consistent with in-pass recurrence, not proof of it.
+
+**Long chains.** `pointer_chase_long` (a 256-node cycle with two-letter codes, depth up to 128), `permutation_long` (S5 tracking over 128 operations), and `reachability_long` (a 300-node graph, depth up to 148) extend the serial horizon well beyond the default families. Prompts are 0.5k to 2k tokens and constant in length within a family; use them for accuracy, not timing. Every finite-state chain can in principle be composed in a log-depth tree, so "depth" stays nominal; S5 tracking is the canonical hard case.
+
+**Filler tokens.** A condition with `"filler": N` replaces the answer-only instruction with one asking for N space-separated periods before the answer (Pfau et al. 2024). Contiguous periods are avoided because tokenizers pack them into a few tokens. Records carry `filler_dots` and `filler_compliant` (at least half the periods and at most four words after them), and `budget-features` reports accuracy among compliant responses. A gain from filler with reasoning off means the model uses extra forward passes without writing anything legible.
+
+**Latent two-hop facts.** Set `twohop_csv` (a local `TwoHopFact.csv`) and `twohop_n` in a budget plan to ask each sampled fact as two single-hop questions and one two-hop question, then run `twohop-features` on the records. Answers are matched against the dataset's alias lists; alias fields are parsed with `ast.literal_eval` and never executed.
+
 ## Decision Rule
 
 A verdict is `recurrent` or `fixed` only when the posterior passes the threshold (default 0.9) and at least two independent evidence families agree; a white-box family (config or weights) that supports the verdict with a log-likelihood ratio of at least 3, such as a declared recurrence or exact layer reuse, counts as direct observation and may decide alone. Absence of evidence never decides alone: a standard config class contributes -1.5, and unshared weights at most -0.5 per signal, because looped checkpoints such as Huginn and Ouro store their shared block once. Otherwise the verdict is `inconclusive`.
@@ -136,7 +160,7 @@ The timing and knob families share confounders (server load, unreported hidden d
 - The harness refuses a plan unless `acknowledge_terms` is `true`, which records that you are authorized to query the endpoint and that the plan respects the provider's terms and rate limits.
 - A hard request budget (`max_requests`, counting retries) and a minimum spacing (`requests_per_minute`) are enforced; 429 and 5xx responses back off and honor `Retry-After`. If retries exhaust the budget, `probe` stops, keeps the records written so far, and exits with status 2.
 - API keys are read from an environment variable, never written to records, and never sent over plain HTTP to a non-local host. Redirects are refused, because urllib would otherwise replay the `Authorization` header to the redirect target. A plan file cannot name an arbitrary environment variable (such as a cloud credential) as its key; only `*API_KEY` names, unless the operator passes `--api-key-env`.
-- `extra` and `knob_param` cannot override the fields the measurement depends on (`model`, `messages`, `stream`, `max_tokens`, `n`, `temperature`, `logprobs`, and similar), and `max_tokens` is limited to 64, so a plan cannot multiply cost or defeat the length controls.
+- `extra` and `knob_param` cannot override the fields the measurement depends on (`model`, `messages`, `stream`, `max_tokens`, `n`, `temperature`, `logprobs`, and similar), and `max_tokens` is limited to 64, so a plan cannot multiply cost or defeat the length controls. Budget plans allow longer outputs for reasoning (at most 16384 tokens per request) and add a total completion-token budget (`max_total_completion_tokens`): `budget-probe` stops once the tokens billed so far reach it, keeps the records written, and exits with status 2.
 - Responses are cut off at 4 MiB or at the request timeout in total, error bodies are read up to 64 KiB, an invalid `Retry-After` falls back to exponential backoff, and malformed stream chunks are skipped rather than crashing the run.
 - Checkpoints are treated as untrusted input: shard names in an index file may not leave the checkpoint directory, malformed safetensors headers raise errors, and `capture-hidden` loads safetensors weights only (pickled `.bin` files can execute code when loaded). `--trust-remote-code` runs the checkpoint's own Python; read it first.
 - Requests whose usage reports hidden reasoning tokens are excluded from timing and knob analysis rather than misread as in-pass computation; if any request in a run reports them, no knob signal is emitted.
@@ -148,9 +172,9 @@ The timing and knob families share confounders (server load, unreported hidden d
 packages/recurrent_depth/
   src/recurrent_depth/   config_inspect, safetensors_io, weights, dynamics, hf_capture,
                          graybox, tasks, client, harness, features, scoring, validation,
-                         simulate, cli
+                         simulate, budget, cli
   tests/                 offline unit tests (synthetic fixtures, virtual clock)
-  examples/              probe plan template
+  examples/              probe plan and budget plan templates
 ```
 
 ## License

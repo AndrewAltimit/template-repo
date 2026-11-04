@@ -141,6 +141,7 @@ class CompletionResult:
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
     reasoning_tokens: int | None = None
+    finish_reason: str | None = None
     top_logprobs: list[dict[str, float]] = field(default_factory=list)
     error: str | None = None
     attempts: int = 0
@@ -315,6 +316,9 @@ class ChatClient:
         for choice in choices if isinstance(choices, list) else []:
             if not isinstance(choice, dict):
                 continue
+            finish = choice.get("finish_reason")
+            if isinstance(finish, str) and finish:
+                result.finish_reason = finish[:32]
             delta = choice.get("delta")
             content = delta.get("content") if isinstance(delta, dict) else None
             if isinstance(content, str) and content:

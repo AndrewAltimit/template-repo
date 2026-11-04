@@ -16,7 +16,7 @@ import urllib.parse
 
 import numpy as np
 
-from . import config_inspect, dynamics, features, harness, scoring, validation, weights
+from . import budget, config_inspect, dynamics, features, harness, scoring, twohop, validation, weights
 from .safetensors_io import read_checkpoint
 from .simulate import SimProfile, reference_fleet, run_simulated
 
@@ -139,6 +139,48 @@ def cmd_features(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_budget_probe(args: argparse.Namespace) -> int:
+    plan = budget.BudgetPlan.from_json(args.plan)
+    if args.api_key_env is not None:
+        plan.api_key_env = args.api_key_env or None
+    from_cli = args.api_key_env is not None
+    plan.validate(allow_any_key_env=from_cli)
+    _, skipped = plan.suite()
+    host = urllib.parse.urlparse(plan.base_url).hostname
+    key = f"the value of ${plan.api_key_env}" if plan.api_key_env else "no API key"
+    print(
+        f"plan: {plan.planned_requests()} requests at <= {plan.requests_per_minute}/min, "
+        f"<= {plan.max_total_completion_tokens} completion tokens in total",
+        file=sys.stderr,
+    )
+    for task, depth in skipped:
+        print(f"  skipping {task} at depth {depth}: outside the generator's range", file=sys.stderr)
+    print(f"sending {key} to {host}", file=sys.stderr)
+
+    def progress(i: int, n: int) -> None:
+        if i % 10 == 0 or i == n:
+            print(f"  {i}/{n}", file=sys.stderr)
+
+    try:
+        budget.run_budget_plan(plan, out_path=args.out, progress=progress, allow_any_key_env=from_cli)
+    except budget.BudgetExceeded as exc:
+        print(f"stopped: {exc}; partial records are in {args.out}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def cmd_twohop_features(args: argparse.Namespace) -> int:
+    _dump(twohop.twohop_features(harness.load_records(args.records)))
+    return 0
+
+
+def cmd_budget_features(args: argparse.Namespace) -> int:
+    records = harness.load_records(args.records)
+    order = [v.strip() for v in args.condition_order.split(",")] if args.condition_order else None
+    _dump(budget.budget_features(records, condition_order=order, token_metric=args.token_metric, seed=args.seed))
+    return 0
+
+
 def _models(path: str | None) -> dict[str, scoring.SignalModel]:
     return scoring.load_models(path) if path else scoring.DEFAULT_SIGNALS
 
@@ -177,6 +219,8 @@ _EPILOG = """\
 typical workflow (see packages/recurrent_depth/README.md, Quickstart):
   white box   inspect-config, inspect-weights, capture-hidden, analyze-hidden
   black box   probe (real endpoint) or simulate (offline), then features
+  budget      budget-probe, then budget-features (how load-bearing visible reasoning is)
+              or twohop-features for a plan with twohop_csv (latent fact composition)
   calibrate   fit and validate on labeled reference models
   decide      score one or more signal files, with --models from fit
 """
@@ -246,6 +290,34 @@ def build_parser() -> argparse.ArgumentParser:
         "plans themselves may only name variables ending in API_KEY",
     )
     s.set_defaults(func=cmd_probe)
+
+    s = sub.add_parser(
+        "budget-probe", help="sweep reasoning budgets on serial tasks (template: examples/budget_plan.example.json)"
+    )
+    s.add_argument("plan", help="budget plan JSON")
+    s.add_argument("--out", required=True, help="output JSONL of per-request records")
+    s.add_argument(
+        "--api-key-env",
+        help="environment variable holding the API key, overriding the plan (empty string for none); "
+        "plans themselves may only name variables ending in API_KEY",
+    )
+    s.set_defaults(func=cmd_budget_probe)
+
+    s = sub.add_parser("budget-features", help="summarize a budget sweep: in-pass share, tokens per step")
+    s.add_argument("records", help="JSONL from budget-probe")
+    s.add_argument("--condition-order", help="comma-separated condition labels from lowest to highest budget")
+    s.add_argument(
+        "--token-metric",
+        choices=["completion", "reasoning"],
+        default="completion",
+        help="billed completion tokens (default; also counts under-reported reasoning) or reported reasoning tokens",
+    )
+    s.add_argument("--seed", type=int, default=0, help="bootstrap seed (default 0)")
+    s.set_defaults(func=cmd_budget_features)
+
+    s = sub.add_parser("twohop-features", help="latent two-hop composition from a budget-probe run with twohop_csv")
+    s.add_argument("records", help="JSONL from budget-probe")
+    s.set_defaults(func=cmd_twohop_features)
 
     s = sub.add_parser("simulate", help="run the default plan against a simulated endpoint")
     s.add_argument(
