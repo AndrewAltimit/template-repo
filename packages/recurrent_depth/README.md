@@ -172,10 +172,15 @@ The timing and knob families share confounders (server load, unreported hidden d
 packages/recurrent_depth/
   src/recurrent_depth/   config_inspect, safetensors_io, weights, dynamics, hf_capture,
                          graybox, tasks, client, harness, features, scoring, validation,
-                         simulate, budget, cli
+                         simulate, budget, twohop, cli
   tests/                 offline unit tests (synthetic fixtures, virtual clock)
   examples/              probe plan and budget plan templates
+  reports/               investigations run with the toolkit
 ```
+
+## Reports
+
+- [2026-11-argon-gpt6](reports/2026-11-argon-gpt6/README.md): is Gemini 4 Argon a looped model, with the GPT-6 family as references (timing probe, budget sweep, pre-registered evidence battery, published-evals compilation).
 
 ## License
 
