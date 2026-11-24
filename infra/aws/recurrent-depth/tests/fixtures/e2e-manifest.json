@@ -1,0 +1,8 @@
+{
+  "campaign": "e2e",
+  "description": "Smallest valid campaign, used by scripts/emulator-e2e.sh to exercise node.sh bundle and launch.",
+  "max_wall_hours": 0.5,
+  "stages": [
+    {"name": "config", "kind": "cli", "argv": ["inspect-config", "{work}/config.json"]}
+  ]
+}

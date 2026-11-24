@@ -1,0 +1,25 @@
+{
+  "base_url": "http://127.0.0.1:8100/v1",
+  "api_key_env": null,
+  "seed": 0,
+  "temperature": 0.0,
+  "requests_per_minute": 600,
+  "acknowledge_terms": true,
+  "model": "huginn-0125",
+  "tasks": [
+    "arithmetic_chain",
+    "pointer_chase"
+  ],
+  "depths": [
+    1,
+    12
+  ],
+  "reps": 20,
+  "max_tokens": 8,
+  "max_requests": 80,
+  "extra": {
+    "recurrence": {
+      "num_steps": 32
+    }
+  }
+}

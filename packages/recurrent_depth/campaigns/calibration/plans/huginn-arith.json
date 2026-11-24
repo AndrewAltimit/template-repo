@@ -1,0 +1,84 @@
+{
+  "base_url": "http://127.0.0.1:8100/v1",
+  "api_key_env": null,
+  "seed": 0,
+  "temperature": 0.0,
+  "requests_per_minute": 600,
+  "acknowledge_terms": true,
+  "model": "huginn-0125",
+  "tasks": [
+    "arithmetic_chain"
+  ],
+  "depths": [
+    1,
+    2,
+    3,
+    4,
+    6,
+    8,
+    10,
+    12
+  ],
+  "reps": 10,
+  "conditions": [
+    {
+      "label": "s4",
+      "max_tokens": 16,
+      "params": {
+        "recurrence": {
+          "num_steps": 4
+        }
+      }
+    },
+    {
+      "label": "s8",
+      "max_tokens": 16,
+      "params": {
+        "recurrence": {
+          "num_steps": 8
+        }
+      }
+    },
+    {
+      "label": "s16",
+      "max_tokens": 16,
+      "params": {
+        "recurrence": {
+          "num_steps": 16
+        }
+      }
+    },
+    {
+      "label": "s32",
+      "max_tokens": 16,
+      "params": {
+        "recurrence": {
+          "num_steps": 32
+        }
+      }
+    },
+    {
+      "label": "s64",
+      "max_tokens": 16,
+      "params": {
+        "recurrence": {
+          "num_steps": 64
+        }
+      }
+    },
+    {
+      "label": "adaptive",
+      "max_tokens": 16,
+      "params": {
+        "recurrence": {
+          "num_steps": 64,
+          "criterion": "kl",
+          "exit_threshold": 0.0005
+        }
+      }
+    }
+  ],
+  "max_requests": 480,
+  "max_total_completion_tokens": 7680,
+  "timeout_s": 120
+}

@@ -820,6 +820,21 @@ services:
     profiles:
       - ci
 
+  # Local AWS Emulator (CC0-1.0) for offline infrastructure tests. In-memory state,
+  # loopback only, request auth off. Normally started by
+  # infra/aws/recurrent-depth/scripts/emulator.sh rather than compose up.
+  aws-emulator:
+    build:
+      context: docker
+      dockerfile: aws-emulator.Dockerfile
+    image: template-repo-aws-emulator:local
+    command: ["-p", "9297", "--auth", "off"]
+    ports:
+      - "127.0.0.1:9297:9297"
+    mem_limit: 2g
+    profiles:
+      - emulator
+
   # Terraform/Terragrunt CI with AWS CLI for infrastructure deployment
   terraform-ci:
     build:

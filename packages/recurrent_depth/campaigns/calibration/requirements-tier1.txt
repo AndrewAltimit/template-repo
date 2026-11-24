@@ -1,0 +1,8 @@
+# Model-side packages for the tier 1 node venv (installed before the toolkit wheel).
+# Ouro's card asks for transformers below 4.56; Huginn's code targets the same 4.5x line.
+torch==2.8.0
+transformers==4.54.1
+accelerate==1.10.1
+huggingface_hub[cli]==0.34.4
+safetensors==0.6.2
+numpy==2.3.3

@@ -1,0 +1,981 @@
+{
+  "campaign": "calibration-tier1",
+  "description": "C1 to C6 on one GPU: white-box checks for all five models, per-step hidden dynamics for Huginn and Ouro, the step-count knob on serial tasks and two-hop facts, and timing with fixed and adaptive loops, one request at a time on the toolkit's own server.",
+  "max_wall_hours": 3.5,
+  "sync_interval_s": 120,
+  "services": {
+    "huginn": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/huginn",
+        "--port",
+        "8100",
+        "--model-id",
+        "huginn-0125",
+        "--device",
+        "cuda",
+        "--family",
+        "huginn",
+        "--allow-request-recurrence",
+        "--trust-remote-code"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    },
+    "ouro14-s1": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/ouro14",
+        "--port",
+        "8100",
+        "--model-id",
+        "ouro-1.4b-s1",
+        "--device",
+        "cuda",
+        "--family",
+        "ouro",
+        "--ouro-steps",
+        "1",
+        "--ouro-exit-threshold",
+        "1.0",
+        "--trust-remote-code",
+        "--no-chat-template"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    },
+    "ouro14-s2": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/ouro14",
+        "--port",
+        "8100",
+        "--model-id",
+        "ouro-1.4b-s2",
+        "--device",
+        "cuda",
+        "--family",
+        "ouro",
+        "--ouro-steps",
+        "2",
+        "--ouro-exit-threshold",
+        "1.0",
+        "--trust-remote-code",
+        "--no-chat-template"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    },
+    "ouro14-s3": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/ouro14",
+        "--port",
+        "8100",
+        "--model-id",
+        "ouro-1.4b-s3",
+        "--device",
+        "cuda",
+        "--family",
+        "ouro",
+        "--ouro-steps",
+        "3",
+        "--ouro-exit-threshold",
+        "1.0",
+        "--trust-remote-code",
+        "--no-chat-template"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    },
+    "ouro14-s4": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/ouro14",
+        "--port",
+        "8100",
+        "--model-id",
+        "ouro-1.4b-s4",
+        "--device",
+        "cuda",
+        "--family",
+        "ouro",
+        "--ouro-steps",
+        "4",
+        "--ouro-exit-threshold",
+        "1.0",
+        "--trust-remote-code",
+        "--no-chat-template"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    },
+    "ouro26-s1": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/ouro26",
+        "--port",
+        "8100",
+        "--model-id",
+        "ouro-2.6b-s1",
+        "--device",
+        "cuda",
+        "--family",
+        "ouro",
+        "--ouro-steps",
+        "1",
+        "--ouro-exit-threshold",
+        "1.0",
+        "--trust-remote-code",
+        "--no-chat-template"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    },
+    "ouro26-s4": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/ouro26",
+        "--port",
+        "8100",
+        "--model-id",
+        "ouro-2.6b-s4",
+        "--device",
+        "cuda",
+        "--family",
+        "ouro",
+        "--ouro-steps",
+        "4",
+        "--ouro-exit-threshold",
+        "1.0",
+        "--trust-remote-code",
+        "--no-chat-template"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    },
+    "smollm2": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/smollm2",
+        "--port",
+        "8100",
+        "--model-id",
+        "smollm2-1.7b",
+        "--device",
+        "cuda",
+        "--no-chat-template"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    },
+    "qwen3": {
+      "argv": [
+        "{python}",
+        "-m",
+        "recurrent_depth",
+        "serve",
+        "{work}/models/qwen3",
+        "--port",
+        "8100",
+        "--model-id",
+        "qwen3-1.7b-base",
+        "--device",
+        "cuda",
+        "--no-chat-template"
+      ],
+      "health_url": "http://127.0.0.1:8100/health",
+      "start_timeout_s": 900
+    }
+  },
+  "stages": [
+    {
+      "name": "download-huginn-model",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "tomg-group-umd/huginn-0125",
+        "--revision",
+        "bb6621b65e90b6a4b9b29ef88dc83866d450470c",
+        "--local-dir",
+        "{work}/models/huginn"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-ouro14-model",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "ByteDance/Ouro-1.4B",
+        "--revision",
+        "574fa66cb8bf5abdc979642d01cf2b79b16bfab1",
+        "--local-dir",
+        "{work}/models/ouro14"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-ouro26-model",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "ByteDance/Ouro-2.6B",
+        "--revision",
+        "1ed04250da1a9936042725d302e81c8fa2ab5abd",
+        "--local-dir",
+        "{work}/models/ouro26"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-smollm2-model",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "HuggingFaceTB/SmolLM2-1.7B",
+        "--revision",
+        "effd688a12921b4cc83e3312b6feb579f70f9c71",
+        "--local-dir",
+        "{work}/models/smollm2"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-qwen3-model",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "Qwen/Qwen3-1.7B-Base",
+        "--revision",
+        "ea980cb0a6c2ae4b936e82123acc929f1cec04c1",
+        "--local-dir",
+        "{work}/models/qwen3"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-twohopfact",
+      "kind": "exec",
+      "checkpoint": false,
+      "timeout_s": 1800,
+      "argv": [
+        "hf",
+        "download",
+        "soheeyang/TwoHopFact",
+        "--repo-type",
+        "dataset",
+        "--revision",
+        "59a84cd883f71641a03fb6fa50da92a9603e7845",
+        "--include",
+        "TwoHopFact.csv",
+        "--local-dir",
+        "{work}/data/twohopfact"
+      ]
+    },
+    {
+      "name": "inspect-config-huginn",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/huginn/config.json"
+      ]
+    },
+    {
+      "name": "inspect-weights-huginn",
+      "kind": "cli",
+      "argv": [
+        "inspect-weights",
+        "{work}/models/huginn",
+        "--config",
+        "{work}/models/huginn/config.json"
+      ]
+    },
+    {
+      "name": "inspect-config-ouro14",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/ouro14/config.json"
+      ]
+    },
+    {
+      "name": "inspect-weights-ouro14",
+      "kind": "cli",
+      "argv": [
+        "inspect-weights",
+        "{work}/models/ouro14",
+        "--config",
+        "{work}/models/ouro14/config.json"
+      ]
+    },
+    {
+      "name": "inspect-config-ouro26",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/ouro26/config.json"
+      ]
+    },
+    {
+      "name": "inspect-weights-ouro26",
+      "kind": "cli",
+      "argv": [
+        "inspect-weights",
+        "{work}/models/ouro26",
+        "--config",
+        "{work}/models/ouro26/config.json"
+      ]
+    },
+    {
+      "name": "inspect-config-smollm2",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/smollm2/config.json"
+      ]
+    },
+    {
+      "name": "inspect-weights-smollm2",
+      "kind": "cli",
+      "argv": [
+        "inspect-weights",
+        "{work}/models/smollm2",
+        "--config",
+        "{work}/models/smollm2/config.json"
+      ]
+    },
+    {
+      "name": "inspect-config-qwen3",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/qwen3/config.json"
+      ]
+    },
+    {
+      "name": "inspect-weights-qwen3",
+      "kind": "cli",
+      "argv": [
+        "inspect-weights",
+        "{work}/models/qwen3",
+        "--config",
+        "{work}/models/qwen3/config.json"
+      ]
+    },
+    {
+      "name": "capture-huginn-easy",
+      "kind": "cli",
+      "argv": [
+        "capture-hidden",
+        "{work}/models/huginn",
+        "--text",
+        "The capital of France is Paris. The capital of Italy is",
+        "--module",
+        "transformer.core_block.3",
+        "--device",
+        "cuda",
+        "--trust-remote-code",
+        "--out",
+        "{out}/trajectory.npy",
+        "--unembed-out",
+        "{out}/unembed.npy",
+        "--forward-kwargs",
+        "{\"num_steps\": 32}"
+      ],
+      "timeout_s": 1800
+    },
+    {
+      "name": "analyze-huginn-easy",
+      "kind": "cli",
+      "argv": [
+        "analyze-hidden",
+        "{work}/stages/capture-huginn-easy/trajectory.npy",
+        "--unembed",
+        "{work}/stages/capture-huginn-easy/unembed.npy"
+      ]
+    },
+    {
+      "name": "capture-huginn-hard",
+      "kind": "cli",
+      "argv": [
+        "capture-hidden",
+        "{work}/models/huginn",
+        "--text",
+        "Start with 47. Add 18, multiply by 3, subtract 29, add 56, multiply by 2. The result is",
+        "--module",
+        "transformer.core_block.3",
+        "--device",
+        "cuda",
+        "--trust-remote-code",
+        "--out",
+        "{out}/trajectory.npy",
+        "--unembed-out",
+        "{out}/unembed.npy",
+        "--forward-kwargs",
+        "{\"num_steps\": 32}"
+      ],
+      "timeout_s": 1800
+    },
+    {
+      "name": "analyze-huginn-hard",
+      "kind": "cli",
+      "argv": [
+        "analyze-hidden",
+        "{work}/stages/capture-huginn-hard/trajectory.npy",
+        "--unembed",
+        "{work}/stages/capture-huginn-hard/unembed.npy"
+      ]
+    },
+    {
+      "name": "capture-ouro14-easy",
+      "kind": "cli",
+      "argv": [
+        "capture-hidden",
+        "{work}/models/ouro14",
+        "--text",
+        "The capital of France is Paris. The capital of Italy is",
+        "--module",
+        "model.layers.23",
+        "--device",
+        "cuda",
+        "--trust-remote-code",
+        "--out",
+        "{out}/trajectory.npy",
+        "--unembed-out",
+        "{out}/unembed.npy"
+      ],
+      "timeout_s": 1800
+    },
+    {
+      "name": "analyze-ouro14-easy",
+      "kind": "cli",
+      "argv": [
+        "analyze-hidden",
+        "{work}/stages/capture-ouro14-easy/trajectory.npy",
+        "--unembed",
+        "{work}/stages/capture-ouro14-easy/unembed.npy"
+      ]
+    },
+    {
+      "name": "capture-ouro14-hard",
+      "kind": "cli",
+      "argv": [
+        "capture-hidden",
+        "{work}/models/ouro14",
+        "--text",
+        "Start with 47. Add 18, multiply by 3, subtract 29, add 56, multiply by 2. The result is",
+        "--module",
+        "model.layers.23",
+        "--device",
+        "cuda",
+        "--trust-remote-code",
+        "--out",
+        "{out}/trajectory.npy",
+        "--unembed-out",
+        "{out}/unembed.npy"
+      ],
+      "timeout_s": 1800
+    },
+    {
+      "name": "analyze-ouro14-hard",
+      "kind": "cli",
+      "argv": [
+        "analyze-hidden",
+        "{work}/stages/capture-ouro14-hard/trajectory.npy",
+        "--unembed",
+        "{work}/stages/capture-ouro14-hard/unembed.npy"
+      ]
+    },
+    {
+      "name": "capture-ouro26-easy",
+      "kind": "cli",
+      "argv": [
+        "capture-hidden",
+        "{work}/models/ouro26",
+        "--text",
+        "The capital of France is Paris. The capital of Italy is",
+        "--module",
+        "model.layers.47",
+        "--device",
+        "cuda",
+        "--trust-remote-code",
+        "--out",
+        "{out}/trajectory.npy",
+        "--unembed-out",
+        "{out}/unembed.npy"
+      ],
+      "timeout_s": 1800
+    },
+    {
+      "name": "analyze-ouro26-easy",
+      "kind": "cli",
+      "argv": [
+        "analyze-hidden",
+        "{work}/stages/capture-ouro26-easy/trajectory.npy",
+        "--unembed",
+        "{work}/stages/capture-ouro26-easy/unembed.npy"
+      ]
+    },
+    {
+      "name": "capture-ouro26-hard",
+      "kind": "cli",
+      "argv": [
+        "capture-hidden",
+        "{work}/models/ouro26",
+        "--text",
+        "Start with 47. Add 18, multiply by 3, subtract 29, add 56, multiply by 2. The result is",
+        "--module",
+        "model.layers.47",
+        "--device",
+        "cuda",
+        "--trust-remote-code",
+        "--out",
+        "{out}/trajectory.npy",
+        "--unembed-out",
+        "{out}/unembed.npy"
+      ],
+      "timeout_s": 1800
+    },
+    {
+      "name": "analyze-ouro26-hard",
+      "kind": "cli",
+      "argv": [
+        "analyze-hidden",
+        "{work}/stages/capture-ouro26-hard/trajectory.npy",
+        "--unembed",
+        "{work}/stages/capture-ouro26-hard/unembed.npy"
+      ]
+    },
+    {
+      "name": "huginn-arith",
+      "kind": "cli",
+      "service": "huginn",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/huginn-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "huginn-ladder",
+      "kind": "cli",
+      "service": "huginn",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/huginn-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "huginn-timing-adaptive",
+      "kind": "cli",
+      "service": "huginn",
+      "timeout_s": 7200,
+      "argv": [
+        "probe",
+        "{bundle}/plans/huginn-timing-adaptive.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "huginn-timing-adaptive-features",
+      "kind": "cli",
+      "argv": [
+        "features",
+        "{work}/stages/huginn-timing-adaptive/records.jsonl"
+      ]
+    },
+    {
+      "name": "huginn-timing-fixed",
+      "kind": "cli",
+      "service": "huginn",
+      "timeout_s": 7200,
+      "argv": [
+        "probe",
+        "{bundle}/plans/huginn-timing-fixed.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "huginn-timing-fixed-features",
+      "kind": "cli",
+      "argv": [
+        "features",
+        "{work}/stages/huginn-timing-fixed/records.jsonl"
+      ]
+    },
+    {
+      "name": "huginn-twohop",
+      "kind": "cli",
+      "service": "huginn",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/huginn-twohop.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s1-arith",
+      "kind": "cli",
+      "service": "ouro14-s1",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s1-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s1-ladder",
+      "kind": "cli",
+      "service": "ouro14-s1",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s1-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s2-arith",
+      "kind": "cli",
+      "service": "ouro14-s2",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s2-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s2-ladder",
+      "kind": "cli",
+      "service": "ouro14-s2",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s2-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s3-arith",
+      "kind": "cli",
+      "service": "ouro14-s3",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s3-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s3-ladder",
+      "kind": "cli",
+      "service": "ouro14-s3",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s3-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s4-arith",
+      "kind": "cli",
+      "service": "ouro14-s4",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s4-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s4-ladder",
+      "kind": "cli",
+      "service": "ouro14-s4",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s4-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s4-timing",
+      "kind": "cli",
+      "service": "ouro14-s4",
+      "timeout_s": 7200,
+      "argv": [
+        "probe",
+        "{bundle}/plans/ouro14s4-timing.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s4-timing-features",
+      "kind": "cli",
+      "argv": [
+        "features",
+        "{work}/stages/ouro14s4-timing/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro14s4-twohop",
+      "kind": "cli",
+      "service": "ouro14-s4",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro14s4-twohop.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro26s1-arith",
+      "kind": "cli",
+      "service": "ouro26-s1",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro26s1-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro26s1-ladder",
+      "kind": "cli",
+      "service": "ouro26-s1",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro26s1-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro26s4-arith",
+      "kind": "cli",
+      "service": "ouro26-s4",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro26s4-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro26s4-ladder",
+      "kind": "cli",
+      "service": "ouro26-s4",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro26s4-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro26s4-timing",
+      "kind": "cli",
+      "service": "ouro26-s4",
+      "timeout_s": 7200,
+      "argv": [
+        "probe",
+        "{bundle}/plans/ouro26s4-timing.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro26s4-timing-features",
+      "kind": "cli",
+      "argv": [
+        "features",
+        "{work}/stages/ouro26s4-timing/records.jsonl"
+      ]
+    },
+    {
+      "name": "ouro26s4-twohop",
+      "kind": "cli",
+      "service": "ouro26-s4",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/ouro26s4-twohop.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "smollm2-arith",
+      "kind": "cli",
+      "service": "smollm2",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/smollm2-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "smollm2-ladder",
+      "kind": "cli",
+      "service": "smollm2",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/smollm2-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "smollm2-timing",
+      "kind": "cli",
+      "service": "smollm2",
+      "timeout_s": 7200,
+      "argv": [
+        "probe",
+        "{bundle}/plans/smollm2-timing.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "smollm2-timing-features",
+      "kind": "cli",
+      "argv": [
+        "features",
+        "{work}/stages/smollm2-timing/records.jsonl"
+      ]
+    },
+    {
+      "name": "smollm2-twohop",
+      "kind": "cli",
+      "service": "smollm2",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/smollm2-twohop.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "qwen3-arith",
+      "kind": "cli",
+      "service": "qwen3",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/qwen3-arith.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "qwen3-ladder",
+      "kind": "cli",
+      "service": "qwen3",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/qwen3-ladder.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "qwen3-timing",
+      "kind": "cli",
+      "service": "qwen3",
+      "timeout_s": 7200,
+      "argv": [
+        "probe",
+        "{bundle}/plans/qwen3-timing.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    },
+    {
+      "name": "qwen3-timing-features",
+      "kind": "cli",
+      "argv": [
+        "features",
+        "{work}/stages/qwen3-timing/records.jsonl"
+      ]
+    },
+    {
+      "name": "qwen3-twohop",
+      "kind": "cli",
+      "service": "qwen3",
+      "timeout_s": 7200,
+      "argv": [
+        "budget-probe",
+        "{bundle}/plans/qwen3-twohop.json",
+        "--out",
+        "{out}/records.jsonl"
+      ]
+    }
+  ]
+}

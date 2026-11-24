@@ -38,6 +38,60 @@ def capture_hidden_states(model: Any, tokenizer: Any, text: str, max_tokens: int
     return np.stack([s[0].float().cpu().numpy() for s in states], axis=0)
 
 
+def resolve_module(model: Any, path: str) -> Any:
+    """Return the submodule at a dotted path such as ``transformer.core_block.3``."""
+    mod = model
+    for part in path.split("."):
+        if not part.isidentifier() and not part.isdigit():
+            raise ValueError(f"invalid module path segment {part!r}")
+        if part.isdigit():
+            mod = mod[int(part)]
+        else:
+            if part.startswith("_"):
+                raise ValueError(f"private attribute in module path: {part!r}")
+            mod = getattr(mod, part)
+    return mod
+
+
+def capture_module_trajectory(
+    model: Any,
+    tokenizer: Any,
+    text: str,
+    module_path: str,
+    max_tokens: int = 256,
+    forward_kwargs: dict[str, Any] | None = None,
+) -> np.ndarray:
+    """Record the output of one module every time it runs during a single forward pass.
+
+    In a looped model the last layer of the shared block runs once per loop
+    step, so hooking it yields the per-step state trajectory that per-layer
+    ``hidden_states`` do not expose (Huginn: ``transformer.core_block.3``;
+    Ouro: ``model.layers.<last>``). Returns (calls, tokens, dim).
+    ``forward_kwargs`` passes model-specific arguments such as Huginn's
+    ``num_steps``.
+    """
+    import torch
+
+    target = resolve_module(model, module_path)
+    calls: list[np.ndarray] = []
+
+    def hook(_mod: Any, _inp: Any, out: Any) -> None:
+        t = out[0] if isinstance(out, (tuple, list)) else out
+        calls.append(t[0].detach().float().cpu().numpy())
+
+    enc = tokenizer(text, return_tensors="pt", truncation=True, max_length=max_tokens)
+    enc = {k: v.to(next(model.parameters()).device) for k, v in enc.items()}
+    handle = target.register_forward_hook(hook)
+    try:
+        with torch.no_grad():
+            model(**enc, **(forward_kwargs or {}))
+    finally:
+        handle.remove()
+    if not calls:
+        raise RuntimeError(f"module {module_path} never ran during the forward pass")
+    return np.stack(calls, axis=0)
+
+
 def unembedding_matrix(model: Any) -> np.ndarray:
     """Return the output embedding as (dim, vocab) for logit-lens decoding."""
     head = model.get_output_embeddings()

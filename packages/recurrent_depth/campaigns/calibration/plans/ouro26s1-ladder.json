@@ -1,0 +1,31 @@
+{
+  "base_url": "http://127.0.0.1:8100/v1",
+  "api_key_env": null,
+  "seed": 0,
+  "temperature": 0.0,
+  "requests_per_minute": 600,
+  "acknowledge_terms": true,
+  "model": "ouro-2.6b-s1",
+  "tasks": [
+    "pointer_chase",
+    "permutation"
+  ],
+  "depths": [
+    1,
+    2,
+    4,
+    8,
+    16
+  ],
+  "reps": 8,
+  "conditions": [
+    {
+      "label": "fixed",
+      "max_tokens": 16,
+      "params": {}
+    }
+  ],
+  "max_requests": 72,
+  "max_total_completion_tokens": 1152,
+  "timeout_s": 120
+}

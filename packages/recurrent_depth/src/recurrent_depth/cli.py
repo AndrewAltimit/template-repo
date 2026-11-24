@@ -77,7 +77,15 @@ def cmd_capture_hidden(args: argparse.Namespace) -> int:
     from . import hf_capture
 
     model, tok = hf_capture.load_local(args.model_dir, trust_remote_code=args.trust_remote_code, device=args.device)
-    h = hf_capture.capture_hidden_states(model, tok, args.text, max_tokens=args.max_tokens)
+    if args.module:
+        fkw = json.loads(args.forward_kwargs) if args.forward_kwargs else {}
+        if not isinstance(fkw, dict):
+            raise SystemExit("--forward-kwargs must be a JSON object")
+        h = hf_capture.capture_module_trajectory(
+            model, tok, args.text, args.module, max_tokens=args.max_tokens, forward_kwargs=fkw
+        )
+    else:
+        h = hf_capture.capture_hidden_states(model, tok, args.text, max_tokens=args.max_tokens)
     np.save(args.out, h)
     print(f"wrote {args.out} with shape {tuple(h.shape)} (steps, tokens, dim)", file=sys.stderr)
     if args.unembed_out:
@@ -223,9 +231,87 @@ typical workflow (see packages/recurrent_depth/README.md, Quickstart):
               or twohop-features for a plan with twohop_csv (latent fact composition)
   calibrate   fit and validate on labeled reference models
   decide      score one or more signal files, with --models from fit
+  self-host   serve a local checkpoint (one request at a time, loop count per request for Huginn)
+  campaigns   campaign run / status / fetch: staged runs checkpointed to S3 or a directory
 """
 
 _REFS_HELP = 'JSON list of {"model": ..., "label": "recurrent" or "fixed", "signals": {...}} rows'
+
+
+def cmd_serve(args: argparse.Namespace) -> int:
+    from . import serve
+
+    if args.host not in ("127.0.0.1", "localhost", "::1") and not args.allow_remote:
+        raise SystemExit("the server has no authentication; bind 127.0.0.1, or pass --allow-remote inside a container")
+    backend = serve.HFBackend(
+        args.model_dir,
+        family=args.family,
+        device=args.device,
+        dtype=args.dtype,
+        trust_remote_code=args.trust_remote_code,
+        chat_template=not args.no_chat_template,
+        default_steps=args.default_steps,
+        ouro_steps=args.ouro_steps,
+        ouro_exit_threshold=args.ouro_exit_threshold,
+        model_id=args.model_id,
+    )
+    srv = serve.ModelServer(backend, allow_recurrence=args.allow_request_recurrence)
+    serve.serve_forever(srv, args.host, args.port)
+    return 0
+
+
+def _run_id(value: str | None) -> str:
+    import datetime
+
+    return value or datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def cmd_campaign_run(args: argparse.Namespace) -> int:
+    from . import campaign, store
+
+    m = campaign.Manifest.from_json(args.manifest)
+    run_id = _run_id(args.run_id)
+    if args.dry_run:
+        values = {
+            "{out}": f"{args.work_dir}/stages/<stage>",
+            "{work}": args.work_dir,
+            "{run_id}": run_id,
+            "{stage}": "<stage>",
+            "{python}": sys.executable,
+            "{bundle}": str(Path(args.manifest).resolve().parent),
+        }
+        _dump(
+            {
+                "campaign": m.campaign,
+                "run_id": run_id,
+                "max_wall_hours": m.max_wall_hours,
+                "stages": [
+                    {"stage": st.name, "service": st.service, "argv": campaign.stage_command(st, values)} for st in m.stages
+                ],
+            }
+        )
+        return 0
+    runner = campaign.CampaignRunner(
+        m, store.open_store(args.store), run_id, args.work_dir, bundle_dir=Path(args.manifest).resolve().parent
+    )
+    summary = runner.run()
+    _dump(summary)
+    return 0 if summary["status"] == "completed" else 1
+
+
+def cmd_campaign_status(args: argparse.Namespace) -> int:
+    from . import campaign, store
+
+    _dump(campaign.campaign_status(store.open_store(args.store), args.run_id))
+    return 0
+
+
+def cmd_campaign_fetch(args: argparse.Namespace) -> int:
+    from . import campaign, store
+
+    n = campaign.fetch_run(store.open_store(args.store), args.run_id, args.dest)
+    print(f"fetched {n} files into {args.dest}", file=sys.stderr)
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -263,6 +349,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--unembed-out", help="also save the (dim, vocab) unembedding as .npy for logit-lens settling")
     s.add_argument("--max-tokens", type=int, default=256, help="truncate the input to this many tokens (default 256)")
     s.add_argument("--device", default="cpu", help="torch device (default cpu)")
+    s.add_argument(
+        "--module",
+        help="record this submodule's output on every call instead of per-layer states, for per-loop-step "
+        "trajectories (for example transformer.core_block.3 for Huginn)",
+    )
+    s.add_argument("--forward-kwargs", help='JSON object of extra forward arguments, e.g. {"num_steps": 32}')
     s.add_argument(
         "--trust-remote-code",
         action="store_true",
@@ -376,6 +468,53 @@ def build_parser() -> argparse.ArgumentParser:
         help="count the timing and knob families once, since they share latency confounders",
     )
     s.set_defaults(func=cmd_validate)
+
+    s = sub.add_parser(
+        "serve",
+        help="serve a local Hugging Face checkpoint as an OpenAI-compatible endpoint, one request at a time",
+    )
+    s.add_argument("model_dir", help="local checkpoint directory; nothing is downloaded")
+    s.add_argument("--family", choices=["plain", "huginn", "ouro"], default="plain", help="how loop settings apply")
+    s.add_argument("--host", default="127.0.0.1", help="bind address (default 127.0.0.1)")
+    s.add_argument("--port", type=int, default=8100, help="port (default 8100)")
+    s.add_argument("--allow-remote", action="store_true", help="permit a non-loopback bind (inside a container only)")
+    s.add_argument("--device", default="cuda", help="torch device (default cuda)")
+    s.add_argument("--dtype", default="bfloat16", help="torch dtype (default bfloat16)")
+    s.add_argument("--model-id", help="model name reported to clients (default: directory name)")
+    s.add_argument("--no-chat-template", action="store_true", help="send the raw prompt (base models)")
+    s.add_argument("--default-steps", type=int, default=32, help="Huginn steps when a request sets none")
+    s.add_argument(
+        "--allow-request-recurrence",
+        action="store_true",
+        help='accept a per-request "recurrence" object (Huginn: num_steps, criterion, exit_threshold)',
+    )
+    s.add_argument("--ouro-steps", type=int, help="Ouro total_ut_steps, fixed for the server's lifetime")
+    s.add_argument("--ouro-exit-threshold", type=float, help="Ouro early_exit_threshold (1.0 always runs every step)")
+    s.add_argument(
+        "--trust-remote-code",
+        action="store_true",
+        help="allow the checkpoint's own modeling code; read that code before using this",
+    )
+    s.set_defaults(func=cmd_serve)
+
+    c = sub.add_parser("campaign", help="run, inspect, or download a staged, checkpointed measurement campaign")
+    csub = c.add_subparsers(dest="campaign_command", required=True)
+    s = csub.add_parser("run", help="run a manifest, skipping stages already checkpointed under this run id")
+    s.add_argument("manifest", help="campaign manifest JSON")
+    s.add_argument("--store", default="campaign-store", help="s3://bucket/prefix, file:///path, or a directory")
+    s.add_argument("--run-id", help="run id; reuse one to resume (default: current UTC time)")
+    s.add_argument("--work-dir", default="campaign-work", help="local working directory")
+    s.add_argument("--dry-run", action="store_true", help="validate and print the commands without running them")
+    s.set_defaults(func=cmd_campaign_run)
+    s = csub.add_parser("status", help="show each stage's state for a run, from the store alone")
+    s.add_argument("--store", required=True)
+    s.add_argument("--run-id", required=True)
+    s.set_defaults(func=cmd_campaign_status)
+    s = csub.add_parser("fetch", help="download a run's checkpoints")
+    s.add_argument("--store", required=True)
+    s.add_argument("--run-id", required=True)
+    s.add_argument("--dest", required=True, help="local directory to write into")
+    s.set_defaults(func=cmd_campaign_fetch)
     return p
 
 

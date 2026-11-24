@@ -1,0 +1,191 @@
+{
+  "campaign": "calibration-tier0",
+  "description": "C1 and C2 on CPU: config inspection for all five models, weight inspection for Ouro-1.4B and SmolLM2-1.7B (about 6 GB of downloads). No model code runs.",
+  "max_wall_hours": 2,
+  "sync_interval_s": 60,
+  "stages": [
+    {
+      "name": "download-huginn-config",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "tomg-group-umd/huginn-0125",
+        "--revision",
+        "bb6621b65e90b6a4b9b29ef88dc83866d450470c",
+        "--local-dir",
+        "{work}/models/huginn",
+        "--include",
+        "config.json"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-ouro14-config",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "ByteDance/Ouro-1.4B",
+        "--revision",
+        "574fa66cb8bf5abdc979642d01cf2b79b16bfab1",
+        "--local-dir",
+        "{work}/models/ouro14",
+        "--include",
+        "config.json"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-ouro26-config",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "ByteDance/Ouro-2.6B",
+        "--revision",
+        "1ed04250da1a9936042725d302e81c8fa2ab5abd",
+        "--local-dir",
+        "{work}/models/ouro26",
+        "--include",
+        "config.json"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-smollm2-config",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "HuggingFaceTB/SmolLM2-1.7B",
+        "--revision",
+        "effd688a12921b4cc83e3312b6feb579f70f9c71",
+        "--local-dir",
+        "{work}/models/smollm2",
+        "--include",
+        "config.json"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "download-qwen3-config",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "Qwen/Qwen3-1.7B-Base",
+        "--revision",
+        "ea980cb0a6c2ae4b936e82123acc929f1cec04c1",
+        "--local-dir",
+        "{work}/models/qwen3",
+        "--include",
+        "config.json"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "inspect-config-huginn",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/huginn/config.json"
+      ]
+    },
+    {
+      "name": "inspect-config-ouro14",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/ouro14/config.json"
+      ]
+    },
+    {
+      "name": "inspect-config-ouro26",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/ouro26/config.json"
+      ]
+    },
+    {
+      "name": "inspect-config-smollm2",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/smollm2/config.json"
+      ]
+    },
+    {
+      "name": "inspect-config-qwen3",
+      "kind": "cli",
+      "argv": [
+        "inspect-config",
+        "{work}/models/qwen3/config.json"
+      ]
+    },
+    {
+      "name": "download-ouro14-model",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "ByteDance/Ouro-1.4B",
+        "--revision",
+        "574fa66cb8bf5abdc979642d01cf2b79b16bfab1",
+        "--local-dir",
+        "{work}/models/ouro14",
+        "--include",
+        "*.safetensors",
+        "--include",
+        "*.json"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "inspect-weights-ouro14",
+      "kind": "cli",
+      "argv": [
+        "inspect-weights",
+        "{work}/models/ouro14",
+        "--config",
+        "{work}/models/ouro14/config.json"
+      ]
+    },
+    {
+      "name": "download-smollm2-model",
+      "kind": "exec",
+      "argv": [
+        "hf",
+        "download",
+        "HuggingFaceTB/SmolLM2-1.7B",
+        "--revision",
+        "effd688a12921b4cc83e3312b6feb579f70f9c71",
+        "--local-dir",
+        "{work}/models/smollm2",
+        "--include",
+        "*.safetensors",
+        "--include",
+        "*.json"
+      ],
+      "checkpoint": false,
+      "timeout_s": 3600
+    },
+    {
+      "name": "inspect-weights-smollm2",
+      "kind": "cli",
+      "argv": [
+        "inspect-weights",
+        "{work}/models/smollm2",
+        "--config",
+        "{work}/models/smollm2/config.json"
+      ]
+    }
+  ]
+}

@@ -63,3 +63,30 @@ def test_capture_hidden_cli_end_to_end(tmp_path, capsys):
     assert cli.main(["inspect-weights", str(ckpt), "--config", str(ckpt / "config.json")]) == 0
     rep = json.loads(capsys.readouterr().out)
     assert rep["signals"]["shared_layer_fraction"] == 0.0
+
+
+class _Looped(torch.nn.Module):
+    """A toy looped model: one shared block applied ``num_steps`` times."""
+
+    def __init__(self, dim=8):
+        super().__init__()
+        self.emb = torch.nn.Embedding(64, dim)
+        self.core = torch.nn.ModuleList([torch.nn.Linear(dim, dim)])
+
+    def forward(self, input_ids, num_steps=3):
+        x = self.emb(input_ids)
+        for _ in range(num_steps):
+            x = torch.tanh(self.core[0](x))
+        return x
+
+
+def test_module_trajectory_records_each_loop_step():
+    model = _Looped().eval()
+    traj = hf_capture.capture_module_trajectory(model, _Tok(), "loop", "core.0", forward_kwargs={"num_steps": 5})
+    assert traj.shape == (5, 4, 8)
+    # the hook is removed afterwards
+    assert not model.core[0]._forward_hooks
+    with pytest.raises(ValueError):
+        hf_capture.resolve_module(model, "core._private")
+    with pytest.raises(RuntimeError):
+        hf_capture.capture_module_trajectory(model, _Tok(), "x", "core.0", forward_kwargs={"num_steps": 0})

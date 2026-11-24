@@ -32,6 +32,10 @@ hf = [
     "torch>=2.4",
     "transformers>=4.44",
 ]
+# Only needed to checkpoint campaigns to S3 (store.S3Store).
+aws = [
+    "boto3>=1.40",
+]
 dev = [
     "pytest>=8.0",
 ]

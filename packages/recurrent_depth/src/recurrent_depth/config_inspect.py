@@ -149,6 +149,18 @@ def _depth(cfg: dict[str, Any], mtype: str | None, notes: list[str]) -> tuple[in
     return None, None
 
 
+def _exit_disabled(adaptive_keys: dict[str, Any]) -> bool:
+    """True when the only adaptive fields are exit thresholds of 1.0 or more.
+
+    Ouro uses ``early_exit_threshold`` as a cumulative exit probability: at
+    1.0 the model never exits early and always runs ``total_ut_steps``.
+    """
+    thresholds = {k: v for k, v in adaptive_keys.items() if "threshold" in k.lower()}
+    if not thresholds or len(thresholds) != len(adaptive_keys):
+        return False
+    return all(isinstance(v, (int, float)) and not isinstance(v, bool) and v >= 1.0 for v in thresholds.values())
+
+
 def inspect_config(cfg: dict[str, Any]) -> ConfigReport:
     """Classify a parsed config dictionary."""
     flat = _flatten(cfg)
@@ -174,13 +186,17 @@ def inspect_config(cfg: dict[str, Any]) -> ConfigReport:
         outcome = 0.0
     if moe_keys:
         notes.append("mixture-of-experts fields present: per-token compute varies without extra serial depth")
-    if adaptive_keys:
+    adaptive = bool(adaptive_keys)
+    if adaptive and _exit_disabled(adaptive_keys):
+        adaptive = False
+        notes.append("exit-threshold fields present but set to 1.0 or above: every step always runs")
+    elif adaptive:
         notes.append("adaptive-exit or halting fields present: per-token iteration count may vary at inference")
     return ConfigReport(
         model_type=mtype,
         outcome=outcome,
         declares_recurrence=declares,
-        adaptive_exit=bool(adaptive_keys),
+        adaptive_exit=adaptive,
         moe=bool(moe_keys),
         custom_code=custom,
         stored_layers=stored,

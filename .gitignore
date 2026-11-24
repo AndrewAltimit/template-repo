@@ -284,3 +284,9 @@ infra/**/provider.tf
 
 # Scratch output from local sleeper_agents runs (archive kept runs under packages/sleeper_agents/docs/results/)
 /evaluation_results/
+
+# recurrent-depth infrastructure: emulator CA and state, plugin and bundle caches, Lambda zips
+infra/aws/recurrent-depth/.emulator/
+infra/aws/recurrent-depth/.emulator-state/
+infra/aws/recurrent-depth/.cache/
+infra/aws/recurrent-depth/modules/*/.build/

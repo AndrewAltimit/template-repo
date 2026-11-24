@@ -1,4 +1,11 @@
-# AWS AgentCore Infrastructure
+# AWS Infrastructure
+
+Two independent stacks live here:
+
+- this directory: AWS Bedrock AgentCore (below);
+- [`recurrent-depth/`](recurrent-depth/README.md): rented GPU nodes, checkpoint bucket and cost guardrails for the `recurrent_depth` measurement campaigns. It has its own `root.hcl`, state and tags.
+
+## AWS AgentCore
 
 Terraform/Terragrunt infrastructure for AWS Bedrock AgentCore with BYORT (Bring Your Own Runtime).
 

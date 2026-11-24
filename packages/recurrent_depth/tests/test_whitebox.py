@@ -45,8 +45,14 @@ def test_huginn_config():
 
 def test_ouro_config():
     r = config_inspect.inspect_config(OURO)
-    assert r.outcome == 1.0 and r.adaptive_exit
+    # The published threshold of 1.0 disables early exit: every step always runs.
+    assert r.outcome == 1.0 and not r.adaptive_exit
+    assert any("1.0 or above" in n for n in r.notes)
     assert r.stored_layers == 24 and r.logical_depth == 96
+    adaptive = config_inspect.inspect_config(dict(OURO, early_exit_threshold=0.5))
+    assert adaptive.adaptive_exit
+    halting = config_inspect.inspect_config(dict(OURO, halting_enabled=True))
+    assert halting.adaptive_exit
 
 
 def test_albert_shared_layers():

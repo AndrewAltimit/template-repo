@@ -1,0 +1,36 @@
+{
+  "base_url": "http://127.0.0.1:8100/v1",
+  "api_key_env": null,
+  "seed": 0,
+  "temperature": 0.0,
+  "requests_per_minute": 600,
+  "acknowledge_terms": true,
+  "model": "huginn-0125",
+  "conditions": [
+    {
+      "label": "s4",
+      "max_tokens": 16,
+      "params": {
+        "recurrence": {
+          "num_steps": 4
+        }
+      }
+    },
+    {
+      "label": "s32",
+      "max_tokens": 16,
+      "params": {
+        "recurrence": {
+          "num_steps": 32
+        }
+      }
+    }
+  ],
+  "max_requests": 900,
+  "max_total_completion_tokens": 14400,
+  "timeout_s": 120,
+  "twohop_csv": "data/twohopfact/TwoHopFact.csv",
+  "twohop_n": 150,
+  "tasks": [],
+  "depths": []
+}
